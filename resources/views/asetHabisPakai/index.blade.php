@@ -2,7 +2,6 @@
 
 @section('content')
 {{-- DataTables CSS --}}
-<link rel="stylesheet" href="//cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
 <style>
     .table-responsive { overscroll-behavior-x: none; }
     html, body { overscroll-behavior-x: none; overscroll-behavior-y: auto; }
@@ -274,16 +273,9 @@
 {{-- Scripts --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="//cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
 
 <script>
     $(document).ready(function() {
-        $('#itemsTable').DataTable({
-            "paging": false, 
-            "info": false,
-            "searching": false,
-            "columnDefs": [{ "orderable": false, "targets": [0, 10] }]
-        });
 
         $('#filterButton').click(function() {
             $('#filterFields').slideToggle('fast');

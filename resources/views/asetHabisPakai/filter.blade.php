@@ -6,9 +6,9 @@
                 <label for="">Kategori Barang:</label>
                 <select class="form-control" name="categories">
                     <option value="all" {{ request()->input('categories') == 'all' ? 'selected' : '' }}>All</option>
-                    <option value="Rumah Tangga" {{ request()->input('categories') == 'Tetap' ? 'selected' : '' }}>Rumah Tangga</option>
-                    <option value="ATK" {{ request()->input('categories') == 'Bergerak' ? 'selected' : '' }}>ATK</option>
-                    <option value="Laboratorium" {{ request()->input('categories') == 'Bergerak' ? 'selected' : '' }}>Laboratorium</option>
+                    <option value="Rumah Tangga" {{ request()->input('categories') == 'Rumah Tangga' ? 'selected' : '' }}>Rumah Tangga</option>
+                    <option value="ATK" {{ request()->input('categories') == 'ATK' ? 'selected' : '' }}>ATK</option>
+                    <option value="Laboratorium" {{ request()->input('categories') == 'Laboratorium' ? 'selected' : '' }}>Laboratorium</option>
                 </select>
             </div>
         </div>

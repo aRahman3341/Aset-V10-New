@@ -32,17 +32,15 @@
 
 <main id="main" class="main" style="padding-top: 50px;">
 
-    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
-        <div>
-            <h1 class="page-title-custom">DATA ASET</h1>
-            <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0" style="font-size: 0.8rem;">
-                    <li class="breadcrumb-item"><a href="/">Home</a></li>
-                    <li class="breadcrumb-item active">Aset Tetap</li>
-                </ol>
-            </nav>
-        </div>
-    </div>
+    <div class="pagetitle mt-2 mb-4">
+    <h1 class="page-title-custom text-uppercase">Persediaan Barang Habis Pakai</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item active">Habis Pakai</li>
+        </ol>
+    </nav>
+</div>
 
     <section class="section">
         <div class="card border-0 shadow-sm" style="border-radius: 8px;">

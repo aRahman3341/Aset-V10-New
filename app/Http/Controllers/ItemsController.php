@@ -35,33 +35,38 @@ class ItemsController extends Controller
 		$countATK = Items::where('categories', 'ATK')->sum('saldo');
 
 		return view('asetHabisPakai.index', compact('items', 'countRT', 'countLab', 'countATK'));
+		session()->forget(['filter_categories', 'filter_status']);
 	}
 	
 	public function filter(Request $request)
 	{
-		// Kode untuk fitur filter data
+		if ($request->isMethod('post')) {
+			session([
+				'filter_categories' => $request->input('categories'),
+				'filter_status'     => $request->input('status'),
+			]);
+		}
+
+		// Ambil dari session
+		$categories = session('filter_categories', 'all');
+		$status     = session('filter_status', 'all');
+
 		$tabel = DB::table('items');
 
-        $categories = $request->input('categories');
-        if ($categories !== 'all') {
-            $tabel->where('categories', $categories);
-        }
-        $status = $request->input('status');
-        if ($status !== 'all') {
-            $tabel->where('status', $status);
-        }
-		
-		$items = $tabel->paginate(20);
-		//dd($items);
+		if ($categories && $categories !== 'all') {
+			$tabel->where('categories', $categories);
+		}
+		if ($status !== null && $status !== 'all') {
+			$tabel->where('status', $status);
+		}
 
-		$countRT = Items::where('categories', 'Rumah Tangga')->sum('saldo');
-		$opsikRT = Items::where('categories', 'Rumah Tangga')->sum('opsik');
+		$items = $tabel->paginate(20)->withQueryString();
+
+		$countRT  = Items::where('categories', 'Rumah Tangga')->sum('saldo');
 		$countLab = Items::where('categories', 'Laboratorium')->sum('saldo');
-		$opsikLab = Items::where('categories', 'Laboratorium')->sum('opsik');
 		$countATK = Items::where('categories', 'ATK')->sum('saldo');
-		$opsikATK = Items::where('categories', 'ATK')->sum('opsik');
 
-		return view('asetHabisPakai.index', compact('items', 'countRT', 'countLab', 'countATK', 'opsikRT', 'opsikLab', 'opsikATK'));
+		return view('asetHabisPakai.index', compact('items', 'countRT', 'countLab', 'countATK'));
 	}
 
 	public function create()

@@ -111,8 +111,54 @@
 			</div>
 			<!-- End Default Table Example -->
 			</div>
-			<div class="card-footer">
-				{{ $employee->links() }}
+			<div class="card-footer bg-white border-top py-3">
+				<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+					<small class="text-muted">
+						Menampilkan <strong>{{ $employee->firstItem() ?? 0 }}</strong>–<strong>{{ $employee->lastItem() ?? 0 }}</strong>
+						dari <strong>{{ $employee->total() }}</strong> pengguna
+					</small>
+
+					<div class="mt-2 mb-2 flex justify-center">
+						<nav aria-label="Page navigation">
+							<ul class="inline-flex -space-x-px rounded-md shadow-sm">
+								<!-- Previous -->
+								@if ($employee->onFirstPage())
+									<li>
+										<span class="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-md opacity-50 cursor-not-allowed">«</span>
+									</li>
+								@else
+									<li>
+										<a href="{{ $employee->previousPageUrl() }}" class="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-100 hover:text-gray-700">«</a>
+									</li>
+								@endif
+
+								<!-- Nomor halaman -->
+								@foreach ($employee->getUrlRange(1, $employee->lastPage()) as $page => $url)
+									@if ($page == $employee->currentPage())
+										<li>
+											<span class="px-3 py-2 leading-tight text-white bg-indigo-600 border border-indigo-600">{{ $page }}</span>
+										</li>
+									@else
+										<li>
+											<a href="{{ $url }}" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700">{{ $page }}</a>
+										</li>
+									@endif
+								@endforeach
+
+								<!-- Next -->
+								@if ($employee->hasMorePages())
+									<li>
+										<a href="{{ $employee->nextPageUrl() }}" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-100 hover:text-gray-700">»</a>
+									</li>
+								@else
+									<li>
+										<span class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-md opacity-50 cursor-not-allowed">»</span>
+									</li>
+								@endif
+							</ul>
+						</nav>
+					</div>
+				</div>
 			</div>
 		</div>
 		{{--endcard--}}

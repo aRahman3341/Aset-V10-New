@@ -5,25 +5,16 @@
 
     <main id="main" class="main">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-            <h1 class="h4 fw-bold">Aset</h1>
+            <h1 class="h4 fw-bold">Form Tambah Aset</h1>
         </div>
         <div class="row d-flex justify-content-center">
             <div class="card shadow-sm">
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <div class="row" style="margin-top: -18px; margin-bottom: -18px">
-                            <div class="col-md-6">
-                                <h5 class="card-title">Form Tambah Aset</h5>
-                            </div>
-                        </div>
-                    </div>
+                <div class=" mt-4">
                 </div>
                 <div class="card-body">
                     <form class="row g-3 needs-validation" action="{{ route('asetTetap.store') }}" method="POST"
                         enctype="multipart/form-data" id="your-form-id" novalidate>
                         @csrf
-
-                        {{-- ===== SECTION: IDENTITAS BARANG ===== --}}
                         <div class="col-12">
                             <h6 class="fw-bold text-primary border-bottom pb-1 mb-0"><i class="bi bi-tag"></i> Identitas Barang</h6>
                         </div>

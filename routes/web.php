@@ -57,7 +57,7 @@ Route::middleware('IsLogin')->group(function () {
     Route::get('/items/{id}/edit', [ItemsController::class, 'edit'])->name('items.edit');
     Route::put('/items/{id}', [ItemsController::class, 'update'])->name('items.update');
     Route::delete('/items/{id}', [ItemsController::class, 'destroy'])->name('items.destroy');
-    Route::get('/items/filter', [ItemsController::class, 'filter'])->name('items.filter');
+    Route::match(['get', 'post'], '/items/filter', [ItemsController::class, 'filter'])->name('items.filter');
     Route::post('/items/multi-delete', [ItemsController::class, 'multiDelete'])->name('items.multiDelete');
     Route::post('/items/import', [ItemsController::class, 'fileImport'])->name('items.import');
     Route::get('/items/export', [ItemsController::class, 'export'])->name('items.export');
@@ -68,8 +68,6 @@ Route::middleware('IsLogin')->group(function () {
         Route::post('/', [QrCodeController::class, 'generateQRCodes'])->name('generate_qrcodes');
         Route::post('/scanning', [QrCodeController::class, 'scanning'])->name('scanning');
         Route::get('/scanningResult', [QrCodeController::class, 'scanningResult'])->name('generate_qrcodes.scanningResult');
-        // HAPUS BARIS DI BAWAH INI KARENA SUDAH ADA DI ATAS
-        // Route::post('/items/qrcodes', [ItemsController::class, 'qrcodes'])->name('items.qrcodes'); 
     });
 
     /* ================= PEMINJAMAN ================= */
