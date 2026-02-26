@@ -66,7 +66,7 @@ Route::middleware('IsLogin')->group(function () {
     /* ================= QR CODE ================= */
     Route::prefix('generate_qrcodes')->group(function () {
         Route::post('/', [QrCodeController::class, 'generateQRCodes'])->name('generate_qrcodes');
-        Route::post('/scanning', [QrCodeController::class, 'scanning'])->name('scanning');
+        Route::post('/scanning', [QrCodeController::class, 'scanning'])->name('scanning');           // ← nama 'scanning' dipakai di scane.blade.php
         Route::get('/scanningResult', [QrCodeController::class, 'scanningResult'])->name('generate_qrcodes.scanningResult');
     });
 

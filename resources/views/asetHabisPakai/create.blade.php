@@ -3,201 +3,106 @@
 @section('content')
 <main id="main" class="main">
 
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h4 fw-bold">Barang Habis Pakai</h1>
+    <div class="pagetitle">
+        <div class="pagetitle-left">
+            <div class="pagetitle-icon"><i class="bi bi-plus-circle"></i></div>
+            <div>
+                <h1>Tambah Barang Habis Pakai</h1>
+                <nav>
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url('/') }}"><i class="bi bi-house-door"></i> Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('items.index') }}">Habis Pakai</a></li>
+                        <li class="breadcrumb-item active">Tambah</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
     </div>
-    <div class="row d-flex justify-content-center">
-        {{--card--}}
-		<div class="card">
-			<div class="card mt-4">
-				<div class="card-header" >
-					<div class="row" style="margin-top: -18px; margin-bottom: -18px">
-						<div class="col-md-6">
-							<h5 class="card-title" >Form Barang Habis Pakai</h5>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="card-body">
-				<form class="row g-3" method="POST" action="{{ route('items.store') }}">
-					@csrf
-					{{--<div class="col-md-6">
-						<label for="kode_barang" class="col-form-label fw-bold">Kode Barang <span class="text-danger">*</span></label>
-                        <div class="">
-                            <input type="text" id="kode_barang" name="kode_barang" class="form-control">
-                            <span id="kode_barang_error" class="text-danger"></span>
-                            @error('code')
-                                <div class="text-danger">{{ $message }}</div>
-                            @enderror
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="form-card">
+                <div class="form-card-header">
+                    <i class="bi bi-box-seam"></i>
+                    <span>Form Barang Habis Pakai</span>
+                </div>
+                <div class="form-card-body">
+                    <form class="row g-3" method="POST" action="{{ route('items.store') }}">
+                        @csrf
+
+                        <div class="col-md-6">
+                            <label class="form-label">Kode Barang <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @error('code') is-invalid @enderror" name="code" value="{{ old('code') }}" placeholder="Contoh: BHP-001">
+                            @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-					</div>--}}
-					<div class="col-md-6">
-						<label for="inputNanme4" class="col-form-label fw-bold">Kode Barang  <span class="text-danger">*</span></label>
-                        <div class="">
-                            <input type="text" class="form-control" name="code" id="code" value="{{ old('code') }}">
-                            @error('code')
-                                <div class="text-danger">{{ $message }}</div>
-                            @enderror
-                        </div>
-					</div>
-                    <div class="col-md-6">
-                        <label for="categories" class="col-form-label fw-bold">Kategori <span
-                                class="text-danger">*</span></label>
-                        <div class="">
-                            <select id="categories" name="categories" class="form-control" >
-                                <option value="">Pilih Kategori</option>
-                                <option value="ATK">ATK</option>
-                                <option value="Rumah Tangga">Rumah Tangga</option>
-                                <option value="Laboratorium">Laboratorium</option>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Kategori <span class="text-danger">*</span></label>
+                            <select name="categories" class="form-select @error('categories') is-invalid @enderror">
+                                <option value="">— Pilih Kategori —</option>
+                                <option value="ATK"          {{ old('categories') == 'ATK' ? 'selected' : '' }}>ATK</option>
+                                <option value="Rumah Tangga" {{ old('categories') == 'Rumah Tangga' ? 'selected' : '' }}>Rumah Tangga</option>
+                                <option value="Laboratorium" {{ old('categories') == 'Laboratorium' ? 'selected' : '' }}>Laboratorium</option>
                             </select>
-                            @error('categories')
-                                <div class="text-danger">{{ $message }}</div>
-                            @enderror
+                            @error('categories')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                    </div>
-					<div class="col-md-12">
-						<label for="name" class="col-form-label fw-bold">Nama Barang <span class="text-danger">*</span></label>
-                        <div class="">
-                            <input type="text" id="name" name="name" class="form-control" value="{{ old('name') }}">
-                            <span id="name_error" class="text-danger"></span>
-                            @error('name')
-                                <div class="text-danger">{{ $message }}</div>
-                            @enderror
+
+                        <div class="col-md-12">
+                            <label class="form-label">Nama Barang <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name') }}" placeholder="Nama lengkap barang">
+                            @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-					</div>
-					<div class="col-4">
-						<label for="saldo" class="col-form-label fw-bold">Saldo di Sistem <span class="text-danger">*</span></label>
-                        <div class="">
-                            <input type="text" id="saldo" name="saldo" class="form-control" value="{{ old('saldo') }}">
-                            <span id="saldo_error" class="text-danger"></span>
-                            @error('saldo')
-                                <div class="text-danger">{{ $message }}</div>
-                            @enderror
+
+                        <div class="col-md-6">
+                            <label class="form-label">Saldo di Sistem <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @error('saldo') is-invalid @enderror" name="saldo" value="{{ old('saldo') }}" placeholder="0">
+                            @error('saldo')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-					</div>
-					{{--<div class="col-4">
-						<label for="opsik" class="col-form-label fw-bold">Hasil Opsik <span class="text-danger">*</span></label>
-                        <div class="">
-                            <input type="text" id="opsik" name="opsik" class="form-control" value="{{ old('opsik') }}">
-                            <span id="opsik_error" class="text-danger"></span>
-                            @error('opsik')
-                                <div class="text-danger">{{ $message }}</div>
-                            @enderror
+
+                        <div class="col-md-6">
+                            <label class="form-label">Satuan <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @error('satuan') is-invalid @enderror" name="satuan" value="{{ old('satuan') }}" placeholder="pcs / rim / botol...">
+                            @error('satuan')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-					</div>--}}
-					<div class="col-4">
-						<label for="satuan" class="col-form-label fw-bold">Satuan <span class="text-danger">*</span></label>
-                        <div class="">
-                            <input type="text" id="satuan" name="satuan" class="form-control" value="{{ old('satuan') }}">
-                            <span id="satuan_error" class="text-danger"></span>
-                            @error('satuan')
-                                <div class="text-danger">{{ $message }}</div>
-                            @enderror
-                        </div>
-					</div>
-					<div class="col-12">
-						<label for="status" class="col-form-label fw-bold">Status Pencatatan</label>
-                        <div class="">
-                            <div class="form-check form-check-inline">
+
+                        <div class="col-12">
+                            <label class="form-label">Status Pencatatan</label>
+                            <div class="d-flex align-items-center gap-2">
                                 <input type="hidden" name="status" value="0">
-                                <input type="checkbox" id="status" name="status" class="form-check-input" value="1">
+                                <input type="checkbox" id="status" name="status" class="form-check-input" value="1" style="width:18px;height:18px;">
+                                <label for="status" class="mb-0 text-muted" style="font-size:0.85rem">Tandai sebagai Teregister</label>
                             </div>
                         </div>
-					</div>
-					<div class="d-grid gap-2 mt-3">
-						<button type="submit" class="btn btn-primary">Add Item</button>
-					</div>
-				</form>
-			<!-- End Default Table Example -->
-			</div>
-		</div>
-		{{--endcard--}}
+
+                        <div class="col-12 mt-2">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary px-5">
+                                    <i class="bi bi-check-lg"></i> Simpan
+                                </button>
+                                <a href="{{ route('items.index') }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> Kembali
+                                </a>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 </main>
 
-<script>
-    // ============ format rupiah =========
-    function formatRupiah(input) {
-        // Format the input value as Indonesian Rupiah currency format
-        var value = input.value.replace(/\D/g, "");
-        input.value = formatNumber(value);
-    }
+<style>
+    .pagetitle { display:flex; align-items:center; margin-bottom:24px; }
+    .pagetitle-left { display:flex; align-items:center; gap:14px; }
+    .pagetitle-icon { width:46px;height:46px;background:linear-gradient(135deg,#1e3a5f,#2d5a8e);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;box-shadow:0 4px 12px rgba(30,58,95,0.25);flex-shrink:0; }
+    .pagetitle h1 { font-size:1.3rem;font-weight:800;color:#1e3a5f;margin:0 0 4px; }
+    .pagetitle .breadcrumb { margin:0;padding:0;background:transparent;font-size:0.78rem; }
+    .pagetitle .breadcrumb-item a { color:#2d5a8e;text-decoration:none; }
+    .pagetitle .breadcrumb-item.active { color:#8a96a3; }
 
-    function formatNumber(value) {
-        // Format the value as Indonesian Rupiah currency format
-        return new Intl.NumberFormat({
-            style: "currency",
-            currency: "IDR",
-            minimumFractionDigits: 0,
-        }).format(value);
-    }
-
-    function validateSaldo(input) {
-    var value = input.value.replace(/\D/g, ''); // Remove non-digit characters from the input value
-    input.value = value; // Update the input value with the validated value
-}
-
-    // ============= end format rupiah =========
-
-    // ============== sum of ==============
-
-    function calculateTotal() {
-    var quantity = document.getElementById("quantity").value;
-    var hargaSatuanDisplay = document.getElementById("harga_satuan_display").value.replace(/\D/g, "");
-    var hargaSatuan = parseInt(hargaSatuanDisplay);
-    var total = quantity * hargaSatuan;
-
-    document.getElementById("harga_satuan").value = hargaSatuan;
-    document.getElementById("harga_total_display").value = formatNumber(total);
-    document.getElementById("harga_total").value = total;
-}
-
-    // ============== end sum of =================
-
-    //$(document).ready(function() {
-    //    var isKodeBarangValid = false;
-
-    //    $('#kode_barang').on('input', function() {
-    //        var kodeBarang = $(this).val();
-
-    //        $('#kode_barang').removeClass('is-valid is-invalid');
-    //        $('#kode_barang_error').text('');
-
-    //        if (kodeBarang.trim() !== '') {
-    //            $.ajax({
-    //                url: '{{ route('checkCodeBExists') }}',
-    //                type: 'POST',
-    //                data: {
-    //                    kode_barang: kodeBarang
-    //                },
-    //                headers: {
-    //                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-    //                },
-    //                success: function(response) {
-    //                    $('#kode_barang').removeClass('is-invalid').addClass('is-valid');
-    //                    $('#kode_barang_error').text('');
-    //                    isKodeBarangValid = true;
-    //                },
-    //                error: function(xhr, status, error) {
-    //                    if (xhr.status === 400) {
-    //                        $('#kode_barang').removeClass('is-valid').addClass('is-invalid');
-    //                        $('#kode_barang_error').text(xhr.responseJSON.message);
-    //                        isKodeBarangValid = false;
-    //                    } else {
-    //                        console.log('Error:', error);
-    //                    }
-    //                }
-    //            });
-    //        } else {
-    //            isKodeBarangValid = false;
-    //        }
-    //    });
-
-    //    //$('form').on('submit', function(e) {
-    //    //    if (!isKodeBarangValid) {
-    //    //        e.preventDefault();
-    //    //    }
-    //    //});
-    //});
-</script>
+    .form-card { background:#fff;border-radius:16px;border:1px solid rgba(30,58,95,0.08);box-shadow:0 2px 16px rgba(30,58,95,0.07);overflow:hidden; }
+    .form-card-header { display:flex;align-items:center;gap:10px;padding:16px 24px;background:linear-gradient(135deg,#1e3a5f,#2d5a8e);color:#fff;font-size:0.92rem;font-weight:700; }
+    .form-card-body { padding:28px 24px; }
+</style>
 @endsection
