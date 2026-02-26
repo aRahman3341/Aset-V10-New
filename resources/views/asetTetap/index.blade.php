@@ -33,11 +33,11 @@
 <main id="main" class="main" style="padding-top: 50px;">
 
     <div class="pagetitle mt-2 mb-4">
-    <h1 class="page-title-custom text-uppercase">Persediaan Barang Habis Pakai</h1>
+    <h1 class="page-title-custom text-uppercase">Aset Tetap</h1>
     <nav>
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="/">Home</a></li>
-            <li class="breadcrumb-item active">Habis Pakai</li>
+            <li class="breadcrumb-item active">Aset</li>
         </ol>
     </nav>
 </div>
