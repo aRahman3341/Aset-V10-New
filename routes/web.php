@@ -47,7 +47,15 @@ Route::middleware('IsLogin')->group(function () {
         Route::get('/import', [BarangController::class, 'import'])->name('import');
         Route::post('/import', [BarangController::class, 'importStore'])->name('import.store');
         Route::post('/export', [BarangController::class, 'export'])->name('export');
-    });
+        Route::post('/asetTetap/qrcodes', [QrCodeController::class, 'generateQRCodes'])
+            ->name('generate_qrcodes');
+
+        Route::post('/scanning', [QrCodeController::class, 'scanning'])
+            ->name('scanning');
+
+        Route::post('/scanning-result', [QrCodeController::class, 'scanningResult'])
+            ->name('scanningResult');
+            });
 
     /* ================= ITEMS ================= */
     Route::get('/dashboard', function () {})->middleware('IsLogin');
@@ -62,6 +70,8 @@ Route::middleware('IsLogin')->group(function () {
     Route::post('/items/import', [ItemsController::class, 'fileImport'])->name('items.import');
     Route::get('/items/export', [ItemsController::class, 'export'])->name('items.export');
     Route::post('/items/qrcodes', [ItemsController::class, 'qrcodes'])->name('items.qrcodes');
+    Route::post('/items/export-selected', [ItemsController::class, 'exportSelected'])->name('items.exportSelected');
+    Route::post('/items/qrcodes', [QrCodeController::class, 'generateQRCodesItems'])->name('items.qrcodes');
     
     /* ================= QR CODE ================= */
     Route::prefix('generate_qrcodes')->group(function () {

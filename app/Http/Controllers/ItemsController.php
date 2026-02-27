@@ -168,22 +168,48 @@ class ItemsController extends Controller
         }
     }
 
+    // Export per kategori (tab "Export per Kategori")
     public function export(Request $request)
     {
-        $validator = $request->validate(['categories' => 'required'], ['categories.required' => 'Pilih kategori']);
+        $validator = $request->validate(
+            ['categories' => 'required'],
+            ['categories.required' => 'Pilih kategori terlebih dahulu']
+        );
         $categories   = $validator['categories'];
-        $data         = Items::where('categories', $categories)->get();
+        $data         = Items::where('categories', $categories)->orderBy('name')->get();
         $totalBalance = Items::where('categories', $categories)->sum('saldo');
-        return Excel::download(new ItemsExport($data, $totalBalance, $categories), 'Bahan Opname ' . $categories . '.xlsx');
+        $filename     = 'Export_' . str_replace(' ', '_', $categories) . '_' . now()->format('Ymd') . '.xlsx';
+        return Excel::download(new ItemsExport($data, $totalBalance, $categories), $filename);
+    }
+
+    // Export barang terpilih dari checkbox (tab "Export Terpilih")
+    public function exportSelected(Request $request)
+    {
+        $selectedIds = $request->input('id_items', []);
+        if (empty($selectedIds)) {
+            return redirect()->back()->with('error', 'Pilih minimal satu barang untuk diexport');
+        }
+        $data     = Items::whereIn('id', $selectedIds)->orderBy('categories')->orderBy('name')->get();
+        $filename = 'Export_Terpilih_' . now()->format('Ymd_His') . '.xlsx';
+        return Excel::download(new ItemsExport($data, null, 'Terpilih'), $filename);
     }
 
     public function qrcodes(Request $request)
     {
         $selectedIds = $request->input('id_items', []);
-        $dataproduk  = Items::whereIn('id', $selectedIds)->get();
+
+        if (empty($selectedIds)) {
+            return redirect()->route('items.index')->with('error', 'Pilih minimal satu barang untuk cetak QR');
+        }
+
+        // QR di-generate oleh JavaScript (QRCode.js) di browser
+        // Controller cukup kirim data barang, tidak perlu generate QR di PHP
+        $dataproduk = Items::whereIn('id', $selectedIds)->get();
+
         return view('asetHabisPakai.qrcode', compact('dataproduk'));
     }
 
+    
     public function multiDelete(Request $request)
     {
         $selectedIds = $request->input('id_items', []);

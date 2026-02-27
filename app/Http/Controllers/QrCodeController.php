@@ -4,16 +4,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Materials;
+use App\Models\Items;
 use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf as PDF;
-
-use chillerlan\QRCode\QRCode;
-use chillerlan\QRCode\QROptions;
 
 class QrCodeController extends Controller
 {
+    // ══════════════════════════════════════════════════════════
+    //  ASET TETAP
+    // ══════════════════════════════════════════════════════════
+
     /**
-     * Generate QR Code PDF untuk aset yang dipilih
+     * Cetak QR Code aset tetap (dipanggil dari asetTetap/index.blade.php)
+     * Route: POST /asetTetap/qrcodes  → name: generate_qrcodes
      */
     public function generateQRCodes(Request $request)
     {
@@ -22,74 +24,20 @@ class QrCodeController extends Controller
             'id_aset.*' => 'integer|exists:materials,id',
         ]);
 
-        $locations = DB::table('locations')->get()->keyBy('id');
-        $employees = DB::table('employees')->get()->keyBy('id');
+        $dataproduk = Materials::whereIn('id', $request->id_aset)->get();
 
-        $dataproduk = [];
-        $qrcode     = [];
-
-        foreach ($request->id_aset as $id) {
-            $produk = Materials::find($id);
-
-            if (! $produk) {
-                continue;
-            }
-
-            // Lokasi
-            $lokasi = '-';
-            if (isset($locations[$produk->store_location])) {
-                $loc    = $locations[$produk->store_location];
-                $lokasi = trim($loc->office) . ' - Lt.' . trim($loc->floor) . ' - R.' . trim($loc->room);
-            }
-
-            // Pengguna / Supervisor
-            $pengguna = '-';
-            if (isset($employees[$produk->supervisor])) {
-                $pengguna = $employees[$produk->supervisor]->name;
-            }
-
-            // Kalibrasi
-            $kalibrasi = '-';
-            if ($produk->dikalibrasi == 1 && $produk->last_kalibrasi) {
-                $kalibrasi = $produk->last_kalibrasi;
-            }
-
-            // Konten QR
-            $qrcodeContent = implode('*', [
-                $produk->code     ?? '',
-                $produk->nup      ?? '',
-                $produk->name     ?? '',
-                $pengguna,
-                $lokasi,
-                $kalibrasi,
-            ]);
-
-            // Generate QR pakai chillerlan/php-qrcode
-            $options = new QROptions([
-                'outputType'  => QRCode::OUTPUT_IMAGE_PNG,
-                'eccLevel'    => QRCode::ECC_H,
-                'scale'       => 6,
-                'imageBase64' => false,
-            ]);
-
-            $qrCodeImage  = (new QRCode($options))->render($qrcodeContent);
-            $dataproduk[] = $produk;
-            $qrcode[]     = base64_encode($qrCodeImage);
-        }
-
-        if (empty($dataproduk)) {
+        if ($dataproduk->isEmpty()) {
             return back()->with('error', 'Tidak ada data aset yang valid.');
         }
 
-        $no  = 0;
-        $pdf = PDF::loadView('asetTetap.qrcode', compact('dataproduk', 'qrcode', 'no'));
-        $pdf->setPaper('a4', 'portrait');
-
-        return $pdf->stream('QR-Aset-' . now()->format('Ymd-His') . '.pdf');
+        // QR di-generate oleh QRCode.js di browser
+        // Konten QR: "kode*nup*nama" → scane.blade.php parse format ini
+        return view('asetTetap.qrcode', compact('dataproduk'));
     }
 
     /**
-     * API: Cari aset berdasarkan hasil scan QR
+     * API scanning aset tetap — dipanggil scane.blade.php via fetch()
+     * Route: POST /scanning  → name: scanning
      */
     public function scanning(Request $request)
     {
@@ -151,5 +99,30 @@ class QrCodeController extends Controller
         $tahun      = DB::table('materials')->select('years')->distinct()->orderBy('years')->get();
 
         return view('asetTetap.index', compact('items', 'locations', 'employees', 'categories', 'tahun'));
+    }
+
+
+    // ══════════════════════════════════════════════════════════
+    //  BARANG HABIS PAKAI
+    // ══════════════════════════════════════════════════════════
+
+    /**
+     * Cetak QR Code barang habis pakai (dipanggil dari asetHabisPakai/index.blade.php)
+     * Route: POST /items/qrcodes  → name: items.qrcodes
+     */
+    public function generateQRCodesItems(Request $request)
+    {
+        $selectedIds = $request->input('id_items', []);
+
+        if (empty($selectedIds)) {
+            return redirect()->route('items.index')
+                ->with('error', 'Pilih minimal satu barang untuk cetak QR');
+        }
+
+        // QR di-generate oleh QRCode.js di browser
+        // Konten QR: kode barang ($item->code)
+        $dataproduk = Items::whereIn('id', $selectedIds)->get();
+
+        return view('asetHabisPakai.qrcode', compact('dataproduk'));
     }
 }
