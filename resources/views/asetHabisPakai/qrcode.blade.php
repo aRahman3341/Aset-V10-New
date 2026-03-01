@@ -2,146 +2,156 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cetak QR Code — Barang Habis Pakai</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <title>Cetak QR Code Barang Habis Pakai</title>
 
-    {{-- QRCode.js — pure JS, tidak butuh package PHP --}}
+    {{-- QRCode.js — pure JS, tidak butuh package PHP apapun --}}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #f0f4f8;
-            padding: 24px;
-            color: #1e3a5f;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            background: #fff;
         }
 
-        /* ── Toolbar ── */
+        /* ── Toolbar (tidak ikut print) ── */
         .toolbar {
-            display: flex; align-items: center; justify-content: space-between;
-            background: #fff; border: 1px solid rgba(30,58,95,0.10);
-            border-radius: 12px; padding: 12px 20px; margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(30,58,95,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #ddd;
         }
-        .toolbar-title { font-size:1rem; font-weight:800; color:#1e3a5f; }
-        .toolbar-meta  { font-size:0.76rem; color:#8a96a3; margin-top:2px; }
-        .toolbar-right { display:flex; gap:8px; align-items:center; }
-
+        .toolbar-title { font-size: 13px; font-weight: bold; color: #003087; }
+        .toolbar-meta  { font-size: 11px; color: #666; margin-top: 2px; }
+        .toolbar-right { display: flex; gap: 8px; }
         .btn-print {
-            display: inline-flex; align-items: center; gap:6px;
-            padding: 9px 18px;
-            background: linear-gradient(135deg,#1e3a5f,#2d5a8e);
-            color:#fff; border:none; border-radius:9px;
-            font-size:0.84rem; font-weight:700; cursor:pointer;
-            font-family:'Plus Jakarta Sans',sans-serif;
-            box-shadow: 0 3px 10px rgba(30,58,95,0.25);
-            transition: all .18s;
+            padding: 7px 14px; background: #003087; color: #fff;
+            border: none; border-radius: 5px; font-size: 12px;
+            font-weight: bold; cursor: pointer; font-family: Arial, sans-serif;
         }
-        .btn-print:hover { transform:translateY(-1px); box-shadow:0 5px 16px rgba(30,58,95,0.35); }
-
+        .btn-print:hover { background: #012060; }
         .btn-close-win {
-            display: inline-flex; align-items:center; gap:6px;
-            padding: 9px 16px; background:#fff; color:#5a6a7e;
-            border: 1.5px solid rgba(30,58,95,0.12); border-radius:9px;
-            font-size:0.84rem; font-weight:600; cursor:pointer;
-            font-family:'Plus Jakarta Sans',sans-serif; transition:all .18s;
-        }
-        .btn-close-win:hover { background:#f4f6fb; }
-
-        /* ── Grid ── */
-        .qr-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
+            padding: 7px 12px; background: #fff; color: #555;
+            border: 1px solid #ccc; border-radius: 5px; font-size: 12px;
+            cursor: pointer; font-family: Arial, sans-serif;
         }
 
-        /* ── Kartu QR ── */
-        .qr-card {
-            background: #fff; border-radius:14px;
-            border: 1px solid rgba(30,58,95,0.10);
-            box-shadow: 0 2px 12px rgba(30,58,95,0.07);
-            overflow: hidden; display:flex; flex-direction:column;
-            align-items:center; page-break-inside:avoid;
+        /* ── Grid utama — 2 kolom, sama seperti aset tetap ── */
+        .page-wrapper { width: 100%; padding: 10px; }
+
+        table.grid {
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        .qr-card-header {
-            width:100%; padding:9px 12px;
-            background: linear-gradient(135deg,#1e3a5f,#2d5a8e);
-            text-align:center;
-        }
-        .qr-card-header .item-name {
-            font-size:0.75rem; font-weight:700; color:#fff; line-height:1.3;
-            display:-webkit-box; -webkit-line-clamp:2;
-            -webkit-box-orient:vertical; overflow:hidden;
+        table.grid > tbody > tr > td {
+            width: 50%;
+            padding: 5px;
+            vertical-align: top;
         }
 
-        .qr-img-wrap {
-            padding: 14px 14px 8px;
-            display:flex; align-items:center; justify-content:center;
-            min-height: 160px;
+        /* ── Label Card — desain identik dengan aset tetap ── */
+        .label-card {
+            border: 1.5px solid #333;
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        /* Override qrcode.js default canvas/img style */
-        .qr-img-wrap canvas,
-        .qr-img-wrap img {
-            width: 150px !important;
-            height: 150px !important;
+        .label-card td {
+            border: 1px solid #aaa;
+            padding: 5px 7px;
+            vertical-align: middle;
+        }
+
+        /* Header row — navy, sama persis */
+        .label-card .row-header td {
+            background-color: #003087;
+            color: #fff;
+            text-align: center;
+            font-size: 9px;
+            font-weight: bold;
+            letter-spacing: 0.3px;
+            padding: 4px 6px;
+        }
+
+        /* Logo cell */
+        .cell-logo {
+            width: 48px;
+            text-align: center;
+            background-color: #f5f5f5;
+        }
+
+        /* Info cell */
+        .cell-info { line-height: 1.6; }
+
+        .cell-info .code-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #003087;
+        }
+
+        .cell-info .name-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #111;
+        }
+
+        .cell-info .sub-label {
+            font-size: 9px;
+            color: #555;
+        }
+
+        /* QR cell */
+        .cell-qr {
+            width: 100px;
+            text-align: center;
+            background-color: #fff;
+            padding: 4px !important;
+        }
+
+        /* QRCode.js canvas/img */
+        .cell-qr .qr-target canvas,
+        .cell-qr .qr-target img {
+            width: 90px !important;
+            height: 90px !important;
             display: block;
+            margin: auto;
         }
 
-        .qr-card-footer {
-            width:100%; padding:8px 12px 12px;
-            text-align:center; background:#fafbfd;
-            border-top:1px solid rgba(30,58,95,0.06);
-        }
-        .qr-code-text {
-            font-family:'DM Mono',monospace; font-size:0.68rem; font-weight:500;
-            color:#1e3a5f; background:rgba(30,58,95,0.07);
-            border:1px solid rgba(30,58,95,0.10);
-            padding:3px 8px; border-radius:5px; letter-spacing:0.8px;
-            display:inline-block; word-break:break-all;
-        }
-        .qr-scan-hint { font-size:0.62rem; color:#a0aab4; margin-top:5px; }
-
-        /* Loading state */
+        /* Loading placeholder */
         .qr-loading {
-            width:150px; height:150px; display:flex;
-            align-items:center; justify-content:center;
-            background:#f4f6fb; border-radius:8px; color:#8a96a3; font-size:0.72rem;
+            width: 90px; height: 90px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 8px; color: #888;
+            background: #f9f9f9; margin: auto;
         }
-        .qr-spinner {
-            width:28px; height:28px; border:3px solid rgba(30,58,95,0.12);
-            border-top-color:#1e3a5f; border-radius:50%;
-            animation: spin .7s linear infinite;
-        }
-        @keyframes spin { to { transform:rotate(360deg); } }
+
+        .text-center { text-align: center; }
 
         /* ── Print ── */
         @media print {
-            body { background:#fff; padding:6px; }
-            .toolbar { display:none !important; }
-            .qr-grid { grid-template-columns:repeat(3,1fr); gap:8px; }
-            .qr-card { border:1.5px solid #bbb; border-radius:6px; box-shadow:none; }
-            .qr-card-header { padding:6px 8px; }
-            .qr-card-header .item-name { font-size:0.68rem; }
-            .qr-img-wrap { padding:8px 8px 4px; min-height:130px; }
-            .qr-img-wrap canvas, .qr-img-wrap img { width:120px !important; height:120px !important; }
-            .qr-card-footer { padding:5px 8px 8px; }
-            .qr-code-text { font-size:0.6rem; }
+            .toolbar { display: none !important; }
+            body { background: #fff; padding: 0; }
+            .page-wrapper { padding: 4px; }
+            table.grid > tbody > tr > td { padding: 3px; }
+            .cell-qr .qr-target canvas,
+            .cell-qr .qr-target img { width: 80px !important; height: 80px !important; }
         }
     </style>
 </head>
 <body>
 
-{{-- Toolbar --}}
+{{-- ── Toolbar ── --}}
 <div class="toolbar">
     <div>
         <div class="toolbar-title">&#9641; Cetak QR Code Barang Habis Pakai</div>
         <div class="toolbar-meta">
-            {{ count($dataproduk) }} barang dipilih &middot; Scan QR → menampilkan kode barang
+            {{ count($dataproduk) }} barang dipilih &middot;
+            Scan QR → menampilkan kode &amp; nama barang
         </div>
     </div>
     <div class="toolbar-right">
@@ -150,86 +160,118 @@
     </div>
 </div>
 
-{{-- Grid QR --}}
-<div class="qr-grid" id="qrGrid">
-    @forelse ($dataproduk as $item)
-        <div class="qr-card">
+{{-- ── Grid Label — 2 kolom, sama dengan aset tetap ── --}}
+<div class="page-wrapper">
+    <table class="grid">
+        <tbody>
+            <tr>
+            @forelse ($dataproduk as $index => $item)
+                @php $colIndex = $index % 2; @endphp
 
-            {{-- Header --}}
-            <div class="qr-card-header">
-                <div class="item-name">{{ $item->name }}</div>
-            </div>
+                <td>
+                    <table class="label-card">
 
-            {{-- QR container — diisi oleh JS --}}
-            <div class="qr-img-wrap">
-                <div class="qr-loading">
-                    <div class="qr-spinner"></div>
-                </div>
-                {{-- QRCode.js akan generate canvas di sini --}}
-                <div class="qr-target" data-code="{{ $item->code }}" style="display:none"></div>
-            </div>
+                        {{-- Baris 1: Header instansi (sama persis dengan aset tetap) --}}
+                        <tr class="row-header">
+                            <td colspan="3">
+                                KEMENTERIAN PEKERJAAN UMUM DAN PERUMAHAN RAKYAT<br>
+                                DIREKTORAT JENDERAL CIPTA KARYA — BALAI SAINS BANGUNAN
+                            </td>
+                        </tr>
 
-            {{-- Footer --}}
-            <div class="qr-card-footer">
-                <span class="qr-code-text" data-raw="{{ $item->code }}">{{ $item->code }}</span>
-                <div class="qr-scan-hint">Scan QR → menampilkan kode barang</div>
-            </div>
+                        {{-- Baris 2: Logo | Info | QR --}}
+                        <tr>
+                            {{-- Logo --}}
+                            <td class="cell-logo">
+                                <img src="{{ public_path('assets/img/PUPR.png') }}"
+                                     width="42" height="42" alt="PUPR"
+                                     onerror="this.style.display='none'">
+                            </td>
 
-        </div>
-    @empty
-        <div style="grid-column:1/-1;text-align:center;padding:60px;color:#8a96a3;">
-            <div style="font-size:3rem;margin-bottom:10px;">&#128274;</div>
-            <p>Tidak ada barang yang dipilih.</p>
-        </div>
-    @endforelse
+                            {{-- Info Barang --}}
+                            <td class="cell-info">
+                                {{-- Kode barang (setara dengan kode/tahun/NUP di aset tetap) --}}
+                                <div class="code-label">
+                                    Kode : {{ $item->code ?? '-' }}
+                                </div>
+                                {{-- Nama barang --}}
+                                <div class="name-label">
+                                    {{ mb_strimwidth($item->name ?? '-', 0, 45, '...') }}
+                                </div>
+                                {{-- Kategori --}}
+                                @if ($item->categories)
+                                    <div class="sub-label">
+                                        Kategori&nbsp;: {{ $item->categories }}
+                                    </div>
+                                @endif
+                                {{-- Satuan & Saldo --}}
+                                <div class="sub-label">
+                                    Satuan&nbsp;: {{ $item->satuan ?? '-' }}
+                                    @if ($item->saldo !== null)
+                                        &nbsp;&nbsp;Saldo&nbsp;: {{ $item->saldo }}
+                                    @endif
+                                </div>
+                            </td>
+
+                            {{-- QR Code — di-generate oleh JS --}}
+                            <td class="cell-qr">
+                                <div class="qr-loading" id="loading-{{ $index }}">...</div>
+                                <div class="qr-target"
+                                     id="qr-{{ $index }}"
+                                     style="display:none"
+                                     data-content="{{ ($item->code ?? '') . '*' . mb_strimwidth($item->name ?? '', 0, 40, '') . '*' . ($item->categories ?? '') }}">
+                                    {{--
+                                        Konten QR: "kode*nama*kategori"
+                                        Saat di-scan akan tampil: kode, nama, dan kategori barang
+                                    --}}
+                                </div>
+                            </td>
+                        </tr>
+
+                    </table>
+                </td>
+
+                {{-- Tutup baris setiap 2 kolom --}}
+                @if ($colIndex === 1 && ! $loop->last)
+                    </tr><tr>
+                @elseif ($loop->last && $colIndex === 0)
+                    <td></td>{{-- Kolom kosong agar tabel tidak patah --}}
+                @endif
+
+            @empty
+                <td colspan="2" style="text-align:center; padding:40px; color:#888;">
+                    Tidak ada barang yang dipilih.
+                </td>
+            @endforelse
+            </tr>
+        </tbody>
+    </table>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-
-    // Format kode: spasi setiap 4 karakter
-    document.querySelectorAll('.qr-code-text').forEach(el => {
-        const raw = el.dataset.raw || el.textContent.trim();
-        el.dataset.raw = raw;
-        if (raw.length > 4) {
-            el.textContent = raw.replace(/(.{4})/g, '$1 ').trim();
-        }
-    });
-
-    // Generate QR Code menggunakan QRCode.js
     document.querySelectorAll('.qr-target').forEach(function (target) {
-        const code   = target.getAttribute('data-code');
-        const wrap   = target.closest('.qr-img-wrap');
-        const loader = wrap.querySelector('.qr-loading');
+        const content = target.getAttribute('data-content');
+        const idx     = target.id.replace('qr-', '');
+        const loadEl  = document.getElementById('loading-' + idx);
 
-        // Sembunyikan loader, tampilkan container QR
         target.style.display = 'block';
-        target.style.display = 'flex';
-        target.style.alignItems = 'center';
-        target.style.justifyContent = 'center';
+        if (loadEl) loadEl.style.display = 'none';
 
         try {
             new QRCode(target, {
-                text:           code,          // ← isi QR = kode barang
-                width:          150,
-                height:         150,
-                colorDark:      '#1e3a5f',     // warna titik
-                colorLight:     '#ffffff',
-                correctLevel:   QRCode.CorrectLevel.H,
+                text:         content,   // "kode*nama*kategori"
+                width:        90,
+                height:       90,
+                colorDark:    '#000000',
+                colorLight:   '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H,
             });
-
-            // Hapus loader setelah QR berhasil dibuat
-            setTimeout(() => {
-                if (loader) loader.remove();
-            }, 100);
-
         } catch (err) {
-            loader.textContent = 'Gagal generate QR';
-            loader.style.fontSize = '0.7rem';
-            console.error('QR error untuk kode', code, err);
+            target.innerHTML = '<div style="font-size:8px;color:red;padding:4px;">Gagal</div>';
+            console.error('QR error:', err);
         }
     });
-
 });
 </script>
 </body>

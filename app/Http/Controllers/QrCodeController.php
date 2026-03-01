@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Materials;
 use App\Models\Items;
+use App\Models\AsetKeluar;
 use Illuminate\Support\Facades\DB;
 
 class QrCodeController extends Controller
@@ -14,8 +15,8 @@ class QrCodeController extends Controller
     // ══════════════════════════════════════════════════════════
 
     /**
-     * Cetak QR Code aset tetap (dipanggil dari asetTetap/index.blade.php)
-     * Route: POST /asetTetap/qrcodes  → name: generate_qrcodes
+     * Cetak QR Code aset tetap
+     * Route: POST /asetTetap/qrcodes → name: generate_qrcodes
      */
     public function generateQRCodes(Request $request)
     {
@@ -30,14 +31,12 @@ class QrCodeController extends Controller
             return back()->with('error', 'Tidak ada data aset yang valid.');
         }
 
-        // QR di-generate oleh QRCode.js di browser
-        // Konten QR: "kode*nup*nama" → scane.blade.php parse format ini
         return view('asetTetap.qrcode', compact('dataproduk'));
     }
 
     /**
      * API scanning aset tetap — dipanggil scane.blade.php via fetch()
-     * Route: POST /scanning  → name: scanning
+     * Route: POST /scanning → name: scanning
      */
     public function scanning(Request $request)
     {
@@ -107,8 +106,8 @@ class QrCodeController extends Controller
     // ══════════════════════════════════════════════════════════
 
     /**
-     * Cetak QR Code barang habis pakai (dipanggil dari asetHabisPakai/index.blade.php)
-     * Route: POST /items/qrcodes  → name: items.qrcodes
+     * Cetak QR Code barang habis pakai
+     * Route: POST /items/qrcodes → name: items.qrcodes
      */
     public function generateQRCodesItems(Request $request)
     {
@@ -119,10 +118,42 @@ class QrCodeController extends Controller
                 ->with('error', 'Pilih minimal satu barang untuk cetak QR');
         }
 
-        // QR di-generate oleh QRCode.js di browser
-        // Konten QR: kode barang ($item->code)
         $dataproduk = Items::whereIn('id', $selectedIds)->get();
 
         return view('asetHabisPakai.qrcode', compact('dataproduk'));
+    }
+
+
+    // ══════════════════════════════════════════════════════════
+    //  ASET KELUAR — Cetak QR per BAST
+    // ══════════════════════════════════════════════════════════
+
+    /**
+     * Cetak QR Code untuk aset keluar (per BAST / per record).
+     * QR berisi: nomor_surat*nama_barang1,nama_barang2*kepada
+     * Sehingga saat di-scan langsung terlihat nomor surat + nama barang + penerima.
+     *
+     * Route: GET /asetkeluar/{id}/qrcode → name: asetkeluar.qrcode
+     */
+    public function generateQRKeluar(Request $request, $id)
+    {
+        $asetKeluar = AsetKeluar::findOrFail($id);
+
+        // Ambil nama barang dari JSON aset field
+        $asetIds  = json_decode($asetKeluar->aset, true) ?? [];
+        $matIds   = array_column($asetIds, 'name'); // field 'name' isi ID material
+        $materials = Materials::whereIn('id', $matIds)->get();
+
+        // Siapkan data untuk view
+        // dataproduk = collection of materials, tapi dilengkapi info BAST
+        $dataproduk = $materials->map(function ($mat) use ($asetKeluar) {
+            $mat->bast_nomor  = $asetKeluar->nomor;
+            $mat->bast_kepada = $asetKeluar->kepada;
+            $mat->pihakSatu   = $asetKeluar->pihakSatu;
+            $mat->pihakDua    = $asetKeluar->pihakDua;
+            return $mat;
+        });
+
+        return view('asetKeluar.qrcode', compact('dataproduk', 'asetKeluar'));
     }
 }
