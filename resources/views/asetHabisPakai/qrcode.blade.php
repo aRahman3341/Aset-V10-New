@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Cetak QR Code Barang Habis Pakai</title>
 
-    {{-- QRCode.js — pure JS, tidak butuh package PHP apapun --}}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
@@ -40,7 +39,7 @@
             cursor: pointer; font-family: Arial, sans-serif;
         }
 
-        /* ── Grid utama — 2 kolom, sama seperti aset tetap ── */
+        /* ── Grid utama — 2 kolom ── */
         .page-wrapper { width: 100%; padding: 10px; }
 
         table.grid {
@@ -54,7 +53,7 @@
             vertical-align: top;
         }
 
-        /* ── Label Card — desain identik dengan aset tetap ── */
+        /* ── Label Card ── */
         .label-card {
             border: 1.5px solid #333;
             width: 100%;
@@ -67,7 +66,7 @@
             vertical-align: middle;
         }
 
-        /* Header row — navy, sama persis */
+        /* Header row */
         .label-card .row-header td {
             background-color: #003087;
             color: #fff;
@@ -78,11 +77,20 @@
             padding: 4px 6px;
         }
 
-        /* Logo cell */
+        /* Logo cell — ukuran sama dengan QR (100px wide, 90px img) */
         .cell-logo {
-            width: 48px;
+            width: 100px;
             text-align: center;
-            background-color: #f5f5f5;
+            background-color: #f0f4ff;
+            padding: 4px !important;
+        }
+
+        .cell-logo img {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+            display: block;
+            margin: auto;
         }
 
         /* Info cell */
@@ -113,7 +121,6 @@
             padding: 4px !important;
         }
 
-        /* QRCode.js canvas/img */
         .cell-qr .qr-target canvas,
         .cell-qr .qr-target img {
             width: 90px !important;
@@ -122,7 +129,6 @@
             margin: auto;
         }
 
-        /* Loading placeholder */
         .qr-loading {
             width: 90px; height: 90px;
             display: flex; align-items: center; justify-content: center;
@@ -130,9 +136,7 @@
             background: #f9f9f9; margin: auto;
         }
 
-        .text-center { text-align: center; }
-
-        /* ── Print ── */
+        /* ── Print styles ── */
         @media print {
             .toolbar { display: none !important; }
             body { background: #fff; padding: 0; }
@@ -160,7 +164,7 @@
     </div>
 </div>
 
-{{-- ── Grid Label — 2 kolom, sama dengan aset tetap ── --}}
+{{-- ── Grid Label — 2 kolom ── --}}
 <div class="page-wrapper">
     <table class="grid">
         <tbody>
@@ -171,7 +175,7 @@
                 <td>
                     <table class="label-card">
 
-                        {{-- Baris 1: Header instansi (sama persis dengan aset tetap) --}}
+                        {{-- Baris 1: Header instansi --}}
                         <tr class="row-header">
                             <td colspan="3">
                                 KEMENTERIAN PEKERJAAN UMUM DAN PERUMAHAN RAKYAT<br>
@@ -181,30 +185,26 @@
 
                         {{-- Baris 2: Logo | Info | QR --}}
                         <tr>
-                            {{-- Logo --}}
+                            {{-- Logo PUPR --}}
                             <td class="cell-logo">
-                                <img src="{{ public_path('assets/img/PUPR.png') }}"
-                                     width="42" height="42" alt="PUPR"
+                                <img src="{{ asset('assets/img/PUPR.png') }}"
+                                     alt="Logo PUPR"
                                      onerror="this.style.display='none'">
                             </td>
 
                             {{-- Info Barang --}}
                             <td class="cell-info">
-                                {{-- Kode barang (setara dengan kode/tahun/NUP di aset tetap) --}}
                                 <div class="code-label">
                                     Kode : {{ $item->code ?? '-' }}
                                 </div>
-                                {{-- Nama barang --}}
                                 <div class="name-label">
                                     {{ mb_strimwidth($item->name ?? '-', 0, 45, '...') }}
                                 </div>
-                                {{-- Kategori --}}
                                 @if ($item->categories)
                                     <div class="sub-label">
                                         Kategori&nbsp;: {{ $item->categories }}
                                     </div>
                                 @endif
-                                {{-- Satuan & Saldo --}}
                                 <div class="sub-label">
                                     Satuan&nbsp;: {{ $item->satuan ?? '-' }}
                                     @if ($item->saldo !== null)
@@ -213,17 +213,13 @@
                                 </div>
                             </td>
 
-                            {{-- QR Code — di-generate oleh JS --}}
+                            {{-- QR Code --}}
                             <td class="cell-qr">
                                 <div class="qr-loading" id="loading-{{ $index }}">...</div>
                                 <div class="qr-target"
                                      id="qr-{{ $index }}"
                                      style="display:none"
                                      data-content="{{ ($item->code ?? '') . '*' . mb_strimwidth($item->name ?? '', 0, 40, '') . '*' . ($item->categories ?? '') }}">
-                                    {{--
-                                        Konten QR: "kode*nama*kategori"
-                                        Saat di-scan akan tampil: kode, nama, dan kategori barang
-                                    --}}
                                 </div>
                             </td>
                         </tr>
@@ -231,11 +227,10 @@
                     </table>
                 </td>
 
-                {{-- Tutup baris setiap 2 kolom --}}
                 @if ($colIndex === 1 && ! $loop->last)
                     </tr><tr>
                 @elseif ($loop->last && $colIndex === 0)
-                    <td></td>{{-- Kolom kosong agar tabel tidak patah --}}
+                    <td></td>
                 @endif
 
             @empty
@@ -260,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             new QRCode(target, {
-                text:         content,   // "kode*nama*kategori"
+                text:         content,
                 width:        90,
                 height:       90,
                 colorDark:    '#000000',

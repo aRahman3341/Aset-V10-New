@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Cetak QR Code Aset</title>
 
-    {{-- QRCode.js — pure JS, tidak butuh package PHP apapun --}}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
@@ -54,7 +53,7 @@
             vertical-align: top;
         }
 
-        /* ── Label Card (desain sama persis seperti aslinya) ── */
+        /* ── Label Card ── */
         .label-card {
             border: 1.5px solid #333;
             width: 100%;
@@ -78,11 +77,19 @@
             padding: 4px 6px;
         }
 
-        /* Logo cell */
         .cell-logo {
-            width: 48px;
+            width: 100px;
             text-align: center;
-            background-color: #f5f5f5;
+            background-color: #f0f4ff;
+            padding: 4px !important;
+        }
+
+        .cell-logo img {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+            display: block;
+            margin: auto;
         }
 
         /* Info cell */
@@ -113,7 +120,6 @@
             padding: 4px !important;
         }
 
-        /* QRCode.js menghasilkan canvas/img — samakan ukurannya */
         .cell-qr .qr-target canvas,
         .cell-qr .qr-target img {
             width: 90px !important;
@@ -122,15 +128,12 @@
             margin: auto;
         }
 
-        /* Loading state saat QR belum selesai di-generate */
         .qr-loading {
             width: 90px; height: 90px;
             display: flex; align-items: center; justify-content: center;
             font-size: 8px; color: #888;
             background: #f9f9f9; margin: auto;
         }
-
-        .text-center { text-align: center; }
 
         /* ── Print styles ── */
         @media print {
@@ -145,13 +148,13 @@
 </head>
 <body>
 
-{{-- ── Toolbar (tidak ikut print) ── --}}
+{{-- ── Toolbar ── --}}
 <div class="toolbar">
     <div>
         <div class="toolbar-title">&#9641; Cetak QR Code Aset Tetap</div>
         <div class="toolbar-meta">
             {{ count($dataproduk) }} aset dipilih &middot;
-            Scan QR → menampilkan kode barang, NUP, nama, lokasi
+            Scan QR → menampilkan kode barang, NUP, nama
         </div>
     </div>
     <div class="toolbar-right">
@@ -166,11 +169,7 @@
         <tbody>
             <tr>
             @foreach ($dataproduk as $index => $produk)
-                @php
-                    // Konten QR: kode*nup*nama*lokasi (sama seperti QrCodeController)
-                    // Ini yang akan terbaca saat di-scan
-                    $colIndex = $index % 2;
-                @endphp
+                @php $colIndex = $index % 2; @endphp
 
                 <td>
                     <table class="label-card">
@@ -185,10 +184,10 @@
 
                         {{-- Baris 2: Logo | Info | QR --}}
                         <tr>
-                            {{-- Logo --}}
+                            {{-- Logo PUPR --}}
                             <td class="cell-logo">
-                                <img src="{{ public_path('assets/img/PUPR.png') }}"
-                                     width="42" height="42" alt="PUPR"
+                                <img src="{{ asset('assets/img/PUPR.png') }}"
+                                     alt="Logo PUPR"
                                      onerror="this.style.display='none'">
                             </td>
 
@@ -216,7 +215,7 @@
                                 @endif
                             </td>
 
-                            {{-- QR Code — di-generate oleh JS di browser --}}
+                            {{-- QR Code --}}
                             <td class="cell-qr">
                                 <div class="qr-loading" id="loading-{{ $index }}">...</div>
                                 <div class="qr-target"
@@ -234,11 +233,10 @@
                     </table>
                 </td>
 
-                {{-- Tutup baris setiap 2 kolom --}}
                 @if ($colIndex === 1 && ! $loop->last)
                     </tr><tr>
                 @elseif ($loop->last && $colIndex === 0)
-                    <td></td>{{-- Kolom kosong agar tidak patah --}}
+                    <td></td>
                 @endif
 
             @endforeach
@@ -249,19 +247,17 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Generate QR untuk setiap kartu
     document.querySelectorAll('.qr-target').forEach(function (target) {
-        const content  = target.getAttribute('data-content');
-        const idx      = target.id.replace('qr-', '');
-        const loadEl   = document.getElementById('loading-' + idx);
+        const content = target.getAttribute('data-content');
+        const idx     = target.id.replace('qr-', '');
+        const loadEl  = document.getElementById('loading-' + idx);
 
-        // Tampilkan container, sembunyikan loading
         target.style.display = 'block';
         if (loadEl) loadEl.style.display = 'none';
 
         try {
             new QRCode(target, {
-                text:         content,      // ← isi QR = kode*nup*nama
+                text:         content,
                 width:        90,
                 height:       90,
                 colorDark:    '#000000',

@@ -3,98 +3,75 @@
 @section('content')
 <div id="location-data" data-locations="{{ json_encode($locations) }}"></div>
 
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+
 <main id="main" class="main">
 
 <style>
-/* ── Hilangkan semua ikon valid/invalid Bootstrap bawaan ── */
 .form-control, .form-select {
-    background-image: none !important;
-    padding-right: 12px !important;
+    background-image: none !important; padding-right: 12px !important;
 }
 .form-control:valid, .form-select:valid,
 .form-control.is-valid, .form-select.is-valid {
-    border-color: #dee2e6 !important;
-    background-image: none !important;
-    padding-right: 12px !important;
+    border-color: #dee2e6 !important; background-image: none !important; padding-right: 12px !important;
 }
 .form-control:focus, .form-select:focus {
-    border-color: #86b7fe;
-    box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
+    border-color: #86b7fe; box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
 }
-/* Hanya tampilkan merah saat benar-benar invalid setelah submit */
 .form-control.is-invalid, .form-select.is-invalid {
-    border-color: #dc3545 !important;
-    background-image: none !important;
+    border-color: #dc3545 !important; background-image: none !important;
 }
-
-/* ── Section header ── */
 .section-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    background: linear-gradient(135deg, #1e3a5f, #2d5a8e);
-    color: #fff;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+    background: linear-gradient(135deg, #1e3a5f, #2d5a8e); color: #fff;
+    border-radius: 8px; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.3px; margin-bottom: 4px;
 }
 .section-number {
-    width: 22px; height: 22px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 50%;
+    width: 22px; height: 22px; background: rgba(255,255,255,0.2); border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: 0.72rem; font-weight: 800; flex-shrink: 0;
 }
-
-/* ── Label ── */
-.form-label-custom {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #4a5a6e;
-    margin-bottom: 4px;
-    display: block;
-}
+.form-label-custom { font-size: 0.78rem; font-weight: 700; color: #4a5a6e; margin-bottom: 4px; display: block; }
 .req { color: #dc3545; }
-
-/* ── Input ── */
 .form-control, .form-select {
-    font-size: 0.85rem;
-    border-radius: 8px;
-    border: 1.5px solid #dee2e6;
-    transition: border-color .15s, box-shadow .15s;
+    font-size: 0.85rem; border-radius: 8px; border: 1.5px solid #dee2e6; transition: border-color .15s, box-shadow .15s;
 }
-
-/* ── Card ── */
 .create-card {
-    background: #fff;
-    border-radius: 14px;
-    border: 1px solid rgba(30,58,95,0.08);
-    box-shadow: 0 2px 14px rgba(30,58,95,0.06);
-    padding: 24px;
+    background: #fff; border-radius: 14px; border: 1px solid rgba(30,58,95,0.08);
+    box-shadow: 0 2px 14px rgba(30,58,95,0.06); padding: 24px;
 }
-
-/* ── Submit buttons ── */
 .btn-simpan {
-    padding: 10px 36px;
-    background: linear-gradient(135deg, #1e3a5f, #2d5a8e);
-    color: #fff; border: none; border-radius: 10px;
-    font-weight: 700; font-size: 0.9rem;
-    box-shadow: 0 4px 12px rgba(30,58,95,0.25);
-    transition: all .18s; cursor: pointer;
+    padding: 10px 36px; background: linear-gradient(135deg, #1e3a5f, #2d5a8e);
+    color: #fff; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(30,58,95,0.25); transition: all .18s; cursor: pointer;
 }
 .btn-simpan:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(30,58,95,0.35); color: #fff; }
 .btn-batal {
-    padding: 10px 36px;
-    background: #f4f6fb; color: #5a6a7e;
-    border: 1.5px solid #dee2e6; border-radius: 10px;
-    font-weight: 600; font-size: 0.9rem;
-    text-decoration: none; transition: all .18s;
-    display: inline-block;
+    padding: 10px 36px; background: #f4f6fb; color: #5a6a7e;
+    border: 1.5px solid #dee2e6; border-radius: 10px; font-weight: 600; font-size: 0.9rem;
+    text-decoration: none; transition: all .18s; display: inline-block;
 }
 .btn-batal:hover { background: #e8ecf5; color: #3d5170; }
+
+/* ── Select2 ── */
+.select2-container--default .select2-selection--single {
+    height: 38px !important; border: 1.5px solid #dee2e6 !important;
+    border-radius: 8px !important; padding: 4px 8px !important; font-size: 0.85rem;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 28px !important; color: #212529; padding-left: 4px;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px !important; right: 6px; }
+.select2-container--default.select2-container--focus .select2-selection--single {
+    border-color: #86b7fe !important; box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
+}
+.select2-dropdown { border: 1.5px solid #dee2e6; border-radius: 8px; font-size: 0.85rem; box-shadow: 0 4px 16px rgba(30,58,95,0.12); }
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1.5px solid #dee2e6; border-radius: 6px; padding: 5px 8px; font-size: 0.83rem; outline: none;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] { background-color: #1e3a5f; }
+.select2-container--default .select2-results__option { padding: 7px 10px; font-size: 0.84rem; }
+.select2-container { width: 100% !important; }
 </style>
 
 <div class="pagetitle">
@@ -109,8 +86,7 @@
 </div>
 
 <div class="create-card">
-<form action="{{ route('asetTetap.store') }}" method="POST"
-      enctype="multipart/form-data" id="formCreate">
+<form action="{{ route('asetTetap.store') }}" method="POST" enctype="multipart/form-data" id="formCreate">
 @csrf
 
 {{-- ══ 1. IDENTITAS BARANG ══ --}}
@@ -377,8 +353,8 @@
 <div class="row g-3 mb-4">
     <div class="col-md-6">
         <label class="form-label-custom">Penanggung Jawab <span class="req">*</span></label>
-        <select name="supervisor" class="form-select" required>
-            <option value="" disabled selected>Pilih Penanggung Jawab</option>
+        <select name="supervisor" id="supervisorSelect" class="form-select" required>
+            <option value="">-- Pilih Penanggung Jawab --</option>
             @foreach ($employees as $employee)
                 <option value="{{ $employee->id }}">{{ $employee->name }}</option>
             @endforeach
@@ -412,51 +388,75 @@
 
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-// ── Dropdown Gedung → Lantai → Ruangan ──
-var locations    = {!! json_encode($locations) !!};
-var gedungSelect = document.getElementById('gedung');
-var lantaiSelect = document.getElementById('lantai');
-var ruanganSelect= document.getElementById('ruangan');
+$(function() {
 
-gedungSelect.addEventListener('change', function () {
-    var g = this.value;
-    lantaiSelect.innerHTML  = '<option value="" disabled selected>Pilih Lantai</option>';
-    ruanganSelect.innerHTML = '<option value="" disabled selected>Pilih Ruangan</option>';
-    ruanganSelect.disabled  = true;
-
-    [...new Set(locations.filter(l => l.office === g).map(l => l.floor))]
-        .forEach(f => lantaiSelect.add(new Option(f, f)));
-    lantaiSelect.disabled = false;
-});
-
-lantaiSelect.addEventListener('change', function () {
-    var g = gedungSelect.value, f = this.value;
-    ruanganSelect.innerHTML = '<option value="" disabled selected>Pilih Ruangan</option>';
-    locations.filter(l => l.office === g && l.floor == f)
-        .map(l => l.room)
-        .forEach(r => ruanganSelect.add(new Option(r, r)));
-    ruanganSelect.disabled = false;
-});
-
-// ── Validasi hanya tandai field yang kosong saat submit ──
-document.getElementById('formCreate').addEventListener('submit', function (e) {
-    var valid = true;
-    this.querySelectorAll('[required]').forEach(function (el) {
-        if (!el.value.trim()) {
-            el.classList.add('is-invalid');
-            valid = false;
-        } else {
-            el.classList.remove('is-invalid');
+    // ── 1. Select2 Penanggung Jawab ──
+    $('#supervisorSelect').select2({
+        placeholder: 'Ketik nama untuk mencari...',
+        allowClear: true,
+        width: '100%',
+        language: {
+            noResults: function() { return 'Nama tidak ditemukan'; },
+            searching:  function() { return 'Mencari...'; }
         }
     });
-    if (!valid) e.preventDefault();
-});
 
-// Hapus is-invalid saat user mulai mengisi
-document.getElementById('formCreate').querySelectorAll('[required]').forEach(function (el) {
-    el.addEventListener('input', function () { this.classList.remove('is-invalid'); });
-    el.addEventListener('change', function () { this.classList.remove('is-invalid'); });
+    // ── 2. Dropdown lokasi ──
+    var locations    = {!! json_encode($locations) !!};
+    var gedungSelect = document.getElementById('gedung');
+    var lantaiSelect = document.getElementById('lantai');
+    var ruanganSelect= document.getElementById('ruangan');
+
+    gedungSelect.addEventListener('change', function() {
+        var g = this.value;
+        lantaiSelect.innerHTML  = '<option value="" disabled selected>Pilih Lantai</option>';
+        ruanganSelect.innerHTML = '<option value="" disabled selected>Pilih Ruangan</option>';
+        ruanganSelect.disabled  = true;
+        [...new Set(locations.filter(function(l){ return l.office === g; }).map(function(l){ return l.floor; }))]
+            .forEach(function(f){ lantaiSelect.add(new Option(f, f)); });
+        lantaiSelect.disabled = false;
+    });
+
+    lantaiSelect.addEventListener('change', function() {
+        var g = gedungSelect.value, f = this.value;
+        ruanganSelect.innerHTML = '<option value="" disabled selected>Pilih Ruangan</option>';
+        locations.filter(function(l){ return l.office === g && l.floor == f; })
+            .map(function(l){ return l.room; })
+            .forEach(function(r){ ruanganSelect.add(new Option(r, r)); });
+        ruanganSelect.disabled = false;
+    });
+
+    // ── 3. Validasi ──
+    document.getElementById('formCreate').addEventListener('submit', function(e) {
+        var valid = true;
+        this.querySelectorAll('[required]').forEach(function(el) {
+            if (!el.value || !el.value.trim()) {
+                el.classList.add('is-invalid'); valid = false;
+            } else {
+                el.classList.remove('is-invalid');
+            }
+        });
+        if (!$('#supervisorSelect').val()) {
+            $('#supervisorSelect').next('.select2-container').css('border','1.5px solid #dc3545');
+            valid = false;
+        } else {
+            $('#supervisorSelect').next('.select2-container').css('border','');
+        }
+        if (!valid) e.preventDefault();
+    });
+
+    document.getElementById('formCreate').querySelectorAll('[required]').forEach(function(el) {
+        el.addEventListener('input',  function(){ this.classList.remove('is-invalid'); });
+        el.addEventListener('change', function(){ this.classList.remove('is-invalid'); });
+    });
+
+    $('#supervisorSelect').on('select2:select select2:clear', function() {
+        $(this).next('.select2-container').css('border','');
+    });
+
 });
 </script>
 @endsection

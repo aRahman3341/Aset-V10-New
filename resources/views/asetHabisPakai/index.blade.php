@@ -38,35 +38,40 @@
 
     {{-- ── Toolbar ── --}}
     <div class="table-toolbar">
+        {{-- Kiri: Search + Filter --}}
         <div class="toolbar-left">
-            <div class="search-wrap">
-                <i class="bi bi-search search-icon"></i>
-                <input type="text" id="searchInput" class="search-input"
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" id="searchInput" class="form-control border-start-0 ps-0"
                        placeholder="Cari nama atau kode..." value="{{ request('query') }}">
-                <button type="button" class="search-btn" id="searchBtn">Cari</button>
+                <button type="button" class="btn btn-outline-secondary" id="filterButton" title="Filter Lanjutan">
+                    <i class="bi bi-funnel"></i>
+                </button>
             </div>
-            <button class="filter-toggle-btn" id="filterButton">
-                <i class="bi bi-funnel"></i> Filter
-            </button>
         </div>
+
+        {{-- Kanan: Action buttons - sama persis dengan aset tetap --}}
         <div class="toolbar-right">
-            <span class="selected-badge d-none" id="selectedBadge">
+            <span class="selected-badge d-none me-1" id="selectedBadge">
                 <i class="bi bi-check2-square"></i>
                 <span id="selectedCount">0</span> dipilih
             </span>
-            <a href="{{ route('items.create') }}" class="btn btn-success btn-sm">
-                <i class="bi bi-plus-circle"></i> Tambah
+            <a href="{{ route('items.create') }}" class="btn btn-success btn-sm me-1 shadow-sm">
+                <i class="bi bi-plus-lg"></i> Tambah
             </a>
-            <button type="button" data-bs-toggle="modal" data-bs-target="#ModalImport" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-upload"></i> Import
+            <button type="button" data-bs-toggle="modal" data-bs-target="#ModalImport" class="btn btn-success btn-sm me-1">
+                <i class="bi bi-file-earmark-arrow-down"></i> Import
             </button>
-            <button type="button" data-bs-toggle="modal" data-bs-target="#ModalExport" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-file-earmark-excel"></i> Export
+            <div class="d-inline-block border-start" style="height:24px; margin: 0 4px;"></div>
+            <button type="button" data-bs-toggle="modal" data-bs-target="#ModalExport" class="btn btn-primary btn-sm me-1">
+                <i class="bi bi-file-earmark-arrow-up"></i> Export
             </button>
-            <button onclick="doQRCodes()" class="btn btn-outline-secondary btn-sm" title="Cetak QR">
+            <button onclick="doQRCodes()" class="btn btn-info btn-sm me-1" title="Cetak QR">
                 <i class="bi bi-qr-code"></i> QR
             </button>
-            <button onclick="doMultiDelete()" class="btn btn-outline-danger btn-sm" title="Hapus terpilih">
+            <button onclick="doMultiDelete()" class="btn btn-danger btn-sm" title="Hapus terpilih">
                 <i class="bi bi-trash"></i> Hapus
             </button>
         </div>
@@ -191,37 +196,11 @@
 /* ── Toolbar ── */
 .table-toolbar {
     display:flex; align-items:center; justify-content:space-between;
-    padding:12px 18px; border-bottom:1px solid rgba(1,41,112,0.07);
+    padding:10px 14px; border-bottom:1px solid rgba(1,41,112,0.07);
     gap:8px; flex-wrap:wrap;
 }
 .toolbar-left  { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.toolbar-right { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
-
-.search-wrap {
-    display:flex; align-items:center;
-    background:#f6f9ff; border:1.5px solid rgba(1,41,112,0.10);
-    border-radius:6px; overflow:hidden; height:34px;
-}
-.search-icon { padding:0 9px; color:#8a96a3; font-size:0.85rem; }
-.search-input {
-    border:none; background:transparent; font-size:0.82rem;
-    padding:0 6px; width:190px; outline:none; color:#012970;
-}
-.search-btn {
-    background:#012970; color:#fff; border:none;
-    padding:0 12px; font-size:0.78rem; font-weight:600;
-    height:100%; cursor:pointer; transition:background .18s;
-}
-.search-btn:hover { background:#4154f1; }
-
-.filter-toggle-btn {
-    height:34px; padding:0 11px;
-    background:#f6f9ff; border:1.5px solid rgba(1,41,112,0.10);
-    border-radius:6px; font-size:0.78rem; font-weight:600;
-    color:#012970; cursor:pointer; display:flex; align-items:center;
-    gap:5px; transition:all .18s;
-}
-.filter-toggle-btn:hover { background:#e8ecf5; }
+.toolbar-right { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
 
 .selected-badge {
     display:inline-flex; align-items:center; gap:5px;
@@ -360,7 +339,6 @@ tr.row-checked td { background:rgba(65,84,241,0.05) !important; }
 @media (max-width:768px) {
     .table-toolbar { flex-direction:column; align-items:stretch; }
     .toolbar-right { justify-content:flex-start; }
-    .search-input { width:130px; }
     .table-footer { flex-direction:column; align-items:stretch; }
     .footer-summary { border-left:none; border-top:1px solid rgba(1,41,112,0.07); justify-content:center; }
     .pag-nav { justify-content:center; }
@@ -374,19 +352,6 @@ tr.row-checked td { background:rgba(65,84,241,0.05) !important; }
 //  State centang lintas halaman
 // ═══════════════════════════════════
 const checkedIds = new Set();
-
-function formatCode(raw) {
-    if (!raw || raw.length <= 4) return raw;
-    return raw.replace(/(.{4})/g, '$1 ').trim();
-}
-
-function applyCodeFormat() {
-    document.querySelectorAll('.code-badge').forEach(el => {
-        const raw = el.dataset.raw || el.textContent.trim();
-        el.dataset.raw = raw;
-        el.textContent = formatCode(raw);
-    });
-}
 
 function updateBadge() {
     const n = checkedIds.size;
@@ -461,7 +426,6 @@ function loadTable(page) {
     .then(data => {
         container.innerHTML = data.table;
         document.getElementById('paginationContainer').innerHTML = data.pagination;
-        applyCodeFormat();
         syncCheckboxes();
         updateBadge();
         bindDeleteButtons();
@@ -547,22 +511,18 @@ function doMultiDelete() {
 //  Init
 // ═══════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-    applyCodeFormat();
     syncCheckboxes();
     bindDeleteButtons();
     bindPaginationLinks();
 
-    document.getElementById('searchBtn').addEventListener('click', () => {
-        curQuery = document.getElementById('searchInput').value;
-        loadTable(1);
-    });
     document.getElementById('searchInput').addEventListener('keydown', e => {
         if (e.key === 'Enter') { curQuery = e.target.value; loadTable(1); }
     });
 
-    document.getElementById('filterButton').addEventListener('click', () => {
+    document.getElementById('filterButton').addEventListener('click', (e) => {
+        e.preventDefault();
         const f = document.getElementById('filterFields');
-        f.style.display = f.style.display === 'none' ? 'block' : 'none';
+        $(f).slideToggle();
     });
 
     document.getElementById('applyFilter').addEventListener('click', () => {

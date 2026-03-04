@@ -3,10 +3,13 @@
 @section('content')
 <div id="location-data" data-locations="{{ json_encode($locations) }}"></div>
 
+{{-- ── Select2 CSS (load di head via stack atau langsung di sini) ── --}}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+
 <main id="main" class="main">
 
 <style>
-/* ── Hilangkan semua ikon valid/invalid Bootstrap bawaan ── */
+/* ── Bootstrap icon override ── */
 .form-control, .form-select {
     background-image: none !important;
     padding-right: 12px !important;
@@ -15,7 +18,6 @@
 .form-control.is-valid, .form-select.is-valid {
     border-color: #dee2e6 !important;
     background-image: none !important;
-    padding-right: 12px !important;
 }
 .form-control:focus, .form-select:focus {
     border-color: #86b7fe;
@@ -28,54 +30,35 @@
 
 /* ── Section header ── */
 .section-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: flex; align-items: center; gap: 8px;
     padding: 8px 14px;
     background: linear-gradient(135deg, #1e3a5f, #2d5a8e);
-    color: #fff;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.3px;
+    color: #fff; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 700; letter-spacing: 0.3px;
     margin-bottom: 4px;
 }
 .section-number {
     width: 22px; height: 22px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 50%;
+    background: rgba(255,255,255,0.2); border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: 0.72rem; font-weight: 800; flex-shrink: 0;
 }
-
-/* ── Label ── */
 .form-label-custom {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #4a5a6e;
-    margin-bottom: 4px;
-    display: block;
+    font-size: 0.78rem; font-weight: 700; color: #4a5a6e;
+    margin-bottom: 4px; display: block;
 }
 .req { color: #dc3545; }
-
-/* ── Input ── */
 .form-control, .form-select {
-    font-size: 0.85rem;
-    border-radius: 8px;
+    font-size: 0.85rem; border-radius: 8px;
     border: 1.5px solid #dee2e6;
     transition: border-color .15s, box-shadow .15s;
 }
-
-/* ── Card ── */
 .create-card {
-    background: #fff;
-    border-radius: 14px;
+    background: #fff; border-radius: 14px;
     border: 1px solid rgba(30,58,95,0.08);
     box-shadow: 0 2px 14px rgba(30,58,95,0.06);
     padding: 24px;
 }
-
-/* ── Submit buttons ── */
 .btn-simpan {
     padding: 10px 36px;
     background: linear-gradient(135deg, #1e3a5f, #2d5a8e);
@@ -86,14 +69,46 @@
 }
 .btn-simpan:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(30,58,95,0.35); color: #fff; }
 .btn-batal {
-    padding: 10px 36px;
-    background: #f4f6fb; color: #5a6a7e;
+    padding: 10px 36px; background: #f4f6fb; color: #5a6a7e;
     border: 1.5px solid #dee2e6; border-radius: 10px;
     font-weight: 600; font-size: 0.9rem;
-    text-decoration: none; transition: all .18s;
-    display: inline-block;
+    text-decoration: none; transition: all .18s; display: inline-block;
 }
 .btn-batal:hover { background: #e8ecf5; color: #3d5170; }
+
+/* ── Select2 custom style ── */
+.select2-container--default .select2-selection--single {
+    height: 38px !important;
+    border: 1.5px solid #dee2e6 !important;
+    border-radius: 8px !important;
+    padding: 4px 8px !important;
+    font-size: 0.85rem;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 28px !important; color: #212529; padding-left: 4px;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px !important; right: 6px;
+}
+.select2-container--default.select2-container--focus .select2-selection--single {
+    border-color: #86b7fe !important;
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
+}
+.select2-dropdown {
+    border: 1.5px solid #dee2e6; border-radius: 8px; font-size: 0.85rem;
+    box-shadow: 0 4px 16px rgba(30,58,95,0.12);
+}
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1.5px solid #dee2e6; border-radius: 6px;
+    padding: 5px 8px; font-size: 0.83rem; outline: none;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #1e3a5f;
+}
+.select2-container--default .select2-results__option {
+    padding: 7px 10px; font-size: 0.84rem;
+}
+.select2-container { width: 100% !important; }
 </style>
 
 <div class="pagetitle">
@@ -118,35 +133,30 @@
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <label class="form-label-custom">Kode Barang <span class="req">*</span></label>
-        <input type="text" name="code" class="form-control"
-               placeholder="Contoh: 3050104..."
+        <input type="text" name="code" class="form-control" placeholder="Contoh: 3050104..."
                value="{{ old('code', $item->code) }}" required>
         <div class="invalid-feedback">Kode Barang wajib diisi.</div>
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">NUP <span class="req">*</span></label>
-        <input type="text" name="nup" class="form-control"
-               placeholder="No Urut Pendaftaran"
+        <input type="text" name="nup" class="form-control" placeholder="No Urut Pendaftaran"
                value="{{ old('nup', $item->nup) }}" required>
         <div class="invalid-feedback">NUP wajib diisi.</div>
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">No Seri</label>
-        <input type="text" name="no_seri" class="form-control"
-               placeholder="Serial Number"
+        <input type="text" name="no_seri" class="form-control" placeholder="Serial Number"
                value="{{ old('no_seri', $item->no_seri) }}">
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">Nama Barang <span class="req">*</span></label>
-        <input type="text" name="name" class="form-control"
-               placeholder="Masukkan nama barang"
+        <input type="text" name="name" class="form-control" placeholder="Masukkan nama barang"
                value="{{ old('name', $item->name) }}" required>
         <div class="invalid-feedback">Nama Barang wajib diisi.</div>
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">Merk / Uraian Barang <span class="req">*</span></label>
-        <input type="text" name="name_fix" class="form-control"
-               placeholder="Contoh: Asus, Honda, dll"
+        <input type="text" name="name_fix" class="form-control" placeholder="Contoh: Asus, Honda, dll"
                value="{{ old('name_fix', $item->name_fix) }}" required>
         <div class="invalid-feedback">Merk/Uraian wajib diisi.</div>
     </div>
@@ -157,8 +167,7 @@
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <label class="form-label-custom">Jenis BMN</label>
-        <input type="text" name="jenis_bmn" class="form-control"
-               placeholder="Contoh: Alat Besar"
+        <input type="text" name="jenis_bmn" class="form-control" placeholder="Contoh: Alat Besar"
                value="{{ old('jenis_bmn', $item->jenis_bmn) }}">
     </div>
     <div class="col-md-3">
@@ -166,8 +175,7 @@
         <select name="category" class="form-select" required>
             <option value="" disabled>Pilih Kategori</option>
             @foreach ($categories as $category)
-                <option value="{{ $category->id }}"
-                    {{ old('category', $item->category) == $category->id ? 'selected' : '' }}>
+                <option value="{{ $category->id }}" {{ old('category', $item->category) == $category->id ? 'selected' : '' }}>
                     {{ $category->name }}
                 </option>
             @endforeach
@@ -436,8 +444,9 @@
 <div class="row g-3 mb-4">
     <div class="col-md-6">
         <label class="form-label-custom">Penanggung Jawab <span class="req">*</span></label>
+        {{-- id="supervisorSelect" dipakai Select2 --}}
         <select name="supervisor" id="supervisorSelect" class="form-select" required>
-            <option value="" disabled>Pilih Penanggung Jawab</option>
+            <option value="">-- Pilih Penanggung Jawab --</option>
             @foreach ($employees as $employee)
                 <option value="{{ $employee->id }}"
                     {{ old('supervisor', $item->supervisor) == $employee->id ? 'selected' : '' }}>
@@ -480,125 +489,112 @@
 
 </main>
 
-{{-- Select2 untuk dropdown searchable --}}
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{{-- ══ JS: jQuery → Select2 → Custom Scripts ══ --}}
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<style>
-/* Sesuaikan tampilan Select2 dengan desain form */
-.select2-container--default .select2-selection--single {
-    height: 38px !important;
-    border: 1.5px solid #dee2e6 !important;
-    border-radius: 8px !important;
-    padding: 4px 8px !important;
-    font-size: 0.85rem;
-}
-.select2-container--default .select2-selection--single .select2-selection__rendered {
-    line-height: 28px !important;
-    color: #212529;
-    padding-left: 4px;
-}
-.select2-container--default .select2-selection--single .select2-selection__arrow {
-    height: 36px !important;
-}
-.select2-container--default.select2-container--focus .select2-selection--single {
-    border-color: #86b7fe !important;
-    box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15);
-}
-.select2-dropdown {
-    border: 1.5px solid #dee2e6;
-    border-radius: 8px;
-    font-size: 0.85rem;
-}
-.select2-container--default .select2-search--dropdown .select2-search__field {
-    border: 1.5px solid #dee2e6;
-    border-radius: 6px;
-    padding: 5px 8px;
-    font-size: 0.83rem;
-}
-.select2-container--default .select2-results__option--highlighted[aria-selected] {
-    background-color: #1e3a5f;
-}
-.select2-container { width: 100% !important; }
-</style>
-
 <script>
-$(document).ready(function() {
+$(function() {
+
+    // ── 1. Select2 untuk Penanggung Jawab ──
     $('#supervisorSelect').select2({
-        placeholder: 'Cari atau pilih penanggung jawab...',
+        placeholder: 'Ketik nama untuk mencari...',
         allowClear: true,
-        width: '100%'
-    });
-});
-</script>
-
-var locations       = {!! json_encode($locations) !!};
-var previousGedung  = "{{ $prevLocation->office ?? '' }}";
-var previousLantai  = "{{ $prevLocation->floor  ?? '' }}";
-var previousRuangan = "{{ $prevLocation->room   ?? '' }}";
-
-var gedungSelect  = document.getElementById('gedung');
-var lantaiSelect  = document.getElementById('lantai');
-var ruanganSelect = document.getElementById('ruangan');
-
-function populateLantaiOptions() {
-    var g = gedungSelect.value;
-    lantaiSelect.innerHTML  = '<option value="" disabled selected>Pilih Lantai</option>';
-    ruanganSelect.innerHTML = '<option value="" disabled selected>Pilih Ruangan</option>';
-    ruanganSelect.disabled  = true;
-
-    [...new Set(locations.filter(l => l.office === g).map(l => l.floor))]
-        .forEach(function(f) {
-            var opt = new Option(f, f);
-            if (f == previousLantai) opt.selected = true;
-            lantaiSelect.add(opt);
-        });
-    lantaiSelect.disabled = false;
-    populateRuanganOptions();
-}
-
-function populateRuanganOptions() {
-    var g = gedungSelect.value;
-    var f = lantaiSelect.value;
-    ruanganSelect.innerHTML = '<option value="" disabled selected>Pilih Ruangan</option>';
-    locations.filter(l => l.office === g && l.floor == f)
-        .map(l => l.room)
-        .forEach(function(r) {
-            var opt = new Option(r, r);
-            if (r == previousRuangan) opt.selected = true;
-            ruanganSelect.add(opt);
-        });
-    ruanganSelect.disabled = false;
-}
-
-gedungSelect.addEventListener('change', populateLantaiOptions);
-lantaiSelect.addEventListener('change', populateRuanganOptions);
-
-window.onload = function() {
-    if (previousGedung) {
-        gedungSelect.value = previousGedung;
-        populateLantaiOptions();
-    }
-};
-
-// ── Validasi hanya tandai field yang kosong saat submit ──
-document.getElementById('formEdit').addEventListener('submit', function (e) {
-    var valid = true;
-    this.querySelectorAll('[required]').forEach(function (el) {
-        if (!el.value.trim()) {
-            el.classList.add('is-invalid');
-            valid = false;
-        } else {
-            el.classList.remove('is-invalid');
+        width: '100%',
+        language: {
+            noResults: function() { return 'Nama tidak ditemukan'; },
+            searching:  function() { return 'Mencari...'; }
         }
     });
-    if (!valid) e.preventDefault();
-});
 
-document.getElementById('formEdit').querySelectorAll('[required]').forEach(function (el) {
-    el.addEventListener('input',  function () { this.classList.remove('is-invalid'); });
-    el.addEventListener('change', function () { this.classList.remove('is-invalid'); });
+    // ── 2. Dropdown Gedung → Lantai → Ruangan ──
+    var locations       = {!! json_encode($locations) !!};
+    var previousGedung  = "{{ $prevLocation->office ?? '' }}";
+    var previousLantai  = "{{ $prevLocation->floor  ?? '' }}";
+    var previousRuangan = "{{ $prevLocation->room   ?? '' }}";
+
+    var gedungSelect  = document.getElementById('gedung');
+    var lantaiSelect  = document.getElementById('lantai');
+    var ruanganSelect = document.getElementById('ruangan');
+
+    function populateLantai() {
+        var g = gedungSelect.value;
+        lantaiSelect.innerHTML  = '<option value="" disabled selected>Pilih Lantai</option>';
+        ruanganSelect.innerHTML = '<option value="" disabled selected>Pilih Ruangan</option>';
+        ruanganSelect.disabled  = true;
+
+        [...new Set(locations.filter(function(l){ return l.office === g; }).map(function(l){ return l.floor; }))]
+            .forEach(function(f) {
+                var opt = new Option(f, f);
+                if (f == previousLantai) opt.selected = true;
+                lantaiSelect.add(opt);
+            });
+        lantaiSelect.disabled = false;
+        populateRuangan();
+    }
+
+    function populateRuangan() {
+        var g = gedungSelect.value;
+        var f = lantaiSelect.value;
+        ruanganSelect.innerHTML = '<option value="" disabled selected>Pilih Ruangan</option>';
+        locations
+            .filter(function(l){ return l.office === g && l.floor == f; })
+            .map(function(l){ return l.room; })
+            .forEach(function(r) {
+                var opt = new Option(r, r);
+                if (r == previousRuangan) opt.selected = true;
+                ruanganSelect.add(opt);
+            });
+        ruanganSelect.disabled = false;
+    }
+
+    gedungSelect.addEventListener('change', populateLantai);
+    lantaiSelect.addEventListener('change', populateRuangan);
+
+    // Load nilai sebelumnya saat halaman dibuka
+    if (previousGedung) {
+        gedungSelect.value = previousGedung;
+        populateLantai();
+    }
+
+    // ── 3. Validasi form saat submit ──
+    document.getElementById('formEdit').addEventListener('submit', function(e) {
+        // Pastikan supervisor terpilih (Select2 tidak trigger HTML5 validation)
+        var supervisorVal = $('#supervisorSelect').val();
+        var valid = true;
+
+        this.querySelectorAll('[required]').forEach(function(el) {
+            if (!el.value || !el.value.trim()) {
+                el.classList.add('is-invalid');
+                valid = false;
+            } else {
+                el.classList.remove('is-invalid');
+            }
+        });
+
+        if (!supervisorVal) {
+            $('#supervisorSelect').next('.select2-container').css('border', '1.5px solid #dc3545');
+            document.querySelector('[name="supervisor"] ~ .invalid-feedback').style.display = 'block';
+            valid = false;
+        } else {
+            $('#supervisorSelect').next('.select2-container').css('border', '');
+            document.querySelector('[name="supervisor"] ~ .invalid-feedback').style.display = '';
+        }
+
+        if (!valid) e.preventDefault();
+    });
+
+    // Hapus is-invalid saat diisi
+    document.getElementById('formEdit').querySelectorAll('[required]').forEach(function(el) {
+        el.addEventListener('input',  function() { this.classList.remove('is-invalid'); });
+        el.addEventListener('change', function() { this.classList.remove('is-invalid'); });
+    });
+
+    // Reset border Select2 saat dipilih
+    $('#supervisorSelect').on('select2:select select2:clear', function() {
+        $(this).next('.select2-container').css('border', '');
+        $(this).siblings('.invalid-feedback').hide();
+    });
+
 });
 </script>
 @endsection

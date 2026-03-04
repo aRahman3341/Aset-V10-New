@@ -27,8 +27,8 @@
                     </td>
                     <td class="text-center text-muted small">{{ $no }}</td>
                     <td>
-                        {{-- data-raw = kode asli, JS format jadi spasi tiap 4 karakter --}}
-                        <span class="code-badge" data-raw="{{ $item->code ?? '' }}">{{ $item->code ?? '-' }}</span>
+                        {{-- Kode ditampilkan apa adanya tanpa pemisah spasi --}}
+                        <span class="fw-bold text-primary">{{ $item->code ?? '-' }}</span>
                     </td>
                     <td>{{ Str::limit($item->name ?? '-', 45) }}</td>
                     <td class="text-center fw-bold">{{ $item->saldo ?? 0 }}</td>
@@ -62,7 +62,6 @@
                             <a href="{{ route('items.edit', $item->id) }}" class="abtn abtn-edit" title="Edit">
                                 <i class="bi bi-pencil-square"></i>
                             </a>
-                            {{-- data-id dipakai JS untuk single delete --}}
                             <button type="button" class="abtn abtn-del delete-button"
                                     data-id="{{ $item->id }}" title="Hapus">
                                 <i class="bi bi-trash"></i>
