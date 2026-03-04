@@ -229,7 +229,7 @@
                     </div>
                 </div>
                 <h1>Monitoring Aset</h1>
-                <p>BALAI SAINS BANGUNAN<br>Direktorat Jenderal Cipta Karya — PUPR</p>
+                <p>BALAI TEKNIK SAINS BANGUNAN<br>Direktorat Jenderal Cipta Karya — PUPR</p>
             </div>
 
             {{-- ── Body ── --}}

@@ -8,11 +8,11 @@
             <img src="{{ asset('assets/img/PUPR.png') }}" alt="Logo PUPR" class="header-pupr-logo">
             <div class="header-divider"></div>
             <div class="header-institution">
-                <span class="inst-ministry">KEMENTERIAN PEKERJAAN UMUM DAN PERUMAHAN RAKYAT</span>
+                <span class="inst-ministry">KEMENTERIAN PEKERJAAN UMUM</span>
                 <span class="inst-unit">
                     <b>DIREKTORAT JENDERAL CIPTA KARYA</b><br>
-                    <b>DIREKTORAT BINA TEKNIK PERMUKIMAN DAN PERUMAHAN</b><br>
-                    <b>BALAI SAINS BANGUNAN</b>
+                    <b>DIREKTORAT BINA TEKNIK BANGUNAN GEDUNG DAN PENYEHATAN LINGKUNGAN</b><br>
+                    <b>BALAI TEKNIK SAINS BANGUNAN</b>
                 </span>
             </div>
         </div>
