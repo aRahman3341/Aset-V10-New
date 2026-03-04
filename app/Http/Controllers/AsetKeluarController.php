@@ -232,17 +232,16 @@ public function update(Request $request, $id)
         Settings::setOutputEscapingEnabled(false);
 
         $formattedDate = $this->formatDate($item->created_at);
-        // Replace the placeholders in the template with the actual values
         $templateProcessor->setValue('nomor', $item->nomor);
-        setlocale(LC_TIME, 'id_ID.utf8');
+       
+        $bulanIndo = [
+            1=>'Januari', 2=>'Februari', 3=>'Maret', 4=>'April',
+            5=>'Mei', 6=>'Juni', 7=>'Juli', 8=>'Agustus',
+            9=>'September', 10=>'Oktober', 11=>'November', 12=>'Desember'
+        ];
+        $tgl = $item->created_at;
+        $dateString = $tgl->day . ' ' . $bulanIndo[$tgl->month] . ' ' . $tgl->year;
 
-        // Format the date using the Indonesian locale
-        $dateString = $item->created_at->formatLocalized('%e %B %Y');
-
-        // Restore the original locale if needed
-        setlocale(LC_TIME, ''); // This will reset the locale to the default setting
-
-        // Now you can use the formatted date string as needed
         $templateProcessor->setValue('date', $dateString);
         $templateProcessor->setValue('tanggal', $formattedDate);
         $templateProcessor->setValue('kepada', strtoupper($item->kepada));

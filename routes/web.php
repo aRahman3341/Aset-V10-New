@@ -108,7 +108,32 @@ Route::middleware('IsLogin')->group(function () {
         Route::post('/search',   [AsetKeluarController::class, 'search'])->name('search');
         Route::get('/export',    [AsetKeluarController::class, 'export'])->name('export');
         Route::get('/download/{id}', [AsetKeluarController::class, 'download'])->name('download');
-        Route::get('/report',    [AsetKeluarController::class, 'report'])->name('report-asetkeluar');
+        // ← route report dihapus karena method tidak ada di controller
+    });
+
+    /* ================= ASET OUT (BARANG KELUAR) ================= */
+    Route::prefix('asetout')->name('asetout.')->group(function () {
+        Route::get('/',                  [AsetOutController::class, 'get_data'])->name('index');
+        Route::get('/add',               [AsetOutController::class, 'addData'])->name('add');
+        Route::post('/store',            [AsetOutController::class, 'dataStore'])->name('store');
+        Route::get('/{id}/edit',         [AsetOutController::class, 'editData'])->name('edit');
+        Route::put('/{id}',              [AsetOutController::class, 'update'])->name('update');
+        Route::get('/{id}/editND',       [AsetOutController::class, 'editDataND'])->name('editND');
+        Route::put('/{id}/updateND',     [AsetOutController::class, 'updateND'])->name('updateND');
+        Route::delete('/{id}',           [AsetOutController::class, 'destroy'])->name('destroy');
+        Route::get('/report',            [AsetOutController::class, 'report'])->name('report');
+        Route::get('/report-all',        [AsetOutController::class, 'exportAll'])->name('reportAll');
+        Route::get('/cetak-faktur/{noFaktur}', [AsetOutController::class, 'cetakFaktur'])->name('cetak-faktur');
+        Route::get('/cetak-nota/{noFaktur}',   [AsetOutController::class, 'cetakNota'])->name('cetak-nota');
+        Route::get('/download/{noND}',   [AsetOutController::class, 'download'])->name('download');
+        Route::get('/{id}/ajuan',        [AsetOutController::class, 'getList'])->name('ajuan');
+        Route::post('/filter',           [AsetOutController::class, 'filter'])->name('filter');
+    });
+
+    /* ================= AJUAN ================= */
+    Route::prefix('ajuan')->name('ajuan.')->group(function () {
+        Route::put('/{id}/approve', [AjuanController::class, 'approve'])->name('approve');
+        Route::put('/{id}/reject',  [AjuanController::class, 'reject'])->name('reject');
     });
 
     /* ================= PENGAJUAN ================= */
