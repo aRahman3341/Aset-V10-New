@@ -64,7 +64,7 @@
             <button type="button" data-bs-toggle="modal" data-bs-target="#ModalImport" class="btn btn-success btn-sm me-1">
                 <i class="bi bi-file-earmark-arrow-down"></i> Import
             </button>
-            <div class="d-inline-block border-start" style="height:24px; margin: 0 4px;"></div>
+            
             <button type="button" data-bs-toggle="modal" data-bs-target="#ModalExport" class="btn btn-primary btn-sm me-1">
                 <i class="bi bi-file-earmark-arrow-up"></i> Export
             </button>

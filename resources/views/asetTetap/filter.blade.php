@@ -1,130 +1,62 @@
 <form action="{{ route('asetTetap.filter') }}" method="post">
     @csrf
-    <div class="row">
+    <div class="row g-2 align-items-end">
+
         <div class="col-md-3">
-            <div class="form-group ml-2">
-                <label for="">Janis Aset:</label>
-                <select class="form-control" name="type">
-                    <option value="all" {{ request()->input('type') == 'all' ? 'selected' : '' }}>All</option>
-                    <option value="Tetap" {{ request()->input('type') == 'Tetap' ? 'selected' : '' }}>Tetap</option>
-                    <option value="Bergerak" {{ request()->input('type') == 'Bergerak' ? 'selected' : '' }}>Bergerak</option>
-                </select>
-            </div>
+            <label class="form-label-custom mb-1" style="font-size:.78rem;font-weight:700;color:#4a5a6e;">Jenis BMN:</label>
+            <select class="form-control form-control-sm" name="jenis_bmn">
+                <option value="all">Semua Jenis</option>
+                <option value="ALAT BESAR"                 {{ request()->input('jenis_bmn') == 'ALAT BESAR'                 ? 'selected' : '' }}>Alat Besar</option>
+                <option value="ALAT ANGKUTAN BERMOTOR"     {{ request()->input('jenis_bmn') == 'ALAT ANGKUTAN BERMOTOR'     ? 'selected' : '' }}>Alat Angkutan Bermotor</option>
+                <option value="BANGUNAN DAN GEDUNG"        {{ request()->input('jenis_bmn') == 'BANGUNAN DAN GEDUNG'        ? 'selected' : '' }}>Bangunan dan Gedung</option>
+                <option value="JALAN DAN JEMBATAN"         {{ request()->input('jenis_bmn') == 'JALAN DAN JEMBATAN'         ? 'selected' : '' }}>Jalan dan Jembatan</option>
+                <option value="MESIN PERALATAN KHUSUS TIK" {{ request()->input('jenis_bmn') == 'MESIN PERALATAN KHUSUS TIK' ? 'selected' : '' }}>Mesin Peralatan TIK</option>
+                <option value="MESIN PERALATAN NON TIK"    {{ request()->input('jenis_bmn') == 'MESIN PERALATAN NON TIK'    ? 'selected' : '' }}>Mesin Peralatan Non TIK</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label-custom mb-1" style="font-size:.78rem;font-weight:700;color:#4a5a6e;">Kondisi:</label>
+            <select class="form-control form-control-sm" name="kondisi">
+                <option value="all">Semua</option>
+                <option value="Baik"         {{ request()->input('kondisi') == 'Baik'         ? 'selected' : '' }}>Baik</option>
+                <option value="Rusak Ringan" {{ request()->input('kondisi') == 'Rusak Ringan' ? 'selected' : '' }}>Rusak Ringan</option>
+                <option value="Rusak Berat"  {{ request()->input('kondisi') == 'Rusak Berat'  ? 'selected' : '' }}>Rusak Berat</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label-custom mb-1" style="font-size:.78rem;font-weight:700;color:#4a5a6e;">Status BMN:</label>
+            <select class="form-control form-control-sm" name="status_bmn">
+                <option value="all">Semua</option>
+                <option value="Aktif"       {{ request()->input('status_bmn') == 'Aktif'       ? 'selected' : '' }}>Aktif</option>
+                <option value="Tidak Aktif" {{ request()->input('status_bmn') == 'Tidak Aktif' ? 'selected' : '' }}>Tidak Aktif</option>
+            </select>
         </div>
 
         <div class="col-md-3">
-            <label for="">Kategori:</label>
-            <div class="form-group ml-2">
-                <select class="form-control" name="category">
-                    <option value="all" {{ request()->input('category') == 'all' ? 'selected' : '' }}>All</option>
-                    @foreach ($categories as $category)
-                        <option value="{{ $category->id }}" {{ request()->input('category') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+            <label class="form-label-custom mb-1" style="font-size:.78rem;font-weight:700;color:#4a5a6e;">Tahun Perolehan:</label>
+            <div class="d-flex gap-1">
+                <select class="form-control form-control-sm" name="tahun_dari">
+                    <option value="">Dari</option>
+                    @foreach(range(date('Y'), 1980, -1) as $thn)
+                        <option value="{{ $thn }}" {{ request()->input('tahun_dari') == $thn ? 'selected' : '' }}>{{ $thn }}</option>
+                    @endforeach
+                </select>
+                <select class="form-control form-control-sm" name="tahun_sampai">
+                    <option value="">Sampai</option>
+                    @foreach(range(date('Y'), 1980, -1) as $thn)
+                        <option value="{{ $thn }}" {{ request()->input('tahun_sampai') == $thn ? 'selected' : '' }}>{{ $thn }}</option>
                     @endforeach
                 </select>
             </div>
         </div>
 
-        <div class="col-md-3">
-            <label for="">Tahun:</label>
-            <div class="form-group ml-2">
-                <div class="d-flex">
-                    <select class="form-control" name="years_from">
-                        <option value="dari" {{ request()->input('years_from') == 'dari' ? 'selected' : '' }}>Dari</option>
-                        @php
-                            $uniqueYears = $tahun->unique('years')->sortBy('years');
-                        @endphp
-                        @foreach($uniqueYears as $item)
-                            <option value="{{ $item->years }}" {{ request()->input('years_from') == $item->years ? 'selected' : '' }}>{{ $item->years }}</option>
-                        @endforeach
-                    </select>
-                    <div class="mx-2"></div>
-                    <select class="form-control ml-2" name="years_till">
-                        <option value="sampai" {{ request()->input('years_till') == 'sampai' ? 'selected' : '' }}>Sampai</option>
-                        @foreach($uniqueYears as $item)
-                            <option value="{{ $item->years }}" {{ request()->input('years_till') == $item->years ? 'selected' : '' }}>{{ $item->years }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary btn-sm w-100">
+                <i class="bi bi-search me-1"></i> Terapkan
+            </button>
         </div>
 
-        <div class="col-md-3">
-            <label for="">Lokasi:</label>
-            <div class="form-group ml-2">
-                <div class="d-flex">
-                    <select class="form-control" name="gedung" id="gedung">
-                        <option value="" {{ request()->input('gedung') == '' ? 'selected' : '' }}>Gedung</option>
-                        @php
-                            $uniqueOffices = $locations->unique('office')->sortBy('office');
-                        @endphp
-                        @foreach($uniqueOffices as $location)
-                            <option value="{{ $location->office }}" {{ request()->input('gedung') == $location->office ? 'selected' : '' }}>{{ $location->office }}</option>
-                        @endforeach
-                    </select>
-
-                    <div class="mx-2"></div>
-                        <select class="form-control ml-2" name="lantai" id="lantai" disabled>
-                            <option value="" {{ request()->input('lantai') == '' ? 'selected' : '' }}>Lantai</option>
-                            @php
-                                $uniqueFloors = $locations->unique('floor')->sortBy('floor');
-                            @endphp
-                            @foreach($uniqueFloors as $location)
-                                <option value="{{ $location->floor }}" {{ request()->input('lantai') == $location->floor ? 'selected' : '' }}>{{ $location->floor }}</option>
-                            @endforeach
-                        </select>
-                    <div class="mx-2"></div>
-                    <select class="form-control ml-2" name="ruangan" id="ruangan" disabled>
-                        <option value="" {{ request()->input('ruangan') == '' ? 'selected' : '' }}>Ruangan</option>
-                        @php
-                            $uniqueRooms = $locations->unique('room')->sortBy('room');
-                        @endphp
-                        @foreach($uniqueRooms as $location)
-                            <option value="{{ $location->room }}" {{ request()->input('ruangan') == $location->room ? 'selected' : '' }}>{{ $location->room }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <label for="">Kondisi:</label>
-            <div class="form-group ml-2">
-                <select class="form-control" name="condition">
-                    <option value="all">All</option>
-                    <option value="Baik">Baik</option>
-                    <option value="Rusak Ringan">Rusak Ringan</option>
-                    <option value="Rusak Berat">Rusak Berat</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <label for="">Penanggung Jawab:</label>
-            <div class="form-group ml-2">
-                <select class="form-control" name="supervisor">
-                    <option value="all">All</option>
-                    @foreach ($employees as $employee)
-                        <option value="{{ $employee->id }}">{{ $employee->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <label for="">Kalibrasi:</label>
-            <div class="form-group ml-2">
-                <select class="form-control" name="calibrate">
-                    <option value="all">All</option>
-                    <option value="1">Dikalibrasi</option>
-                    <option value="0">Tidak dikalibrasi</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="form-group ml-2 mt-4">
-                <button type="submit" class="btn btn-primary">Submit</button>
-            </div>
-        </div>
     </div>
 </form>

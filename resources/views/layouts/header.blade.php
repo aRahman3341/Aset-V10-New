@@ -37,7 +37,7 @@
         --navy-mid: #2d5a8e;
         --gold:     #e8b84b;
     }
-
+ 
     #site-header {
         box-shadow: 0 2px 16px rgba(30, 58, 95, 0.12);
         z-index: 1040;

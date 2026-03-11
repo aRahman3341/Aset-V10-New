@@ -12,7 +12,7 @@ class ChartController extends Controller
     public function index(Request $request)
     {
         // ── Filter Tahun (null = semua tahun) ──
-        $tahun     = $request->get('tahun', null);  // null = tampilkan semua
+        $tahun     = $request->get('tahun', null);
         $tahunList = range(Carbon::now()->year, 2020);
 
         // ── Label Bulan ──
@@ -21,32 +21,45 @@ class ChartController extends Controller
             $bulanLabels[$i] = Carbon::create()->month($i)->monthName;
         }
 
-        // ── Aset Tetap & Bergerak per bulan ──
-        $queryTetap    = Materials::where('type', 'Tetap');
-        $queryBergerak = Materials::where('type', 'Bergerak');
+        // ── Aset per bulan — dikelompokkan by jenis_bmn (pengganti kolom 'type') ──
+        // Kelompok 1 → Mesin & Peralatan (ditampilkan sebagai "Tetap" di chart lama)
+        $queryMesin = Materials::whereIn('jenis_bmn', [
+            'MESIN PERALATAN NON TIK',
+            'MESIN PERALATAN KHUSUS TIK',
+        ]);
+
+        // Kelompok 2 → Kendaraan & Infrastruktur (ditampilkan sebagai "Bergerak" di chart lama)
+        $queryInfra = Materials::whereIn('jenis_bmn', [
+            'ALAT ANGKUTAN BERMOTOR',
+            'ALAT BESAR',
+            'BANGUNAN DAN GEDUNG',
+            'JALAN DAN JEMBATAN',
+        ]);
 
         if ($tahun) {
-            $queryTetap->whereYear('created_at', $tahun);
-            $queryBergerak->whereYear('created_at', $tahun);
+            $queryMesin->whereYear('created_at', $tahun);
+            $queryInfra->whereYear('created_at', $tahun);
         }
 
-        $asetTetapPerBulan = $queryTetap
+        $mesinPerBulan = $queryMesin
             ->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
             ->groupByRaw("MONTH(created_at)")
             ->pluck('jumlah', 'bulan')
             ->toArray();
 
-        $asetBergerakPerBulan = $queryBergerak
+        $infraPerBulan = $queryInfra
             ->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
             ->groupByRaw("MONTH(created_at)")
             ->pluck('jumlah', 'bulan')
             ->toArray();
 
+        // Nama variabel $quantityTetap / $quantityBergerak dipertahankan
+        // agar view home.blade.php tidak perlu diubah
         $quantityTetap    = [];
         $quantityBergerak = [];
         foreach ($bulanLabels as $bulanNum => $namaBulan) {
-            $quantityTetap[]    = $asetTetapPerBulan[$bulanNum]    ?? 0;
-            $quantityBergerak[] = $asetBergerakPerBulan[$bulanNum] ?? 0;
+            $quantityTetap[]    = $mesinPerBulan[$bulanNum] ?? 0;
+            $quantityBergerak[] = $infraPerBulan[$bulanNum] ?? 0;
         }
 
         // ── Barang Habis Pakai per bulan ──
