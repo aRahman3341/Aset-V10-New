@@ -87,14 +87,15 @@ Route::middleware('IsLogin')->group(function () {
 
         // CRUD
         Route::get('/create',    [PeminjamanController::class, 'create'])->name('create');
-        Route::post('/',         [PeminjamanController::class, 'store'])->name('store');     // ← fix utama
+        Route::post('/',         [PeminjamanController::class, 'store'])->name('store');
         Route::get('/{id}/edit', [PeminjamanController::class, 'edit'])->name('edit');
         Route::put('/{id}',      [PeminjamanController::class, 'update'])->name('update');
         Route::delete('/{id}',   [PeminjamanController::class, 'destroy'])->name('destroy');
+        Route::get('/{id}/surat',   [PeminjamanController::class, 'cetakSurat'])->name('cetakSurat');
 
         // Pengembalian
-        Route::get('/{id}/kembali',       [PeminjamanController::class, 'kembali'])->name('kembali');
-        Route::put('/{id}/pengembalian',  [PeminjamanController::class, 'pengembalian'])->name('pengembalian');
+        Route::get('/{id}/kembali', [PeminjamanController::class, 'kembali'])->name('kembali');
+        Route::put('/{id}/kembali', [PeminjamanController::class, 'pengembalian'])->name('pengembalian');
     });
 
     /* ================= ASET KELUAR ================= */

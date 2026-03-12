@@ -35,7 +35,7 @@
 					@method('PUT')
 					<div class="col-12">
 						<label for="inputNanme4" class="form-label fw-bold">Nama Barang</label>
-						<input type="text" class="form-control" name="material_display" id="inputNanme4" value="{{ ($loan->material->name) }}" disabled>
+						<input type="text" class="form-control" name="material_display" id="inputNanme4" value="{{ ($loan->material->nama_barang) }}" disabled>
 						<input type="hidden" class="form-control" name="material_id" id="inputNanme4" value="{{ ($loan->material_id) }}">
 						{{--@error('material_id')
 						<div class="text-danger">{{ $message }}</div>
