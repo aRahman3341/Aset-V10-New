@@ -46,8 +46,12 @@
                 </li>
 
                 {{-- Transaksi --}}
+                @php
+                    $isTransaksi = (request()->is('peminjaman') || request()->is('peminjaman/create') || request()->is('peminjaman/*/edit') || request()->is('peminjaman/*/kembali') || request()->is('peminjaman/*/surat'))
+                                || request()->is('asetkeluar*');
+                @endphp
                 <li class="nav-item-custom nav-dropdown">
-                    <a class="nav-link-custom {{ request()->is('peminjaman*') || request()->is('asetkeluar*') ? 'active' : '' }}" href="#">
+                    <a class="nav-link-custom {{ $isTransaksi ? 'active' : '' }}" href="#">
                         <i class="bi bi-arrow-left-right"></i>
                         <span>Transaksi</span>
                         <i class="bi bi-chevron-down nav-chevron"></i>
@@ -59,7 +63,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="{{ url('peminjaman') }}" class="{{ request()->is('peminjaman') || request()->is('peminjaman/add') || request()->is('peminjaman/edit*') ? 'active' : '' }}">
+                            <a href="{{ url('peminjaman') }}" class="{{ request()->is('peminjaman') || request()->is('peminjaman/create') || request()->is('peminjaman/*/edit') ? 'active' : '' }}">
                                 <i class="bi bi-clipboard-check"></i> Peminjaman
                             </a>
                         </li>
@@ -93,21 +97,22 @@
                 </li>
 
                 {{-- Report --}}
+                @php
+                    $isReport = request()->is('peminjaman/report*') || request()->is('asetkeluar/report*') || request()->is('asetout/report*');
+                @endphp
                 <li class="nav-item-custom nav-dropdown">
-                    <a class="nav-link-custom {{ request()->is('peminjaman/report*') || request()->is('asetkeluar/report*') ? 'active' : '' }}" href="#">
+                    <a class="nav-link-custom {{ $isReport ? 'active' : '' }}" href="#">
                         <i class="bi bi-file-earmark-bar-graph"></i>
                         <span>Report</span>
                         <i class="bi bi-chevron-down nav-chevron"></i>
                     </a>
                     <ul class="nav-dropdown-menu">
                         <li>
-                            {{-- ✅ DIPERBAIKI: nama route lama 'peminjaman.report-peminjaman' → 'peminjaman.report' --}}
                             <a href="{{ route('peminjaman.report') }}" class="{{ request()->is('peminjaman/report*') ? 'active' : '' }}">
                                 <i class="bi bi-clipboard-data"></i> Peminjaman
                             </a>
                         </li>
                         <li>
-                            {{-- ✅ Report Aset Keluar → asetout (barang habis pakai keluar) --}}
                             <a href="{{ route('asetout.report') }}" class="{{ request()->is('asetout/report*') ? 'active' : '' }}">
                                 <i class="bi bi-file-earmark-arrow-up"></i> Aset Keluar
                             </a>

@@ -110,9 +110,9 @@ class PeminjamanController extends Controller
 
     public function kembali(Request $request, $id)
     {
-        $loan    = peminjaman::with('material')->findOrFail($id);
-        $employe = employee::all();
-        return view('peminjaman.update', compact('loan', 'employe'));
+        $loan  = peminjaman::with('material')->findOrFail($id);
+        $users = User::orderBy('name')->get();
+        return view('peminjaman.update', compact('loan', 'users'));
     }
 
     public function pengembalian(Request $request, $id)
