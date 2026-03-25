@@ -164,7 +164,8 @@ Route::middleware('IsLogin')->group(function () {
     });
 
     /* ================= USER ================= */
-    Route::prefix('pengguna')->group(function () {
+    // ── Pengguna ──
+Route::prefix('pengguna')->group(function () {
         Route::get('/',          [UserController::class, 'get_data']);
         Route::get('/add',       [UserController::class, 'addData'])->name('pengguna.add');
         Route::post('/store',    [UserController::class, 'dataStore'])->name('pengguna.store');

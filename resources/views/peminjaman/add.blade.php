@@ -1,176 +1,194 @@
 @extends('layouts.app')
-@section('title') Tambah Peminjaman - Monitoring Aset @endsection
+@section('title') Tambah Pengguna - Monitoring Aset @endsection
 @section('content')
-
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-
 <main id="main" class="main">
-<style>
-.pm-pagetitle { display:flex; align-items:center; margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid rgba(30,58,95,0.08); }
-.pm-pagetitle-left { display:flex; align-items:center; gap:14px; }
-.pm-pagetitle-icon { width:46px; height:46px; background:linear-gradient(135deg,#1e3a5f,#2d5a8e); border-radius:12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.2rem; box-shadow:0 4px 12px rgba(30,58,95,0.25); flex-shrink:0; }
-.pm-pagetitle h1 { font-size:1.25rem; font-weight:800; color:#1e3a5f; margin:0 0 3px; }
-.pm-pagetitle .breadcrumb { font-size:0.75rem; margin:0; padding:0; background:transparent; }
-.pm-pagetitle .breadcrumb a { color:#2d5a8e; text-decoration:none; }
-.pm-pagetitle .breadcrumb-item.active { color:#8a96a3; }
 
-.pm-card { background:#fff; border-radius:16px; border:1px solid rgba(30,58,95,0.08); box-shadow:0 2px 16px rgba(30,58,95,0.07); overflow:hidden; }
-.pm-card-header { padding:16px 24px; background:linear-gradient(135deg,#1e3a5f,#2d5a8e); display:flex; align-items:center; gap:10px; color:#fff; }
-.pm-card-header i { font-size:1.1rem; }
-.pm-card-header span { font-size:0.95rem; font-weight:700; }
-.pm-card-body { padding:28px 28px 20px; }
-
-.pm-label { display:block; font-size:0.78rem; font-weight:700; color:#4a5a6e; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px; }
-.req { color:#dc3545; }
-.pm-input, .pm-select { width:100%; padding:10px 14px; font-size:0.85rem; color:#1e3a5f; background:#f8fafd; border:1.5px solid #dee2e6; border-radius:10px; outline:none; transition:border-color .15s, box-shadow .15s; }
-.pm-input:focus, .pm-select:focus { background:#fff; border-color:#2d5a8e; box-shadow:0 0 0 3px rgba(45,90,142,0.10); }
-.pm-field { margin-bottom:18px; }
-.pm-field-error { display:block; font-size:0.75rem; color:#dc3545; margin-top:4px; }
-.pm-divider { display:flex; align-items:center; gap:10px; margin:4px 0 18px; font-size:0.75rem; font-weight:700; color:#8a96a3; text-transform:uppercase; letter-spacing:0.5px; }
-.pm-divider::before, .pm-divider::after { content:''; flex:1; height:1px; background:rgba(30,58,95,0.08); }
-
-.pm-btn-submit { width:100%; padding:12px; background:linear-gradient(135deg,#1e3a5f,#2d5a8e); color:#fff; border:none; border-radius:10px; font-size:0.9rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(30,58,95,0.25); transition:all .18s; }
-.pm-btn-submit:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(30,58,95,0.35); }
-.pm-btn-back { width:100%; padding:11px; background:#f4f6fb; color:#5a6a7e; border:1.5px solid #dee2e6; border-radius:10px; font-size:0.88rem; font-weight:600; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:7px; transition:all .15s; }
-.pm-btn-back:hover { background:#e8ecf5; color:#1e3a5f; text-decoration:none; }
-
-.select2-container--default .select2-selection--single { height:42px!important; border-radius:10px!important; border:1.5px solid #dee2e6!important; background:#f8fafd!important; display:flex; align-items:center; }
-.select2-container--default .select2-selection--single .select2-selection__rendered { line-height:42px!important; padding-left:14px!important; font-size:0.85rem; color:#1e3a5f; }
-.select2-container--default .select2-selection--single .select2-selection__arrow { height:40px!important; }
-.select2-container--default.select2-container--focus .select2-selection--single { border-color:#2d5a8e!important; box-shadow:0 0 0 3px rgba(45,90,142,0.10)!important; background:#fff!important; }
-.select2-dropdown { border-radius:10px!important; border:1.5px solid rgba(30,58,95,0.15)!important; }
-.select2-results__option { font-size:0.83rem; padding:8px 14px; }
-.select2-container--default .select2-results__option--highlighted { background:#1e3a5f!important; }
-</style>
-
-<div class="pm-pagetitle">
-    <div class="pm-pagetitle-left">
-        <div class="pm-pagetitle-icon"><i class="bi bi-clipboard-plus"></i></div>
+{{-- Page Title --}}
+<div class="pagetitle">
+    <div class="pagetitle-left">
+        <div class="pagetitle-icon"><i class="bi bi-person-plus-fill"></i></div>
         <div>
-            <h1>Tambah Peminjaman</h1>
-            <nav><ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url('/') }}"><i class="bi bi-house-door"></i> Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('peminjaman.index') }}">Peminjaman</a></li>
-                <li class="breadcrumb-item active">Tambah</li>
-            </ol></nav>
+            <h1>Tambah Pengguna</h1>
+            <nav>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url('/') }}"><i class="bi bi-house-door"></i> Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('pengguna.getData') }}">Pengguna</a></li>
+                    <li class="breadcrumb-item active">Tambah</li>
+                </ol>
+            </nav>
         </div>
     </div>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-lg-7 col-md-10">
-        <div class="pm-card">
-            <div class="pm-card-header">
-                <i class="bi bi-file-earmark-plus"></i>
-                <span>Form Peminjaman Aset</span>
-            </div>
-            <div class="pm-card-body">
+<section class="section">
+<div class="form-card">
 
-                @if(session('error'))
-                    <div class="alert alert-danger rounded-3 mb-4">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
-                    </div>
-                @endif
+    <div class="form-card-header">
+        <i class="bi bi-person-plus-fill me-2"></i> Form Tambah Pengguna
+    </div>
 
-                <form method="POST" action="{{ route('peminjaman.store') }}">
-                    @csrf
-
-                    {{-- Pilih Aset --}}
-                    <div class="pm-field">
-                        <label class="pm-label">Nama Barang / Aset <span class="req">*</span></label>
-                        <select name="material_id" class="namebox" style="width:100%" required>
-                            <option value="">-- Pilih Aset --</option>
-                            @foreach ($material as $item)
-                                <option value="{{ $item->id }}" {{ old('material_id') == $item->id ? 'selected' : '' }}>
-                                    {{ $item->nama_barang }}
-                                    @if($item->kode_barang) — {{ $item->kode_barang }} @endif
-                                    (NUP: {{ $item->nup ?? '-' }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('material_id')
-                            <span class="pm-field-error"><i class="bi bi-exclamation-circle me-1"></i>{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="pm-divider">Periode Peminjaman</div>
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="pm-field">
-                                <label class="pm-label">Tanggal Pinjam <span class="req">*</span></label>
-                                <div style="position:relative">
-                                    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8a96a3;pointer-events:none"><i class="bi bi-calendar-event"></i></span>
-                                    <input type="text" name="tgl_pinjam" id="datepicker"
-                                           class="pm-input" style="padding-left:34px"
-                                           placeholder="yyyy-mm-dd"
-                                           value="{{ old('tgl_pinjam') }}" required>
-                                </div>
-                                @error('tgl_pinjam')
-                                    <span class="pm-field-error">{{ $message }}</span>
-                                @enderror
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="pm-field">
-                                <label class="pm-label">Tanggal Kembali <span class="req">*</span></label>
-                                <div style="position:relative">
-                                    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8a96a3;pointer-events:none"><i class="bi bi-calendar-check"></i></span>
-                                    <input type="text" name="tgl_kembali" id="datepicker1"
-                                           class="pm-input" style="padding-left:34px"
-                                           placeholder="yyyy-mm-dd"
-                                           value="{{ old('tgl_kembali') }}" required>
-                                </div>
-                                @error('tgl_kembali')
-                                    <span class="pm-field-error">{{ $message }}</span>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="pm-divider">Data Peminjam</div>
-
-                    <div class="pm-field">
-                        <label class="pm-label">Nama Peminjam <span class="req">*</span></label>
-                        <div style="position:relative">
-                            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8a96a3;pointer-events:none"><i class="bi bi-person"></i></span>
-                            <input type="text" name="peminjam" class="pm-input" style="padding-left:34px"
-                                   placeholder="Masukkan nama peminjam"
-                                   value="{{ old('peminjam') }}" required>
-                        </div>
-                        @error('peminjam')
-                            <span class="pm-field-error">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="row g-3 mt-2">
-                        <div class="col-md-8">
-                            <button type="submit" class="pm-btn-submit">
-                                <i class="bi bi-check-circle-fill"></i> Simpan Peminjaman
-                            </button>
-                        </div>
-                        <div class="col-md-4">
-                            <a href="{{ route('peminjaman.index') }}" class="pm-btn-back">
-                                <i class="bi bi-x-circle"></i> Batal
-                            </a>
-                        </div>
-                    </div>
-                </form>
-            </div>
+    {{-- Info box --}}
+    <div class="info-box">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        <div>
+            <strong>Catatan:</strong>
+            Password tidak diisi saat penambahan akun.
+            Untuk role <strong>Admin, Manager, dan Operator</strong> — password default akan otomatis diset sama dengan <strong>NIP</strong> yang dimasukkan.
+            Password dapat diubah setelah login pertama melalui menu <em>Edit Pengguna</em>.
         </div>
     </div>
+
+    <div class="form-card-body">
+        <form class="row g-3" method="POST" action="{{ route('pengguna.store') }}" novalidate id="addForm">
+            @csrf
+
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">NIP <span class="text-danger">*</span></label>
+                <input type="text" class="form-control @error('nip') is-invalid @enderror"
+                       name="nip" value="{{ old('nip') }}" maxlength="12"
+                       placeholder="Masukkan NIP (maks. 12 digit)">
+                @error('nip') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <div class="form-hint">Akan digunakan sebagai password awal untuk role yang bisa login.</div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Nama Lengkap <span class="text-danger">*</span></label>
+                <input type="text" class="form-control @error('name') is-invalid @enderror"
+                       name="name" value="{{ old('name') }}" placeholder="Nama lengkap">
+                @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+                <input type="email" class="form-control @error('email') is-invalid @enderror"
+                       name="email" value="{{ old('email') }}" placeholder="email@domain.com">
+                @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Jabatan / Role <span class="text-danger">*</span></label>
+                <select class="form-select @error('jabatan') is-invalid @enderror"
+                        name="jabatan" id="jabatanSelect">
+                    <option value="">Pilih jabatan...</option>
+                    <optgroup label="Bisa Login">
+                        <option value="admin"    {{ old('jabatan') == 'admin'    ? 'selected' : '' }}>Admin</option>
+                        <option value="manager"  {{ old('jabatan') == 'manager'  ? 'selected' : '' }}>Manager</option>
+                        <option value="operator" {{ old('jabatan') == 'operator' ? 'selected' : '' }}>Operator</option>
+                    </optgroup>
+                    <optgroup label="Tidak Bisa Login">
+                        <option value="Karyawan" {{ old('jabatan') == 'Karyawan' ? 'selected' : '' }}>Karyawan</option>
+                    </optgroup>
+                </select>
+                @error('jabatan') <div class="invalid-feedback">{{ $message }}</div> @enderror
+
+                {{-- Indikator real-time --}}
+                <div id="roleIndicator" class="role-indicator d-none mt-2"></div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Jenis Kelamin <span class="text-danger">*</span></label>
+                <select class="form-select @error('gender') is-invalid @enderror" name="gender">
+                    <option value="">Pilih...</option>
+                    <option value="L" {{ old('gender') == 'L' ? 'selected' : '' }}>Laki-laki (L)</option>
+                    <option value="P" {{ old('gender') == 'P' ? 'selected' : '' }}>Perempuan (P)</option>
+                </select>
+                @error('gender') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">No Handphone <span class="text-danger">*</span></label>
+                <input type="text" class="form-control @error('phone_number') is-invalid @enderror"
+                       name="phone_number" value="{{ old('phone_number') }}"
+                       placeholder="08xxxxxxxxxx">
+                @error('phone_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-12">
+                <label class="form-label fw-semibold">Alamat <span class="text-danger">*</span></label>
+                <input type="text" class="form-control @error('alamat') is-invalid @enderror"
+                       name="alamat" value="{{ old('alamat') }}" placeholder="Alamat lengkap">
+                @error('alamat') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-12 d-flex gap-2 mt-2">
+                <button type="submit" class="btn btn-success px-4">
+                    <i class="bi bi-person-plus-fill me-1"></i> Tambah Pengguna
+                </button>
+                <a href="{{ route('pengguna.getData') }}" class="btn btn-outline-secondary px-4">
+                    <i class="bi bi-arrow-left me-1"></i> Kembali
+                </a>
+            </div>
+
+        </form>
+    </div>
 </div>
+</section>
 </main>
 
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<style>
+.pagetitle { display:flex; align-items:center; margin-bottom:20px; }
+.pagetitle-left { display:flex; align-items:center; gap:12px; }
+.pagetitle-icon {
+    width:44px; height:44px;
+    background:linear-gradient(135deg,#012970,#4154f1);
+    border-radius:12px; display:flex; align-items:center;
+    justify-content:center; color:#fff; font-size:1.15rem;
+    box-shadow:0 4px 12px rgba(1,41,112,0.22);
+}
+.pagetitle h1 { font-size:1.25rem; font-weight:800; color:#012970; margin:0 0 2px; }
+.pagetitle .breadcrumb { margin:0; padding:0; background:transparent; font-size:0.76rem; }
+.pagetitle .breadcrumb-item a { color:#4154f1; text-decoration:none; }
+.pagetitle .breadcrumb-item.active { color:#8a96a3; }
+
+.form-card {
+    background:#fff; border-radius:10px;
+    border:1px solid rgba(1,41,112,0.07);
+    box-shadow:0 2px 14px rgba(1,41,112,0.07);
+    overflow:hidden; max-width:780px;
+}
+.form-card-header {
+    background:#f6f9ff; border-bottom:2px solid #e0e8f5;
+    padding:12px 20px; font-size:0.9rem; font-weight:800;
+    color:#012970; display:flex; align-items:center;
+}
+.form-card-body { padding:24px 20px; }
+
+.info-box {
+    background:rgba(65,84,241,0.05); border-left:4px solid #4154f1;
+    padding:12px 16px; font-size:0.8rem; color:#444;
+    display:flex; align-items:flex-start; gap:8px;
+    border-bottom:1px solid rgba(1,41,112,0.07);
+}
+.info-box i { color:#4154f1; font-size:1rem; flex-shrink:0; margin-top:1px; }
+
+.form-label { font-size:0.82rem; color:#012970; margin-bottom:4px; }
+.form-hint  { font-size:0.72rem; color:#8a96a3; margin-top:3px; }
+
+.role-indicator {
+    font-size:0.76rem; font-weight:700; padding:5px 11px;
+    border-radius:6px; display:flex; align-items:center; gap:6px;
+}
+.role-login    { background:rgba(65,84,241,0.08); color:#4154f1; border:1px solid rgba(65,84,241,0.2); }
+.role-nologin  { background:rgba(16,185,129,0.08); color:#10b981; border:1px solid rgba(16,185,129,0.2); }
+</style>
+
 <script>
-$(document).ready(function () {
-    $('.namebox').select2({ placeholder: '-- Pilih Aset --', allowClear: true });
-    $("#datepicker").datepicker({ dateFormat: "yy-mm-dd" });
-    $("#datepicker1").datepicker({ dateFormat: "yy-mm-dd" });
+const loginRoles = ['admin', 'manager', 'operator'];
+
+document.getElementById('jabatanSelect').addEventListener('change', function () {
+    const ind  = document.getElementById('roleIndicator');
+    const val  = this.value.toLowerCase();
+    ind.classList.remove('d-none', 'role-login', 'role-nologin');
+
+    if (!val) { ind.classList.add('d-none'); return; }
+
+    if (loginRoles.includes(val)) {
+        ind.className = 'role-indicator mt-2 role-login';
+        ind.innerHTML = '<i class="bi bi-shield-check-fill"></i> Bisa login — password default = NIP';
+    } else {
+        ind.className = 'role-indicator mt-2 role-nologin';
+        ind.innerHTML = '<i class="bi bi-person-fill"></i> Karyawan — tidak bisa login';
+    }
 });
 </script>
 @endsection

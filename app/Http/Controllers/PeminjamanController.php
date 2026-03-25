@@ -117,10 +117,17 @@ class PeminjamanController extends Controller
 
     public function pengembalian(Request $request, $id)
     {
-        $validated = $request->validate(['tgl_kembali' => 'required']);
+        $validated = $request->validate([
+            'tgl_kembali' => 'required',
+            'employee_id' => 'required',
+        ], [
+            'tgl_kembali.required' => 'Tanggal kembali harus diisi',
+            'employee_id.required' => 'Petugas gudang harus dipilih',
+        ]);
 
         peminjaman::where('id', $id)->update([
             'tgl_kembali' => $validated['tgl_kembali'],
+            'employee_id' => $validated['employee_id'],
             'status'      => 'Dikembalikan',
             'updated_at'  => Carbon::now(),
         ]);

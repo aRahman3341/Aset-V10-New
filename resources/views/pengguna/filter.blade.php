@@ -1,44 +1,47 @@
+@php
+    // Ambil data jabatan & gender langsung dari DB tanpa bergantung $rank
+    $jabatanList = collect(
+        array_merge(
+            \DB::table('users')->select('jabatan')->distinct()->pluck('jabatan')->toArray(),
+            \DB::table('employees')->select('jabatan')->distinct()->pluck('jabatan')->toArray()
+        )
+    )->unique()->sort()->values();
+
+    $genderList = collect(['L', 'P']);
+@endphp
+
 <form action="{{ route('pengguna.filter') }}" method="post">
     @csrf
     <div class="row">
         <div class="col-md-3">
             <div class="form-group ml-2">
-                <label for="">Jabatan:</label>
+                <label>Jabatan:</label>
                 <select class="form-control" name="jabatan">
-                    <option value="all" {{ request()->input('jabatan') == 'all' ? 'selected' : '' }}>All</option>
-                        @php
-                            $uniqueEmployees = $rank->unique('jabatan')->sortBy('jabatan');
-                        @endphp
-                    @foreach($uniqueEmployees as $code)
-                        <option value="{{ $code->jabatan }}" {{ request()->input('jabatan') == $code->jabatan ? 'selected' : '' }}>
-                            {{ $code->jabatan }}
+                    <option value="all">All</option>
+                    @foreach($jabatanList as $jab)
+                        <option value="{{ $jab }}" {{ request()->input('jabatan') == $jab ? 'selected' : '' }}>
+                            {{ $jab }}
                         </option>
                     @endforeach
                 </select>
             </div>
         </div>
-
         <div class="col-md-3">
             <div class="form-group ml-2">
-                <label for="">Jenis Kelamin:</label>
+                <label>Jenis Kelamin:</label>
                 <select class="form-control" name="gender">
-                    <option value="all" {{ request()->input('gender') == 'all' ? 'selected' : '' }}>All</option>
-                        @php
-                            $uniqueEmployees = $rank->unique('gender')->sortBy('gender');
-                        @endphp
-                    @foreach($uniqueEmployees as $code)
-                        <option value="{{ $code->gender }}" {{ request()->input('gender') == $code->gender ? 'selected' : '' }}>
-                            {{ $code->gender }}
+                    <option value="all">All</option>
+                    @foreach($genderList as $g)
+                        <option value="{{ $g }}" {{ request()->input('gender') == $g ? 'selected' : '' }}>
+                            {{ $g }}
                         </option>
                     @endforeach
                 </select>
             </div>
         </div>
-
-
         <div class="col-md-3">
-            <div class="form-group ml-2 mt-3">
-                <button type="submit" class="btn btn-primary">Submit</button>
+            <div class="form-group ml-2 mt-4">
+                <button type="submit" class="btn btn-primary">Filter</button>
             </div>
         </div>
     </div>
