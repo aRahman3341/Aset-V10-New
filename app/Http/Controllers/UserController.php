@@ -6,7 +6,6 @@ use App\Models\employee;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -16,28 +15,11 @@ class UserController extends Controller
 {
     public function get_data()
     {
-        $sess = Session::all();
+        $sess      = Session::all();
+        $users     = User::paginate(10, ['*'], 'users_page');
+        $employees = employee::paginate(10, ['*'], 'emp_page');
 
-        $query1 = DB::table('employees')
-            ->select('id', 'nip', 'name', 'email', 'jabatan', 'alamat', 'gender', 'phone_number', DB::raw("'employee' as type"));
-
-        $query2 = DB::table('users')
-            ->select('id', 'nip', 'name', 'email', 'jabatan', 'alamat', 'gender', 'phone_number', DB::raw("'user' as type"));
-
-        $allData = $query1->union($query2)->get();
-        $rank    = $allData;
-
-        $pageSize    = 10;
-        $currentPage = LengthAwarePaginator::resolveCurrentPage();
-        $employee    = new LengthAwarePaginator(
-            $allData->forPage($currentPage, $pageSize),
-            $allData->count(),
-            $pageSize,
-            $currentPage,
-            ['path' => LengthAwarePaginator::resolveCurrentPath()]
-        );
-
-        return view('pengguna.getData', compact('employee', 'sess', 'rank'));
+        return view('pengguna.getData', compact('users', 'employees', 'sess'));
     }
 
     public function addData()
@@ -72,7 +54,6 @@ class UserController extends Controller
         $jabatan = $request->jabatan;
 
         if ($jabatan === 'Karyawan') {
-            // Karyawan → tabel employees, tidak punya password
             DB::table('employees')->insert([
                 'nip'          => $request->nip,
                 'name'         => $request->name,
@@ -85,7 +66,6 @@ class UserController extends Controller
                 'updated_at'   => Carbon::now(),
             ]);
         } else {
-            // Admin, Manager, Operator → tabel users, password default = NIP
             DB::table('users')->insert([
                 'nip'          => $request->nip,
                 'name'         => $request->name,
@@ -100,7 +80,7 @@ class UserController extends Controller
             ]);
         }
 
-        return redirect('/pengguna')->with('success', 'Pengguna berhasil ditambahkan. Password default: NIP');
+        return redirect()->route('pengguna.index')->with('success', 'Pengguna berhasil ditambahkan. Password default: NIP');
     }
 
     public function editData(Request $request, $id)
@@ -112,7 +92,7 @@ class UserController extends Controller
             $data = ($type === 'user') ? User::findOrFail($id) : employee::findOrFail($id);
             return view('pengguna.update', ['employe' => $data, 'sess' => $sess]);
         } catch (ModelNotFoundException $e) {
-            return redirect('/pengguna')->with('error', 'Data tidak ditemukan.');
+            return redirect()->route('pengguna.index')->with('error', 'Data tidak ditemukan.');
         }
     }
 
@@ -130,30 +110,29 @@ class UserController extends Controller
             'phone_number' => 'required|numeric',
         ];
 
-        // Validasi password hanya jika diisi dan role bukan Karyawan
         if ($jabatan !== 'Karyawan' && $request->filled('password')) {
             $rules['password'] = [
                 'min:8',
-                'regex:/[0-9]/',       // harus ada angka
-                'regex:/[\W_]/',       // harus ada simbol
+                'regex:/[0-9]/',
+                'regex:/[\W_]/',
                 'confirmed',
             ];
         }
 
         $messages = [
-            'nip.required'              => 'NIP harus diisi',
-            'nip.numeric'               => 'NIP harus berupa angka',
-            'name.required'             => 'Nama harus diisi',
-            'email.required'            => 'Email harus diisi',
-            'email.email'               => 'Format email tidak valid',
-            'jabatan.required'          => 'Jabatan harus dipilih',
-            'alamat.required'           => 'Alamat harus diisi',
-            'gender.required'           => 'Jenis kelamin harus dipilih',
-            'phone_number.required'     => 'No Handphone harus diisi',
-            'phone_number.numeric'      => 'No Handphone harus berupa angka',
-            'password.min'              => 'Password minimal 8 karakter',
-            'password.regex'            => 'Password harus mengandung angka dan simbol (contoh: Abc123!)',
-            'password.confirmed'        => 'Konfirmasi password tidak cocok',
+            'nip.required'          => 'NIP harus diisi',
+            'nip.numeric'           => 'NIP harus berupa angka',
+            'name.required'         => 'Nama harus diisi',
+            'email.required'        => 'Email harus diisi',
+            'email.email'           => 'Format email tidak valid',
+            'jabatan.required'      => 'Jabatan harus dipilih',
+            'alamat.required'       => 'Alamat harus diisi',
+            'gender.required'       => 'Jenis kelamin harus dipilih',
+            'phone_number.required' => 'No Handphone harus diisi',
+            'phone_number.numeric'  => 'No Handphone harus berupa angka',
+            'password.min'          => 'Password minimal 8 karakter',
+            'password.regex'        => 'Password harus mengandung angka dan simbol',
+            'password.confirmed'    => 'Konfirmasi password tidak cocok',
         ];
 
         $request->validate($rules, $messages);
@@ -181,7 +160,6 @@ class UserController extends Controller
                 'updated_at'   => Carbon::now(),
             ];
 
-            // Update password hanya jika diisi
             if ($request->filled('password')) {
                 $update['password'] = Hash::make($request->password);
             }
@@ -189,14 +167,28 @@ class UserController extends Controller
             User::where('id', $id)->update($update);
         }
 
-        return redirect('/pengguna')->with('success', 'Data pengguna berhasil diperbarui.');
+        return redirect()->route('pengguna.index')->with('success', 'Data pengguna berhasil diperbarui.');
     }
 
-    public function destroy($id)
+    public function resetPassword($id)
     {
-        employee::destroy($id);
-        User::destroy($id);
-        return redirect('/pengguna')->with('success', 'Data pengguna berhasil dihapus.');
+        $user = User::findOrFail($id);
+        User::where('id', $id)->update([
+            'password'   => Hash::make($user->nip),
+            'updated_at' => Carbon::now(),
+        ]);
+        return redirect()->route('pengguna.index')->with('success', 'Password berhasil direset ke NIP.');
+    }
+
+    public function destroy($id, Request $request)
+    {
+        $type = $request->query('type');
+        if ($type === 'employee') {
+            employee::destroy($id);
+        } else {
+            User::destroy($id);
+        }
+        return redirect()->route('pengguna.index')->with('success', 'Data pengguna berhasil dihapus.');
     }
 
     public function search(Request $request)
@@ -204,24 +196,17 @@ class UserController extends Controller
         $sess  = Session::all();
         $query = $request->input('query');
 
-        $users     = User::where('nip',  'LIKE', "%$query%")
-                         ->orWhere('name', 'LIKE', "%$query%")
-                         ->orWhere('email','LIKE', "%$query%")->get();
-        $employees = employee::where('nip',  'LIKE', "%$query%")
-                             ->orWhere('name', 'LIKE', "%$query%")
-                             ->orWhere('email','LIKE', "%$query%")->get();
+        $users     = User::where('nip',   'LIKE', "%$query%")
+                         ->orWhere('name',  'LIKE', "%$query%")
+                         ->orWhere('email', 'LIKE', "%$query%")
+                         ->paginate(10, ['*'], 'users_page');
 
-        $allData     = $employees->merge($users);
-        $rank        = $allData;
-        $pageSize    = 10;
-        $currentPage = LengthAwarePaginator::resolveCurrentPage();
-        $employee    = new LengthAwarePaginator(
-            $allData->forPage($currentPage, $pageSize),
-            $allData->count(), $pageSize, $currentPage,
-            ['path' => LengthAwarePaginator::resolveCurrentPath()]
-        );
+        $employees = employee::where('nip',   'LIKE', "%$query%")
+                             ->orWhere('name',  'LIKE', "%$query%")
+                             ->orWhere('email', 'LIKE', "%$query%")
+                             ->paginate(10, ['*'], 'emp_page');
 
-        return view('pengguna.getData', compact('employee', 'rank', 'sess'));
+        return view('pengguna.getData', compact('users', 'employees', 'sess'));
     }
 
     public function filter(Request $request)
@@ -233,25 +218,18 @@ class UserController extends Controller
         $usersQ = User::query();
         $empQ   = employee::query();
 
-        if ($jabatan !== 'all') {
+        if ($jabatan && $jabatan !== 'all') {
             $usersQ->where('jabatan', $jabatan);
             $empQ->where('jabatan', $jabatan);
         }
-        if ($gender !== 'all') {
+        if ($gender && $gender !== 'all') {
             $usersQ->where('gender', $gender);
             $empQ->where('gender', $gender);
         }
 
-        $allData  = $empQ->get()->merge($usersQ->get());
-        $rank     = $allData;
-        $pageSize = 10;
-        $currentPage = LengthAwarePaginator::resolveCurrentPage();
-        $employee = new LengthAwarePaginator(
-            $allData->forPage($currentPage, $pageSize),
-            $allData->count(), $pageSize, $currentPage,
-            ['path' => LengthAwarePaginator::resolveCurrentPath()]
-        );
+        $users     = $usersQ->paginate(10, ['*'], 'users_page');
+        $employees = $empQ->paginate(10, ['*'], 'emp_page');
 
-        return view('pengguna.getData', compact('employee', 'rank', 'sess'));
+        return view('pengguna.getData', compact('users', 'employees', 'sess'));
     }
 }

@@ -62,11 +62,11 @@ Route::middleware('IsLogin')->group(function () {
     Route::put('/items/{id}',         [ItemsController::class, 'update'])->name('items.update');
     Route::delete('/items/{id}',      [ItemsController::class, 'destroy'])->name('items.destroy');
     Route::match(['get','post'], '/items/filter', [ItemsController::class, 'filter'])->name('items.filter');
-    Route::post('/items/multi-delete',   [ItemsController::class, 'multiDelete'])->name('items.multiDelete');
-    Route::post('/items/import',         [ItemsController::class, 'fileImport'])->name('items.import');
-    Route::get('/items/export',          [ItemsController::class, 'export'])->name('items.export');
-    Route::post('/items/qrcodes',        [ItemsController::class, 'qrcodes'])->name('items.qrcodes');
-    Route::post('/items/export-selected',[ItemsController::class, 'exportSelected'])->name('items.exportSelected');
+    Route::post('/items/multi-delete',    [ItemsController::class, 'multiDelete'])->name('items.multiDelete');
+    Route::post('/items/import',          [ItemsController::class, 'fileImport'])->name('items.import');
+    Route::get('/items/export',           [ItemsController::class, 'export'])->name('items.export');
+    Route::post('/items/qrcodes',         [ItemsController::class, 'qrcodes'])->name('items.qrcodes');
+    Route::post('/items/export-selected', [ItemsController::class, 'exportSelected'])->name('items.exportSelected');
 
     /* ================= QR CODE ================= */
     Route::prefix('generate_qrcodes')->group(function () {
@@ -77,7 +77,6 @@ Route::middleware('IsLogin')->group(function () {
 
     /* ================= PEMINJAMAN ================= */
     Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
-        // List & search
         Route::get('/',          [PeminjamanController::class, 'index'])->name('index');
         Route::get('/report',    [PeminjamanController::class, 'report'])->name('report');
         Route::get('/export',    [PeminjamanController::class, 'export'])->name('export');
@@ -85,15 +84,13 @@ Route::middleware('IsLogin')->group(function () {
         Route::post('/filter',   [PeminjamanController::class, 'filter'])->name('filter');
         Route::post('/search',   [PeminjamanController::class, 'search'])->name('search');
 
-        // CRUD
         Route::get('/create',    [PeminjamanController::class, 'create'])->name('create');
         Route::post('/',         [PeminjamanController::class, 'store'])->name('store');
         Route::get('/{id}/edit', [PeminjamanController::class, 'edit'])->name('edit');
         Route::put('/{id}',      [PeminjamanController::class, 'update'])->name('update');
         Route::delete('/{id}',   [PeminjamanController::class, 'destroy'])->name('destroy');
-        Route::get('/{id}/surat',   [PeminjamanController::class, 'cetakSurat'])->name('cetakSurat');
+        Route::get('/{id}/surat',[PeminjamanController::class, 'cetakSurat'])->name('cetakSurat');
 
-        // Pengembalian
         Route::get('/{id}/kembali', [PeminjamanController::class, 'kembali'])->name('kembali');
         Route::put('/{id}/kembali', [PeminjamanController::class, 'pengembalian'])->name('pengembalian');
     });
@@ -109,7 +106,6 @@ Route::middleware('IsLogin')->group(function () {
         Route::post('/search',   [AsetKeluarController::class, 'search'])->name('search');
         Route::get('/export',    [AsetKeluarController::class, 'export'])->name('export');
         Route::get('/download/{id}', [AsetKeluarController::class, 'download'])->name('download');
-        // ← route report dihapus karena method tidak ada di controller
     });
 
     /* ================= ASET OUT (BARANG KELUAR) ================= */
@@ -146,12 +142,12 @@ Route::middleware('IsLogin')->group(function () {
 
     /* ================= LOCATION ================= */
     Route::prefix('location')->group(function () {
-        Route::get('/',         [LocationController::class, 'get_data']);
-        Route::post('/store',   [LocationController::class, 'dataStore'])->name('location.store');
-        Route::put('/{id}',     [LocationController::class, 'update'])->name('location.update');
-        Route::delete('/{id}',  [LocationController::class, 'destroy'])->name('location.destroy');
-        Route::post('/search',  [LocationController::class, 'search'])->name('location.search');
-        Route::post('/filter',  [LocationController::class, 'filter'])->name('location.filter');
+        Route::get('/',        [LocationController::class, 'get_data']);
+        Route::post('/store',  [LocationController::class, 'dataStore'])->name('location.store');
+        Route::put('/{id}',    [LocationController::class, 'update'])->name('location.update');
+        Route::delete('/{id}', [LocationController::class, 'destroy'])->name('location.destroy');
+        Route::post('/search', [LocationController::class, 'search'])->name('location.search');
+        Route::post('/filter', [LocationController::class, 'filter'])->name('location.filter');
     });
 
     /* ================= CATEGORY ================= */
@@ -163,17 +159,17 @@ Route::middleware('IsLogin')->group(function () {
         Route::post('/search', [CategoryController::class, 'search'])->name('category.search');
     });
 
-    /* ================= USER ================= */
-    // ── Pengguna ──
-Route::prefix('pengguna')->group(function () {
-        Route::get('/',          [UserController::class, 'get_data']);
-        Route::get('/add',       [UserController::class, 'addData'])->name('pengguna.add');
-        Route::post('/store',    [UserController::class, 'dataStore'])->name('pengguna.store');
-        Route::get('/edit/{id}', [UserController::class, 'editData'])->name('pengguna.edit');
-        Route::put('/edit/{id}', [UserController::class, 'update'])->name('pengguna.update');
-        Route::delete('/{id}',   [UserController::class, 'destroy'])->name('pengguna.destroy');
-        Route::post('/search',   [UserController::class, 'search'])->name('pengguna.search');
-        Route::post('/filter',   [UserController::class, 'filter'])->name('pengguna.filter');
+    /* ================= PENGGUNA ================= */
+    Route::prefix('pengguna')->group(function () {
+        Route::get('/',               [UserController::class, 'get_data'])->name('pengguna.index');
+        Route::get('/add',            [UserController::class, 'addData'])->name('pengguna.add');
+        Route::post('/store',         [UserController::class, 'dataStore'])->name('pengguna.store');
+        Route::get('/edit/{id}',      [UserController::class, 'editData'])->name('pengguna.edit');
+        Route::put('/edit/{id}',      [UserController::class, 'update'])->name('pengguna.update');
+        Route::delete('/{id}',        [UserController::class, 'destroy'])->name('pengguna.destroy');
+        Route::post('/search',        [UserController::class, 'search'])->name('pengguna.search');
+        Route::post('/filter',        [UserController::class, 'filter'])->name('pengguna.filter');
+        Route::post('/{id}/reset-password', [UserController::class, 'resetPassword'])->name('pengguna.resetPassword'); // ← tambah ini
     });
 
 });

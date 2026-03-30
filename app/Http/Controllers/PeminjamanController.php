@@ -63,10 +63,11 @@ class PeminjamanController extends Controller
 
     public function create()
     {
-        $users    = User::all();
-        // FIX: kolom kondisi = 'kondisi', bukan 'condition'
-        $material = Materials::where('kondisi', 'Baik')->get();
-        return view('peminjaman.add', ['users' => $users, 'material' => $material]);
+        // Petugas = User yang bisa login (Admin, Manager, Operator)
+        $users    = User::whereIn('jabatan', ['Admin', 'Manager', 'Operator', 'admin', 'manager', 'operator'])
+                        ->orderBy('name')->get();
+        $material = Materials::where('kondisi', '!=', 'Rusak Berat')->orderBy('nama_barang')->get();
+        return view('peminjaman.add', compact('material', 'users'));
     }
 
     public function store(Request $request)
@@ -76,17 +77,19 @@ class PeminjamanController extends Controller
 
     public function dataStore(Request $request)
     {
-        $operator  = Session::all();
         $validated = $request->validate([
             'material_id' => 'required',
             'tgl_pinjam'  => 'required',
             'tgl_kembali' => 'required',
             'peminjam'    => 'required',
+            'employee_id' => 'required|exists:users,id',
         ], [
             'material_id.required' => 'Nama aset harus diisi',
             'tgl_pinjam.required'  => 'Tanggal pinjam harus diisi',
             'tgl_kembali.required' => 'Tanggal kembali harus diisi',
             'peminjam.required'    => 'Peminjam harus diisi',
+            'employee_id.required' => 'Petugas gudang harus dipilih',
+            'employee_id.exists'   => 'Petugas tidak valid',
         ]);
 
         $lastCode  = DB::table('peminjamen')->max('code');
@@ -98,7 +101,7 @@ class PeminjamanController extends Controller
             'material_id' => $validated['material_id'],
             'tgl_pinjam'  => $validated['tgl_pinjam'],
             'tgl_kembali' => $validated['tgl_kembali'],
-            'employee_id' => $operator['id'] ?? null,
+            'employee_id' => $validated['employee_id'],   // ← dari form, bukan session
             'peminjam'    => $validated['peminjam'],
             'status'      => 'Dipinjam',
             'created_at'  => Carbon::now(),
@@ -111,7 +114,8 @@ class PeminjamanController extends Controller
     public function kembali(Request $request, $id)
     {
         $loan  = peminjaman::with('material')->findOrFail($id);
-        $users = User::orderBy('name')->get();
+        $users = User::whereIn('jabatan', ['Admin', 'Manager', 'Operator', 'admin', 'manager', 'operator'])
+                     ->orderBy('name')->get();
         return view('peminjaman.update', compact('loan', 'users'));
     }
 
@@ -151,13 +155,10 @@ class PeminjamanController extends Controller
             'peminjam'    => 'required',
         ]);
 
-        $operator = Session::all();
-
         peminjaman::where('id', $id)->update([
             'material_id' => $validated['material_id'],
             'tgl_pinjam'  => $validated['tgl_pinjam'],
             'tgl_kembali' => $validated['tgl_kembali'],
-            'employee_id' => $operator['id'] ?? null,
             'peminjam'    => $validated['peminjam'],
             'updated_at'  => Carbon::now(),
         ]);
