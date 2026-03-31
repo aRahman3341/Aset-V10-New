@@ -2,31 +2,35 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AsetOut extends Model
 {
+    protected $table = 'aset_outs';
 
-	protected $fillable = [
-		'name',
-		'spek',
-		'qty',
-		'satuan',
-	];
+    protected $fillable = [
+        'no_faktur',
+        'mak',
+        'no_nd',
+    ];
 
-	public function itemskeluar(): BelongsTo
-	{
-		return $this->belongsTo(Items::class, 'name', 'id');
-	}
-	public function asetOuts()
+    /**
+     * Relasi ke Items (barang habis pakai)
+     * Digunakan untuk cetak faktur/lampiran
+     */
+    public function itemskeluar(): BelongsTo
     {
-        return $this->belongsTo(AsetOut::class, 'faktur_id', 'id');
+        return $this->belongsTo(Items::class, 'name', 'id');
     }
-	public function ajuan()
+
+    /**
+     * Relasi ke tabel ajuans (semua item dalam faktur ini)
+     * Menggunakan HasMany karena 1 AsetOut punya banyak Ajuan
+     */
+    public function ajuan(): HasMany
     {
-        return $this->belongsTo(Ajuan::class, 'id', 'faktur_id');
+        return $this->hasMany(Ajuan::class, 'faktur_id', 'id');
     }
-	
 }

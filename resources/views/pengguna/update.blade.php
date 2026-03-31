@@ -107,6 +107,16 @@
                         @error('email') <span class="pg-field-error">{{ $message }}</span> @enderror
                     </div>
 
+                    <div class="pg-divider">Unit Kerja</div>
+
+                    <div class="pg-field">
+                        <label class="pg-label">Bagian</label>
+                        <input type="text" name="bagian" class="pg-input"
+                               placeholder="Contoh: Bagian Tata Usaha, Bagian Keuangan"
+                               value="{{ old('bagian', $employe->bagian ?? '') }}">
+                        @error('bagian') <span class="pg-field-error">{{ $message }}</span> @enderror
+                    </div>
+
                     <div class="row g-3">
                         <div class="col-md-6">
                             <div class="pg-field">

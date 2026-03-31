@@ -1,202 +1,220 @@
 @extends('layouts.app')
-@section('title')
-	Location - Monitoring Aset
-@endsection
+@section('title') Lokasi - Monitoring Aset @endsection
 @section('content')
 <main id="main" class="main">
-	<div class="row">
-        <div class="col-lg-12">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h4 fw-bold">Lokasi</h1>
-				<div class="col-md-6">
-					<a href="#!" data-bs-toggle="modal" data-bs-target="#ModalAdd" style="float: right;">
-						<button type="button" class="btn btn-success"><i class="bi bi-plus-square-fill"></i> Add</button>
-					</a>
-				</div>
-            </div>
+
+<style>
+.pagetitle { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.pagetitle-left { display:flex; align-items:center; gap:12px; }
+.pagetitle-icon { width:44px; height:44px; background:linear-gradient(135deg,#1e3a5f,#2d5a8e); border-radius:12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.15rem; box-shadow:0 4px 12px rgba(30,58,95,0.22); }
+.pagetitle h1 { font-size:1.25rem; font-weight:800; color:#1e3a5f; margin:0 0 2px; }
+.pagetitle .breadcrumb { margin:0; padding:0; background:transparent; font-size:0.76rem; }
+.pagetitle .breadcrumb-item a { color:#2d5a8e; text-decoration:none; }
+.pagetitle .breadcrumb-item.active { color:#8a96a3; }
+.main-card { background:#fff; border-radius:12px; border:1px solid rgba(30,58,95,0.07); box-shadow:0 2px 14px rgba(30,58,95,0.07); overflow:hidden; }
+.table-toolbar { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid rgba(30,58,95,0.07); gap:8px; flex-wrap:wrap; }
+.toolbar-left { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.toolbar-right { display:flex; align-items:center; gap:6px; }
+.filter-panel { background:#f8fafd; border-bottom:1px solid rgba(30,58,95,0.07); padding:12px 18px; }
+.table thead th { background:#f6f9ff; color:#1e3a5f; font-weight:700; text-transform:uppercase; font-size:0.69rem; letter-spacing:0.5px; padding:10px 14px; border-bottom:2px solid #e0e8f5; white-space:nowrap; }
+.table tbody td { padding:10px 14px; vertical-align:middle; font-size:0.83rem; border-bottom:1px solid rgba(30,58,95,0.05); }
+.table tbody tr:last-child td { border-bottom:none; }
+.table tbody tr:hover td { background:rgba(30,58,95,0.025); }
+.action-group { display:flex; align-items:center; gap:5px; }
+.abtn { width:30px; height:30px; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; font-size:0.82rem; border:none; cursor:pointer; transition:all .15s; background:transparent; text-decoration:none; }
+.abtn-edit { color:#c49a2a; background:#fef9e7; } .abtn-edit:hover { background:#c49a2a; color:#fff; }
+.abtn-del  { color:#dc2626; background:#fff0f0; } .abtn-del:hover  { background:#dc2626; color:#fff; }
+.loc-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-size:0.72rem; font-weight:700; background:#eff6ff; color:#1d4ed8; }
+</style>
+
+<div class="pagetitle">
+    <div class="pagetitle-left">
+        <div class="pagetitle-icon"><i class="bi bi-geo-alt-fill"></i></div>
+        <div>
+            <h1>Lokasi</h1>
+            <nav><ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url('/') }}"><i class="bi bi-house-door"></i> Home</a></li>
+                <li class="breadcrumb-item active">Lokasi</li>
+            </ol></nav>
+        </div>
+    </div>
+</div>
+
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show rounded-3 mb-3">
+        <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+<div class="main-card">
+    <div class="table-toolbar">
+        <div class="toolbar-left">
+            <form action="{{ route('location.search') }}" method="POST">
+                @csrf
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="query" class="form-control border-start-0 ps-0"
+                           placeholder="Cari gedung, lantai, atau ruangan..." value="{{ request()->input('query') }}" style="min-width:240px;">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="filterBtn" title="Filter">
+                        <i class="bi bi-funnel"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="toolbar-right">
+            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#ModalAdd">
+                <i class="bi bi-plus-lg"></i> Tambah Lokasi
+            </button>
         </div>
     </div>
 
-	<div class="table-responsive">
+    <div id="filterPanel" style="display:none;" class="filter-panel">
+        @include('location.filter')
+    </div>
 
-		{{--card--}}
-		<div class="card">
-			<div class="card mt-4">
-				<div class="card-header">
-					<div class="row">
-						<div class="col-md-6">
-						</div>
-						<div class="col-md-6">
-                            <form action="{{ route('location.search') }}" method="POST" class="form-inline">
-                                @csrf
-                                <div class="input-group">
-                                    <input type="text" name="query" class="form-control" placeholder="Search" aria-label="Search" value="{{ request()->input('query') }}">
-                                    <div class="input-group-append">
-                                        <button class="btn btn-outline-primary search-btn" type="submit"><i class="bi bi-search"></i></button>
-                                        <a href="#" class="btn btn-outline-primary filter-btn" id="filterButton"><i class="bi bi-filter"></i></a>
-                                        <a href="#!" data-bs-toggle="modal" data-bs-target="#ModalAdd" style="float: right;"></a>
-                                    </div>
-                                </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th style="width:50px" class="text-center">No</th>
+                    <th>Gedung</th>
+                    <th>Lantai</th>
+                    <th>Ruangan</th>
+                    <th class="text-center" style="width:100px">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($location as $item)
+                <tr>
+                    <td class="text-center text-muted">{{ $loop->iteration }}</td>
+                    <td><span class="fw-semibold">{{ $item->office }}</span></td>
+                    <td><span class="loc-badge"><i class="bi bi-layers"></i> Lt. {{ $item->floor }}</span></td>
+                    <td>{{ $item->room }}</td>
+                    <td class="text-center">
+                        <div class="action-group justify-content-center">
+                            <a href="#!" data-bs-toggle="modal" data-bs-target="#ModalEdit-{{ $item->id }}"
+                               class="abtn abtn-edit" title="Edit"><i class="bi bi-pencil-square"></i></a>
+                            <form action="{{ route('location.destroy', $item->id) }}" method="POST" class="d-inline delete-form">
+                                @csrf @method('DELETE')
+                                <button type="button" class="abtn abtn-del delete-btn"
+                                        data-name="{{ $item->office }} Lt.{{ $item->floor }} - {{ $item->room }}" title="Hapus">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                             </form>
-						</div>
-					</div>
-                    <div class="col-md-12">
-                        <div id="filterFields" style="display: {{ request()->is('location/filter') ? ' block' : 'none' }};" class="form-inline mt-2">
-                            <div class="card-body">
-                                @include('location.filter')
-                            </div>    {{-- end of card body --}}
                         </div>
-                    </div>
-				</div>
-			</div>
-			<div class="card-body">
-
-			<!-- Default Table -->
-			<table class="table table-bordered">
-				<thead>
-				<tr>
-					<th scope="col">No</th>
-					<th scope="col">Gedung</th>
-					<th scope="col">Lantai</th>
-					<th scope="col">Ruangan</th>
-					<th scope="col" class="">Action</th>
-				</tr>
-				</thead>
-				<tbody style="background-color: #f4f8fb">
-					@foreach ($location as $item)
-					<tr>
-					<td>{{ $loop->iteration }}</td>
-					<td>{{ $item->office }}</td>
-					<td>Lt - {{ $item->floor }}</td>
-					<td>{{ $item->room }}</td>
-					<td>
-						<a href="#!" data-bs-toggle="modal" data-bs-target="#ModalEdit-{{ $item->id }}" class="badge bg-warning text-dark" style="text-decoration: none;"><i class="bi bi-pencil"></i></a>
-						<a class="badge bg-danger" style="text-decoration: none;"><i data-feather="edit"></i>
-							<form action="{{ route('location.destroy', $item->id ) }}" method="post" id="deleteForm{{ $item->id }}">
-								@csrf
-								@method('DELETE')
-								<button type="button" class="bg-danger border-0 text-white delete-button" data-form-id="deleteForm{{ $item->id }}"><i class="bi bi-trash"></i></button>
-							</form>
-						</a>
-					</td>
-					</tr>
-				@endforeach
-				</tbody>
-			</table>
-			<div class="card-footer">
-				{{ $location->links() }}
-			</div>
-			<!-- End Default Table Example -->
-			</div>
-		</div>
-
-		@include('location.add')
-		@include('location.update')
-		{{--endcard--}}
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+                        Belum ada data lokasi.
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="px-4 py-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <small class="text-muted">
+            Menampilkan <strong>{{ $location->firstItem() ?? 0 }}</strong>–<strong>{{ $location->lastItem() ?? 0 }}</strong>
+            dari <strong>{{ $location->total() }}</strong> lokasi
+        </small>
+        <div>{{ $location->links() }}</div>
+    </div>
 </div>
-</main>
 
-<script src="{{ asset('js/indexaset.js') }}"></script>
+{{-- Modal Tambah --}}
+<div class="modal fade" id="ModalAdd" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form method="POST" action="{{ route('location.store') }}">
+                @csrf
+                <div class="modal-header" style="background:linear-gradient(135deg,#1e3a5f,#2d5a8e);color:#fff;">
+                    <h5 class="modal-title fw-700"><i class="bi bi-geo-alt me-2"></i>Tambah Lokasi</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nama Gedung</label>
+                        <input type="text" class="form-control" name="office" placeholder="Contoh: Gedung A" required>
+                        @error('office') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Lantai</label>
+                        <input type="text" class="form-control" name="floor" placeholder="Contoh: 1" required>
+                        @error('floor') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nama Ruangan</label>
+                        <input type="text" class="form-control" name="room" placeholder="Contoh: Ruang Server" required>
+                        @error('room') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-circle me-1"></i>Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- Modal Edit --}}
+@foreach($location as $item)
+<div class="modal fade" id="ModalEdit-{{ $item->id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form method="POST" action="{{ route('location.update', $item->id) }}">
+                @csrf @method('PUT')
+                <div class="modal-header" style="background:linear-gradient(135deg,#c49a2a,#e8b84b);color:#fff;">
+                    <h5 class="modal-title fw-700"><i class="bi bi-pencil me-2"></i>Edit Lokasi</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nama Gedung</label>
+                        <input type="text" class="form-control" name="office" value="{{ $item->office }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Lantai</label>
+                        <input type="text" class="form-control" name="floor" value="{{ $item->floor }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nama Ruangan</label>
+                        <input type="text" class="form-control" name="room" value="{{ $item->room }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning btn-sm text-white"><i class="bi bi-check-circle me-1"></i>Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endforeach
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // Tambahkan event listener untuk tombol hapus
-    document.addEventListener('DOMContentLoaded', function() {
-        const deleteButtons = document.querySelectorAll('.delete-button');
-
-        deleteButtons.forEach(function(button) {
-            button.addEventListener('click', function() {
-                const formId = this.getAttribute('data-form-id');
-
-                Swal.fire({
-                    title: 'Konfirmasi',
-                    text: 'Anda yakin ingin menghapus data ini?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Ya, Hapus',
-                    cancelButtonText: 'Batal',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        document.getElementById(formId).submit();
-                    }
-                });
-            });
-        });
+document.getElementById('filterBtn').addEventListener('click', function() {
+    const p = document.getElementById('filterPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+});
+document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const name = this.dataset.name;
+        const form = this.closest('.delete-form');
+        Swal.fire({
+            title: 'Hapus Lokasi?',
+            html: `Lokasi <strong>${name}</strong> akan dihapus permanen.`,
+            icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#dc2626', cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Hapus', cancelButtonText: 'Batal'
+        }).then(r => { if (r.isConfirmed) form.submit(); });
     });
-
-
-    // =============== lokasi
-    // Get the select elements
-    var gedungSelect = document.getElementById('gedung');
-    var lantaiSelect = document.getElementById('lantai');
-    var ruanganSelect = document.getElementById('ruangan');
-
-    // Add event listeners to the select elements
-    gedungSelect.addEventListener('change', populateLantaiSelect);
-    lantaiSelect.addEventListener('change', populateRuanganSelect);
-
-    // Function to populate the lantai select element based on the selected gedung
-    function populateLantaiSelect() {
-    var selectedGedung = gedungSelect.value;
-
-    // Clear previous options
-    lantaiSelect.innerHTML = '<option value="">Lantai</option>';
-
-
-    // Populate lantai options based on the selected gedung
-    var lantaiOptions = getUniqueOptionsByOffice(selectedGedung, 'floor');
-    lantaiOptions.forEach(function(option) {
-        var optionElement = document.createElement('option');
-        optionElement.value = option;
-        optionElement.textContent = option;
-        lantaiSelect.appendChild(optionElement);
-    });
-
-
-    // Reset and disable the ruangan select element
-    ruanganSelect.innerHTML = '<option value="">Ruangan</option>';
-    ruanganSelect.disabled = true;
-    }
-
-    // Function to populate the ruangan select element based on the selected lantai
-    function populateRuanganSelect() {
-    var selectedLantai = lantaiSelect.value;
-    var selectedGedung = gedungSelect.value;
-
-    // Clear previous options
-    ruanganSelect.innerHTML = '<option value="">Ruangan</option>';
-
-    // Populate ruangan options based on the selected lantai
-    var ruanganOptions = getUniqueOptionsByFloor(selectedGedung, selectedLantai, 'room');
-    ruanganOptions.forEach(function(option) {
-        var optionElement = document.createElement('option');
-        optionElement.value = option;
-        optionElement.textContent = option;
-        ruanganSelect.appendChild(optionElement);
-    });
-
-    }
-
-    // Helper function to get unique options from the $locations array based on the given property
-    function getUniqueOptionsByOffice(gedung, property) {
-    var options = [];
-        <?php foreach($locations as $location) { ?>
-            if ("<?php echo $location->office; ?>" === gedung && options.indexOf("<?php echo $location->floor; ?>") === -1) {
-            options.push("<?php echo $location->floor; ?>");
-            }
-        <?php } ?>
-        return options;
-    }
-
-    // Helper function to get unique options from the $locations array based on the given property
-    function getUniqueOptionsByFloor(gedung, lantai, property) {
-        var options = [];
-        <?php foreach($locations as $location) { ?>
-            if ("<?php echo $location->floor; ?>" === lantai && "<?php echo $location->office; ?>" === gedung && options.indexOf("<?php echo $location->room; ?>") === -1) {
-            options.push("<?php echo $location->room; ?>");
-            }
-        <?php } ?>
-        return options;
-    }
+});
 </script>
 @endsection

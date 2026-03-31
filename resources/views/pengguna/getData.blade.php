@@ -53,13 +53,16 @@
             </form>
         </div>
 
-        @if(isset($sess['jabatan']) && strtolower($sess['jabatan']) === 'admin')
         <div class="toolbar-right">
-            <a href="{{ route('pengguna.add') }}" class="btn btn-success btn-sm shadow-sm">
+            @php
+                $jabatanSess = strtolower($sess['jabatan'] ?? '');
+            @endphp
+            @if(in_array($jabatanSess, ['admin', 'manager', 'operator', 'super-user', 'superuser']))
+            <a href="{{ route('pengguna.add') }}" class="btn btn-success btn-sm me-1 shadow-sm">
                 <i class="bi bi-plus-lg"></i> Tambah Pengguna
             </a>
+            @endif
         </div>
-        @endif
     </div>
 
     {{-- ── Filter Panel ── --}}
@@ -86,6 +89,7 @@
                     <th>Nama</th>
                     <th>Email</th>
                     <th class="text-center">Jabatan</th>
+                    <th>Bagian</th>
                     <th class="text-center">Kelamin</th>
                     <th>No HP</th>
                     <th class="text-center">Password</th>
@@ -111,6 +115,7 @@
                         @endphp
                         <span class="bjab {{ $jClass }}">{{ ucfirst($item->jabatan) }}</span>
                     </td>
+                    <td class="small">{{ $item->bagian ?? '-' }}</td>
                     <td class="text-center">
                         <span class="bcat {{ $item->gender === 'L' ? 'bcat-l' : 'bcat-p' }}">
                             {{ $item->gender }}
@@ -124,36 +129,37 @@
                     </td>
                     <td class="text-center">
                         <div class="action-group">
-                            @if(isset($sess['jabatan']) && strtolower($sess['jabatan']) === 'operator')
-                                @if(isset($sess['id']) && $sess['id'] == $item->id)
-                                    <a href="{{ route('pengguna.edit', ['id' => $item->id, 'type' => 'user']) }}"
-                                       class="abtn abtn-edit" title="Edit">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </a>
-                                @endif
-                            @else
+                            @php $jSess = strtolower($sess['jabatan'] ?? ''); @endphp
+                            @if($jSess === 'operator' && ($sess['id'] ?? null) == $item->id)
+                                {{-- Operator hanya bisa edit diri sendiri --}}
                                 <a href="{{ route('pengguna.edit', ['id' => $item->id, 'type' => 'user']) }}"
                                    class="abtn abtn-edit" title="Edit">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
-                                @if(isset($sess['jabatan']) && strtolower($sess['jabatan']) === 'admin')
-                                    <form action="{{ route('pengguna.resetPassword', $item->id) }}"
-                                          method="POST" class="d-inline reset-pwd-form">
-                                        @csrf
-                                        <button type="button" class="abtn abtn-reset reset-pwd-btn"
-                                                data-name="{{ $item->name }}" data-nip="{{ $item->nip }}"
-                                                title="Reset Password ke NIP">
-                                            <i class="bi bi-arrow-counterclockwise"></i>
-                                        </button>
-                                    </form>
-                                    <form action="{{ route('pengguna.destroy', ['id' => $item->id, 'type' => 'user']) }}"
-                                          method="POST" class="d-inline delete-form">
-                                        @csrf @method('DELETE')
-                                        <button type="button" class="abtn abtn-del delete-btn"
-                                                data-name="{{ $item->name }}" title="Hapus">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                            @elseif(in_array($jSess, ['admin','manager','super-user','superuser']))
+                                {{-- Admin & Manager bisa edit semua --}}
+                                <a href="{{ route('pengguna.edit', ['id' => $item->id, 'type' => 'user']) }}"
+                                   class="abtn abtn-edit" title="Edit">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <form action="{{ route('pengguna.resetPassword', $item->id) }}"
+                                      method="POST" class="d-inline reset-pwd-form">
+                                    @csrf
+                                    <button type="button" class="abtn abtn-reset reset-pwd-btn"
+                                            data-name="{{ $item->name }}" data-nip="{{ $item->nip }}"
+                                            title="Reset Password ke NIP">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                </form>
+                                @if(in_array($jSess, ['admin','manager','super-user','superuser']))
+                                <form action="{{ route('pengguna.destroy', ['id' => $item->id, 'type' => 'user']) }}"
+                                      method="POST" class="d-inline delete-form">
+                                    @csrf @method('DELETE')
+                                    <button type="button" class="abtn abtn-del delete-btn"
+                                            data-name="{{ $item->name }}" title="Hapus">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                                 @endif
                             @endif
                         </div>
@@ -161,7 +167,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="empty-row">
+                    <td colspan="11" class="empty-row">
                         <i class="bi bi-inbox"></i>
                         <p class="mb-0">Belum ada pengguna login.</p>
                     </td>
@@ -193,6 +199,7 @@
                     <th>Nama</th>
                     <th>Email</th>
                     <th class="text-center">Jabatan</th>
+                    <th>Bagian</th>
                     <th class="text-center">Kelamin</th>
                     <th>Alamat</th>
                     <th>No HP</th>
@@ -209,6 +216,7 @@
                     <td class="text-center">
                         <span class="bjab bjab-default">{{ $item->jabatan }}</span>
                     </td>
+                    <td class="small">{{ $item->bagian ?? '-' }}</td>
                     <td class="text-center">
                         <span class="bcat {{ $item->gender === 'L' ? 'bcat-l' : 'bcat-p' }}">
                             {{ $item->gender }}
@@ -218,11 +226,13 @@
                     <td class="small text-muted">{{ $item->phone_number }}</td>
                     <td class="text-center">
                         <div class="action-group">
-                            @if(isset($sess['jabatan']) && strtolower($sess['jabatan']) === 'admin')
+                            @php $jSessE = strtolower($sess['jabatan'] ?? ''); @endphp
+                            @if(in_array($jSessE, ['admin','manager','operator','super-user','superuser']))
                                 <a href="{{ route('pengguna.edit', ['id' => $item->id, 'type' => 'employee']) }}"
                                    class="abtn abtn-edit" title="Edit">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
+                                @if(in_array($jSessE, ['admin','manager','super-user','superuser']))
                                 <form action="{{ route('pengguna.destroy', ['id' => $item->id, 'type' => 'employee']) }}"
                                       method="POST" class="d-inline delete-form">
                                     @csrf @method('DELETE')
@@ -231,13 +241,14 @@
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
+                                @endif
                             @endif
                         </div>
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="empty-row">
+                    <td colspan="11" class="empty-row">
                         <i class="bi bi-inbox"></i>
                         <p class="mb-0">Belum ada data karyawan.</p>
                     </td>
@@ -309,7 +320,9 @@
 .bcat-p { background:rgba(236,72,153,0.12); color:#ec4899; }
 .pwd-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.68rem; font-weight:700; padding:2px 9px; border-radius:20px; background:rgba(16,185,129,0.10); color:#10b981; }
 .action-group { display:flex; align-items:center; justify-content:center; gap:4px; }
-.abtn { width:28px; height:28px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:0.8rem; border:none; cursor:pointer; transition:all .15s; background:transparent; }
+/* form inline di dalam action-group harus flex agar icon sejajar */
+.action-group form { display:contents; margin:0; padding:0; }
+.abtn { width:28px; height:28px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:0.8rem; border:none; cursor:pointer; transition:all .15s; background:transparent; flex-shrink:0; }
 .abtn-edit  { color:#c49a2a; } .abtn-edit:hover  { background:rgba(232,184,75,0.15); }
 .abtn-del   { color:#dc2626; } .abtn-del:hover   { background:rgba(220,38,38,0.10); }
 .abtn-reset { color:#7c3aed; } .abtn-reset:hover { background:rgba(124,58,237,0.10); }

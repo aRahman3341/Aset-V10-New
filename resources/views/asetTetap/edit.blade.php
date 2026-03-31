@@ -6,7 +6,7 @@
 <main id="main" class="main">
 <style>
 .form-control,.form-select{background-image:none!important;padding-right:12px!important}
-.form-control:valid,.form-select:valid,.form-control.is-valid,.form-select.is-valid{border-color:#dee2e6!important;background-image:none!important}
+.form-control:valid,.form-select:valid,.form-control.is-valid,.form-select.is-valid{border-color:#dee2e6!important;background-image:none!important;padding-right:12px!important}
 .form-control:focus,.form-select:focus{border-color:#86b7fe;box-shadow:0 0 0 .2rem rgba(13,110,253,.15)}
 .form-control.is-invalid,.form-select.is-invalid{border-color:#dc3545!important;background-image:none!important}
 .section-header{display:flex;align-items:center;gap:8px;padding:8px 14px;background:linear-gradient(135deg,#1e3a5f,#2d5a8e);color:#fff;border-radius:8px;font-size:.82rem;font-weight:700;letter-spacing:.3px;margin-bottom:4px}
@@ -32,77 +32,121 @@
     </ol></nav>
 </div>
 
+@if($errors->any())
+<div class="alert alert-danger alert-dismissible fade show mb-3">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <strong>Terdapat kesalahan:</strong>
+    <ul class="mb-0 mt-1">
+        @foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach
+    </ul>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+@endif
+
 <div class="create-card">
 <form action="{{ route('asetTetap.update', $item->id) }}" method="POST" id="formEdit">
 @csrf
 @method('PUT')
 
 {{-- ══ 1. IDENTITAS BARANG ══ --}}
-<div class="section-header mb-3"><div class="section-number">1</div><i class="bi bi-tag-fill"></i> Identitas Barang</div>
+<div class="section-header mb-3">
+    <div class="section-number">1</div>
+    <i class="bi bi-tag-fill"></i> Identitas Barang
+</div>
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <label class="form-label-custom">Kode Barang <span class="req">*</span></label>
-        <input type="text" name="kode_barang" class="form-control"
-               value="{{ old('kode_barang', $item->kode_barang) }}" required>
-        <div class="invalid-feedback">Kode Barang wajib diisi.</div>
+        <input type="text" name="code" class="form-control @error('code') is-invalid @enderror"
+               value="{{ old('code', $item->code) }}" required>
+        @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-2">
         <label class="form-label-custom">NUP <span class="req">*</span></label>
-        <input type="text" name="nup" class="form-control"
+        <input type="text" name="nup" class="form-control @error('nup') is-invalid @enderror"
                value="{{ old('nup', $item->nup) }}" required>
-        <div class="invalid-feedback">NUP wajib diisi.</div>
+        @error('nup')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-7">
         <label class="form-label-custom">Nama Barang <span class="req">*</span></label>
-        <input type="text" name="nama_barang" class="form-control"
-               value="{{ old('nama_barang', $item->nama_barang) }}" required>
-        <div class="invalid-feedback">Nama Barang wajib diisi.</div>
+        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
+               value="{{ old('name', $item->name) }}" required>
+        @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-6">
-        <label class="form-label-custom">Merk</label>
-        <input type="text" name="merk" class="form-control" placeholder="Contoh: Honda, Asus"
-               value="{{ old('merk', $item->merk) }}">
+        <label class="form-label-custom">Merk / Uraian</label>
+        <input type="text" name="name_fix" class="form-control"
+               value="{{ old('name_fix', $item->name_fix) }}"
+               placeholder="Contoh: Honda, Asus">
     </div>
     <div class="col-md-6">
-        <label class="form-label-custom">Tipe</label>
-        <input type="text" name="tipe" class="form-control" placeholder="Contoh: Livina 1.5 MT"
-               value="{{ old('tipe', $item->tipe) }}">
+        <label class="form-label-custom">No. Seri</label>
+        <input type="text" name="no_seri" class="form-control"
+               value="{{ old('no_seri', $item->no_seri) }}"
+               placeholder="Nomor seri barang">
     </div>
 </div>
 
 {{-- ══ 2. KLASIFIKASI BMN ══ --}}
-<div class="section-header mb-3"><div class="section-number">2</div><i class="bi bi-grid-fill"></i> Klasifikasi BMN</div>
+<div class="section-header mb-3">
+    <div class="section-number">2</div>
+    <i class="bi bi-grid-fill"></i> Klasifikasi BMN
+</div>
 <div class="row g-3 mb-4">
-    <div class="col-md-5">
+    <div class="col-md-4">
         <label class="form-label-custom">Jenis BMN <span class="req">*</span></label>
-        <input type="text" name="jenis_bmn" class="form-control" placeholder="Contoh: ALAT BESAR"
-               value="{{ old('jenis_bmn', $item->jenis_bmn) }}" required>
-        <div class="invalid-feedback">Jenis BMN wajib diisi.</div>
+        <input type="text" name="jenis_bmn" class="form-control @error('jenis_bmn') is-invalid @enderror"
+               value="{{ old('jenis_bmn', $item->jenis_bmn) }}"
+               placeholder="Contoh: ALAT BESAR" required>
+        @error('jenis_bmn')<div class="invalid-feedback">{{ $message }}</div>@enderror
+    </div>
+    <div class="col-md-4">
+        <label class="form-label-custom">Tipe Aset</label>
+        <select name="type" class="form-select">
+            <option value="Tetap"      {{ old('type', $item->type) == 'Tetap'      ? 'selected':'' }}>Tetap</option>
+            <option value="Alat besar" {{ old('type', $item->type) == 'Alat besar' ? 'selected':'' }}>Alat Besar</option>
+        </select>
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">Kondisi</label>
-        <select name="kondisi" class="form-select">
-            <option value="Baik"         {{ old('kondisi', $item->kondisi) == 'Baik'         ? 'selected' : '' }}>Baik</option>
-            <option value="Rusak Ringan" {{ old('kondisi', $item->kondisi) == 'Rusak Ringan' ? 'selected' : '' }}>Rusak Ringan</option>
-            <option value="Rusak Berat"  {{ old('kondisi', $item->kondisi) == 'Rusak Berat'  ? 'selected' : '' }}>Rusak Berat</option>
+        <select name="condition" class="form-select">
+            <option value="Baik"         {{ old('condition', $item->condition) == 'Baik'         ? 'selected':'' }}>Baik</option>
+            <option value="Rusak Ringan" {{ old('condition', $item->condition) == 'Rusak Ringan' ? 'selected':'' }}>Rusak Ringan</option>
+            <option value="Rusak Berat"  {{ old('condition', $item->condition) == 'Rusak Berat'  ? 'selected':'' }}>Rusak Berat</option>
         </select>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-4">
+        <label class="form-label-custom">Status Penggunaan</label>
+        <select name="status" class="form-select">
+            <option value="Tidak Dipakai" {{ old('status', $item->status) == 'Tidak Dipakai' ? 'selected':'' }}>Tidak Dipakai</option>
+            <option value="Dipakai"       {{ old('status', $item->status) == 'Dipakai'       ? 'selected':'' }}>Dipakai</option>
+            <option value="Maintenance"   {{ old('status', $item->status) == 'Maintenance'   ? 'selected':'' }}>Maintenance</option>
+        </select>
+    </div>
+    <div class="col-md-4">
         <label class="form-label-custom">Status BMN</label>
         <select name="status_bmn" class="form-select">
-            <option value="Aktif"       {{ old('status_bmn', $item->status_bmn) == 'Aktif'       ? 'selected' : '' }}>Aktif</option>
-            <option value="Tidak Aktif" {{ old('status_bmn', $item->status_bmn) == 'Tidak Aktif' ? 'selected' : '' }}>Tidak Aktif</option>
+            <option value="Aktif"       {{ old('status_bmn', $item->status_bmn) == 'Aktif'       ? 'selected':'' }}>Aktif</option>
+            <option value="Tidak Aktif" {{ old('status_bmn', $item->status_bmn) == 'Tidak Aktif' ? 'selected':'' }}>Tidak Aktif</option>
         </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label-custom">Satuan</label>
+        <input type="text" name="satuan" class="form-control"
+               value="{{ old('satuan', $item->satuan) }}"
+               placeholder="Contoh: Unit, Buah">
     </div>
 </div>
 
 {{-- ══ 3. NILAI & WAKTU ══ --}}
-<div class="section-header mb-3"><div class="section-number">3</div><i class="bi bi-cash-stack"></i> Nilai & Waktu</div>
+<div class="section-header mb-3">
+    <div class="section-number">3</div>
+    <i class="bi bi-cash-stack"></i> Nilai & Waktu
+</div>
 <div class="row g-3 mb-4">
     <div class="col-md-3">
-        <label class="form-label-custom">Nilai Perolehan Pertama (Rp)</label>
-        <input type="number" name="nilai_perolehan_pertama" class="form-control" min="0"
-               value="{{ old('nilai_perolehan_pertama', $item->nilai_perolehan_pertama) }}">
+        <label class="form-label-custom">Nilai Awal (Rp)</label>
+        <input type="number" name="nilai" class="form-control" min="0"
+               value="{{ old('nilai', $item->nilai) }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Nilai Perolehan (Rp)</label>
@@ -119,30 +163,40 @@
         <input type="number" name="nilai_buku" class="form-control" min="0"
                value="{{ old('nilai_buku', $item->nilai_buku) }}">
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
+        <label class="form-label-custom">Tahun Perolehan</label>
+        <input type="number" name="years" class="form-control"
+               min="1900" max="{{ date('Y') }}"
+               value="{{ old('years', $item->years) }}">
+    </div>
+    <div class="col-md-3">
         <label class="form-label-custom">Tanggal Perolehan</label>
         <input type="date" name="tanggal_perolehan" class="form-control"
                value="{{ old('tanggal_perolehan', $item->tanggal_perolehan ? \Carbon\Carbon::parse($item->tanggal_perolehan)->format('Y-m-d') : '') }}">
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <label class="form-label-custom">Tanggal Buku Pertama</label>
         <input type="date" name="tanggal_buku_pertama" class="form-control"
                value="{{ old('tanggal_buku_pertama', $item->tanggal_buku_pertama ? \Carbon\Carbon::parse($item->tanggal_buku_pertama)->format('Y-m-d') : '') }}">
     </div>
-    <div class="col-md-4">
-        <label class="form-label-custom">Jumlah Foto</label>
-        <input type="number" name="jumlah_foto" class="form-control" min="0"
-               value="{{ old('jumlah_foto', $item->jumlah_foto ?? 0) }}">
+    <div class="col-md-3">
+        <label class="form-label-custom">Umur Aset (Tahun)</label>
+        <input type="number" name="life_time" class="form-control" min="0"
+               value="{{ old('life_time', $item->life_time ?? $item->umur_aset) }}">
     </div>
 </div>
 
 {{-- ══ 4. DOKUMEN PSP ══ --}}
-<div class="section-header mb-3"><div class="section-number">4</div><i class="bi bi-file-earmark-text-fill"></i> Dokumen PSP</div>
+<div class="section-header mb-3">
+    <div class="section-number">4</div>
+    <i class="bi bi-file-earmark-text-fill"></i> Dokumen PSP
+</div>
 <div class="row g-3 mb-4">
     <div class="col-md-6">
         <label class="form-label-custom">No PSP</label>
-        <input type="text" name="no_psp" class="form-control" placeholder="Nomor PSP"
-               value="{{ old('no_psp', $item->no_psp) }}">
+        <input type="text" name="no_psp" class="form-control"
+               value="{{ old('no_psp', $item->no_psp) }}"
+               placeholder="Nomor PSP">
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">Tanggal PSP</label>
@@ -152,21 +206,39 @@
 </div>
 
 {{-- ══ 5. DATA SATKER ══ --}}
-<div class="section-header mb-3"><div class="section-number">5</div><i class="bi bi-building"></i> Data Satuan Kerja</div>
+<div class="section-header mb-3">
+    <div class="section-number">5</div>
+    <i class="bi bi-building"></i> Data Satuan Kerja
+</div>
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <label class="form-label-custom">Kode Satker</label>
-        <input type="text" name="kode_satker" class="form-control" placeholder="Kode Satuan Kerja"
-               value="{{ old('kode_satker', $item->kode_satker) }}">
+        <input type="text" name="kode_satker" class="form-control"
+               value="{{ old('kode_satker', $item->kode_satker) }}"
+               placeholder="Kode Satuan Kerja">
     </div>
-    <div class="col-md-8">
+    <div class="col-md-9">
         <label class="form-label-custom">Nama Satker</label>
-        <input type="text" name="nama_satker" class="form-control" placeholder="Nama Satuan Kerja"
-               value="{{ old('nama_satker', $item->nama_satker) }}">
+        <input type="text" name="nama_satker" class="form-control"
+               value="{{ old('nama_satker', $item->nama_satker) }}"
+               placeholder="Nama Satuan Kerja">
     </div>
-    <div class="col-12">
+    <div class="col-md-6">
         <label class="form-label-custom">Alamat</label>
-        <textarea name="alamat" class="form-control" rows="2" placeholder="Alamat lengkap aset">{{ old('alamat', $item->alamat) }}</textarea>
+        <textarea name="alamat" class="form-control" rows="2"
+                  placeholder="Alamat lengkap aset">{{ old('alamat', $item->alamat) }}</textarea>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label-custom">Kab / Kota</label>
+        <input type="text" name="kab_kota" class="form-control"
+               value="{{ old('kab_kota', $item->kab_kota) }}"
+               placeholder="Contoh: Kota Bandung">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label-custom">Provinsi</label>
+        <input type="text" name="provinsi" class="form-control"
+               value="{{ old('provinsi', $item->provinsi) }}"
+               placeholder="Contoh: Jawa Barat">
     </div>
 </div>
 
