@@ -1,12 +1,9 @@
 @extends('layouts.app')
 @section('content')
 
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
-
 <main id="main" class="main">
 <style>
 .form-control,.form-select{background-image:none!important;padding-right:12px!important}
-.form-control:valid,.form-select:valid,.form-control.is-valid,.form-select.is-valid{border-color:#dee2e6!important;background-image:none!important;padding-right:12px!important}
 .form-control:focus,.form-select:focus{border-color:#86b7fe;box-shadow:0 0 0 .2rem rgba(13,110,253,.15)}
 .form-control.is-invalid,.form-select.is-invalid{border-color:#dc3545!important;background-image:none!important}
 .section-header{display:flex;align-items:center;gap:8px;padding:8px 14px;background:linear-gradient(135deg,#1e3a5f,#2d5a8e);color:#fff;border-radius:8px;font-size:.82rem;font-weight:700;letter-spacing:.3px;margin-bottom:4px}
@@ -53,47 +50,33 @@
     <i class="bi bi-tag-fill"></i> Identitas Barang
 </div>
 <div class="row g-3 mb-4">
-    {{-- name="code" → kolom `code` di tabel materials --}}
     <div class="col-md-3">
         <label class="form-label-custom">Kode Barang <span class="req">*</span></label>
         <input type="text" name="code" class="form-control @error('code') is-invalid @enderror"
-               placeholder="Contoh: 3010110005"
-               value="{{ old('code') }}" required>
+               placeholder="Contoh: 3010110005" value="{{ old('code') }}" required>
         @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
-
-    {{-- name="nup" → kolom `nup` --}}
     <div class="col-md-2">
         <label class="form-label-custom">NUP <span class="req">*</span></label>
         <input type="text" name="nup" class="form-control @error('nup') is-invalid @enderror"
-               placeholder="No Urut"
-               value="{{ old('nup') }}" required>
+               placeholder="No Urut" value="{{ old('nup') }}" required>
         @error('nup')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
-
-    {{-- name="name" → kolom `name` --}}
     <div class="col-md-7">
         <label class="form-label-custom">Nama Barang <span class="req">*</span></label>
         <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-               placeholder="Masukkan nama barang"
-               value="{{ old('name') }}" required>
+               placeholder="Masukkan nama barang" value="{{ old('name') }}" required>
         @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
-
-    {{-- name="name_fix" → kolom `name_fix` (Merk/Uraian) --}}
     <div class="col-md-6">
         <label class="form-label-custom">Merk / Uraian</label>
         <input type="text" name="name_fix" class="form-control"
-               placeholder="Contoh: Honda, Asus"
-               value="{{ old('name_fix') }}">
+               placeholder="Contoh: Honda, Asus" value="{{ old('name_fix') }}">
     </div>
-
-    {{-- name="no_seri" → kolom `no_seri` --}}
     <div class="col-md-6">
         <label class="form-label-custom">No. Seri</label>
         <input type="text" name="no_seri" class="form-control"
-               placeholder="Nomor seri barang"
-               value="{{ old('no_seri') }}">
+               placeholder="Nomor seri barang" value="{{ old('no_seri') }}">
     </div>
 </div>
 
@@ -103,121 +86,93 @@
     <i class="bi bi-grid-fill"></i> Klasifikasi BMN
 </div>
 <div class="row g-3 mb-4">
-
-    {{-- name="jenis_bmn" → kolom `jenis_bmn` --}}
     <div class="col-md-4">
         <label class="form-label-custom">Jenis BMN <span class="req">*</span></label>
-        <input type="text" name="jenis_bmn" class="form-control @error('jenis_bmn') is-invalid @enderror"
-               placeholder="Contoh: ALAT BESAR"
-               value="{{ old('jenis_bmn') }}" required>
+        <select name="jenis_bmn" class="form-select @error('jenis_bmn') is-invalid @enderror" required>
+            <option value="">-- Pilih Jenis BMN --</option>
+            <option value="ALAT BESAR"                 {{ old('jenis_bmn')=='ALAT BESAR'                 ?'selected':'' }}>Alat Besar</option>
+            <option value="ALAT ANGKUTAN BERMOTOR"     {{ old('jenis_bmn')=='ALAT ANGKUTAN BERMOTOR'     ?'selected':'' }}>Alat Angkutan Bermotor</option>
+            <option value="BANGUNAN DAN GEDUNG"        {{ old('jenis_bmn')=='BANGUNAN DAN GEDUNG'        ?'selected':'' }}>Bangunan dan Gedung</option>
+            <option value="JALAN DAN JEMBATAN"         {{ old('jenis_bmn')=='JALAN DAN JEMBATAN'         ?'selected':'' }}>Jalan dan Jembatan</option>
+            <option value="MESIN PERALATAN KHUSUS TIK" {{ old('jenis_bmn')=='MESIN PERALATAN KHUSUS TIK' ?'selected':'' }}>Mesin Peralatan TIK</option>
+            <option value="MESIN PERALATAN NON TIK"    {{ old('jenis_bmn')=='MESIN PERALATAN NON TIK'    ?'selected':'' }}>Mesin Peralatan Non TIK</option>
+        </select>
         @error('jenis_bmn')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
-
-    {{-- name="type" → kolom `type` --}}
     <div class="col-md-4">
         <label class="form-label-custom">Tipe Aset</label>
         <select name="type" class="form-select">
-            <option value="Tetap"  {{ old('type','Tetap') == 'Tetap'  ? 'selected':'' }}>Tetap</option>
-            <option value="Alat besar" {{ old('type') == 'Alat besar' ? 'selected':'' }}>Alat Besar</option>
+            <option value="Tetap"      {{ old('type','Tetap')=='Tetap'      ?'selected':'' }}>Tetap</option>
+            <option value="Alat besar" {{ old('type')=='Alat besar'         ?'selected':'' }}>Alat Besar</option>
         </select>
     </div>
-
-    {{-- name="condition" → kolom `condition` --}}
     <div class="col-md-4">
         <label class="form-label-custom">Kondisi</label>
         <select name="condition" class="form-select">
-            <option value="Baik"         {{ old('condition','Baik') == 'Baik'         ? 'selected':'' }}>Baik</option>
-            <option value="Rusak Ringan" {{ old('condition') == 'Rusak Ringan'         ? 'selected':'' }}>Rusak Ringan</option>
-            <option value="Rusak Berat"  {{ old('condition') == 'Rusak Berat'          ? 'selected':'' }}>Rusak Berat</option>
+            <option value="Baik"         {{ old('condition','Baik')=='Baik'         ?'selected':'' }}>Baik</option>
+            <option value="Rusak Ringan" {{ old('condition')=='Rusak Ringan'         ?'selected':'' }}>Rusak Ringan</option>
+            <option value="Rusak Berat"  {{ old('condition')=='Rusak Berat'          ?'selected':'' }}>Rusak Berat</option>
         </select>
     </div>
-
-    {{-- name="status" → kolom `status` --}}
     <div class="col-md-4">
         <label class="form-label-custom">Status Penggunaan</label>
         <select name="status" class="form-select">
-            <option value="Tidak Dipakai" {{ old('status','Tidak Dipakai') == 'Tidak Dipakai' ? 'selected':'' }}>Tidak Dipakai</option>
-            <option value="Dipakai"       {{ old('status') == 'Dipakai'                        ? 'selected':'' }}>Dipakai</option>
-            <option value="Maintenance"   {{ old('status') == 'Maintenance'                    ? 'selected':'' }}>Maintenance</option>
+            <option value="Tidak Dipakai" {{ old('status','Tidak Dipakai')=='Tidak Dipakai' ?'selected':'' }}>Tidak Dipakai</option>
+            <option value="Dipakai"       {{ old('status')=='Dipakai'                        ?'selected':'' }}>Dipakai</option>
+            <option value="Maintenance"   {{ old('status')=='Maintenance'                    ?'selected':'' }}>Maintenance</option>
         </select>
     </div>
-
-    {{-- name="status_bmn" → kolom `status_bmn` --}}
     <div class="col-md-4">
         <label class="form-label-custom">Status BMN</label>
         <select name="status_bmn" class="form-select">
-            <option value="Aktif"       {{ old('status_bmn','Aktif') == 'Aktif'       ? 'selected':'' }}>Aktif</option>
-            <option value="Tidak Aktif" {{ old('status_bmn') == 'Tidak Aktif'          ? 'selected':'' }}>Tidak Aktif</option>
+            <option value="Aktif"       {{ old('status_bmn','Aktif')=='Aktif'       ?'selected':'' }}>Aktif</option>
+            <option value="Tidak Aktif" {{ old('status_bmn')=='Tidak Aktif'          ?'selected':'' }}>Tidak Aktif</option>
         </select>
     </div>
-
-    {{-- name="satuan" → kolom `satuan` --}}
     <div class="col-md-4">
-        <label class="form-label-custom">Satuan</label>
-        <input type="text" name="satuan" class="form-control"
-               placeholder="Contoh: Unit, Buah"
-               value="{{ old('satuan') }}">
-    </div>
-</div>
-
-{{-- ══ 3. NILAI & WAKTU ══ --}}
-<div class="section-header mb-3">
-    <div class="section-number">3</div>
-    <i class="bi bi-cash-stack"></i> Nilai & Waktu
-</div>
-<div class="row g-3 mb-4">
-
-    {{-- name="nilai" → kolom `nilai` (nilai awal/perolehan pertama) --}}
-    <div class="col-md-3">
-        <label class="form-label-custom">Nilai Awal (Rp)</label>
-        <input type="number" name="nilai" class="form-control" placeholder="0" min="0"
-               value="{{ old('nilai') }}">
-    </div>
-
-    {{-- name="nilai_perolehan" → kolom `nilai_perolehan` --}}
-    <div class="col-md-3">
-        <label class="form-label-custom">Nilai Perolehan (Rp)</label>
-        <input type="number" name="nilai_perolehan" class="form-control" placeholder="0" min="0"
-               value="{{ old('nilai_perolehan') }}">
-    </div>
-
-    {{-- name="nilai_penyusutan" → kolom `nilai_penyusutan` --}}
-    <div class="col-md-3">
-        <label class="form-label-custom">Nilai Penyusutan (Rp)</label>
-        <input type="number" name="nilai_penyusutan" class="form-control" placeholder="0" min="0"
-               value="{{ old('nilai_penyusutan') }}">
-    </div>
-
-    {{-- name="nilai_buku" → kolom `nilai_buku` --}}
-    <div class="col-md-3">
-        <label class="form-label-custom">Nilai Buku (Rp)</label>
-        <input type="number" name="nilai_buku" class="form-control" placeholder="0" min="0"
-               value="{{ old('nilai_buku') }}">
-    </div>
-
-    {{-- name="years" → kolom `years` --}}
-    <div class="col-md-3">
         <label class="form-label-custom">Tahun Perolehan</label>
         <input type="number" name="years" class="form-control"
                placeholder="{{ date('Y') }}" min="1900" max="{{ date('Y') }}"
                value="{{ old('years') }}">
     </div>
+</div>
 
-    {{-- name="tanggal_perolehan" → kolom `tanggal_perolehan` --}}
+{{-- ══ 3. NILAI ══ --}}
+<div class="section-header mb-3">
+    <div class="section-number">3</div>
+    <i class="bi bi-cash-stack"></i> Nilai & Waktu
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <label class="form-label-custom">Nilai Perolehan Pertama (Rp)</label>
+        <input type="number" name="nilai" class="form-control" placeholder="0" min="0"
+               value="{{ old('nilai') }}">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label-custom">Nilai Perolehan (Rp)</label>
+        <input type="number" name="nilai_perolehan" class="form-control" placeholder="0" min="0"
+               value="{{ old('nilai_perolehan') }}">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label-custom">Nilai Penyusutan (Rp)</label>
+        <input type="number" name="nilai_penyusutan" class="form-control" placeholder="0" min="0"
+               value="{{ old('nilai_penyusutan') }}">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label-custom">Nilai Buku (Rp)</label>
+        <input type="number" name="nilai_buku" class="form-control" placeholder="0" min="0"
+               value="{{ old('nilai_buku') }}">
+    </div>
     <div class="col-md-3">
         <label class="form-label-custom">Tanggal Perolehan</label>
         <input type="date" name="tanggal_perolehan" class="form-control"
                value="{{ old('tanggal_perolehan') }}">
     </div>
-
-    {{-- name="tanggal_buku_pertama" → kolom `tanggal_buku_pertama` --}}
     <div class="col-md-3">
         <label class="form-label-custom">Tanggal Buku Pertama</label>
         <input type="date" name="tanggal_buku_pertama" class="form-control"
                value="{{ old('tanggal_buku_pertama') }}">
     </div>
-
-    {{-- name="life_time" → kolom `life_time` (umur aset tahun) --}}
     <div class="col-md-3">
         <label class="form-label-custom">Umur Aset (Tahun)</label>
         <input type="number" name="life_time" class="form-control" placeholder="0" min="0"
@@ -231,14 +186,11 @@
     <i class="bi bi-file-earmark-text-fill"></i> Dokumen PSP
 </div>
 <div class="row g-3 mb-4">
-    {{-- name="no_psp" → kolom `no_psp` --}}
     <div class="col-md-6">
         <label class="form-label-custom">No PSP</label>
         <input type="text" name="no_psp" class="form-control" placeholder="Nomor PSP"
                value="{{ old('no_psp') }}">
     </div>
-
-    {{-- name="tanggal_psp" → kolom `tanggal_psp` --}}
     <div class="col-md-6">
         <label class="form-label-custom">Tanggal PSP</label>
         <input type="date" name="tanggal_psp" class="form-control"
@@ -252,44 +204,30 @@
     <i class="bi bi-building"></i> Data Satuan Kerja
 </div>
 <div class="row g-3 mb-4">
-
-    {{-- name="kode_satker" → kolom `kode_satker` --}}
     <div class="col-md-3">
         <label class="form-label-custom">Kode Satker</label>
         <input type="text" name="kode_satker" class="form-control"
-               placeholder="Kode Satuan Kerja"
-               value="{{ old('kode_satker') }}">
+               placeholder="Kode Satuan Kerja" value="{{ old('kode_satker') }}">
     </div>
-
-    {{-- name="nama_satker" → kolom `nama_satker` --}}
     <div class="col-md-9">
         <label class="form-label-custom">Nama Satker</label>
         <input type="text" name="nama_satker" class="form-control"
-               placeholder="Nama Satuan Kerja"
-               value="{{ old('nama_satker') }}">
+               placeholder="Nama Satuan Kerja" value="{{ old('nama_satker') }}">
     </div>
-
-    {{-- name="alamat" → kolom `alamat` --}}
     <div class="col-md-6">
         <label class="form-label-custom">Alamat</label>
         <textarea name="alamat" class="form-control" rows="2"
                   placeholder="Alamat lengkap aset">{{ old('alamat') }}</textarea>
     </div>
-
-    {{-- name="kab_kota" → kolom `kab_kota` --}}
     <div class="col-md-3">
         <label class="form-label-custom">Kab / Kota</label>
         <input type="text" name="kab_kota" class="form-control"
-               placeholder="Contoh: Kota Bandung"
-               value="{{ old('kab_kota') }}">
+               placeholder="Contoh: Kota Bandung" value="{{ old('kab_kota') }}">
     </div>
-
-    {{-- name="provinsi" → kolom `provinsi` --}}
     <div class="col-md-3">
         <label class="form-label-custom">Provinsi</label>
         <input type="text" name="provinsi" class="form-control"
-               placeholder="Contoh: Jawa Barat"
-               value="{{ old('provinsi') }}">
+               placeholder="Contoh: Jawa Barat" value="{{ old('provinsi') }}">
     </div>
 </div>
 
@@ -305,22 +243,4 @@
 </form>
 </div>
 </main>
-
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
-<script>
-$(function () {
-    document.getElementById('formCreate').addEventListener('submit', function (e) {
-        var valid = true;
-        this.querySelectorAll('[required]').forEach(function (el) {
-            if (!el.value || !el.value.trim()) { el.classList.add('is-invalid'); valid = false; }
-            else { el.classList.remove('is-invalid'); }
-        });
-        if (!valid) e.preventDefault();
-    });
-    document.getElementById('formCreate').querySelectorAll('[required]').forEach(function (el) {
-        el.addEventListener('input',  function () { this.classList.remove('is-invalid'); });
-        el.addEventListener('change', function () { this.classList.remove('is-invalid'); });
-    });
-});
-</script>
 @endsection

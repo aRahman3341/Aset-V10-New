@@ -31,15 +31,47 @@ use PhpOffice\PhpSpreadsheet\Reader\InvalidFormatException;
 
 class BarangController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $locations   = DB::table('locations')->get();
-        $categories  = DB::table('categories')->get();
-        $employees   = DB::table('employees')->get();
-        $items       = DB::table('materials')->get();
-        $tahun       = DB::table('materials')->get();
+        $query      = $request->input('query');
+        $jenisBmn   = $request->input('jenis_bmn');
+        $kondisi    = $request->input('kondisi');
+        $statusBmn  = $request->input('status_bmn');
 
-        return view('asetTetap.index', compact('items', 'locations', 'employees', 'categories', 'tahun'));
+        $items = Materials::query()
+            ->when($query, function ($q) use ($query) {
+                $q->where(function ($sub) use ($query) {
+                    $sub->where('code',       'LIKE', '%' . $query . '%')
+                        ->orWhere('nup',       'LIKE', '%' . $query . '%')
+                        ->orWhere('name',      'LIKE', '%' . $query . '%')
+                        ->orWhere('name_fix',  'LIKE', '%' . $query . '%')
+                        ->orWhere('jenis_bmn', 'LIKE', '%' . $query . '%')
+                        ->orWhere('kode_satker','LIKE', '%' . $query . '%')
+                        ->orWhere('nama_satker','LIKE', '%' . $query . '%');
+                });
+            })
+            ->when($jenisBmn, function ($q) use ($jenisBmn) {
+                $q->where('jenis_bmn', $jenisBmn);
+            })
+            ->when($kondisi, function ($q) use ($kondisi) {
+                $q->where('condition', $kondisi);
+            })
+            ->when($statusBmn, function ($q) use ($statusBmn) {
+                $q->where('status_bmn', $statusBmn);
+            })
+            ->orderBy('id', 'desc')
+            ->paginate(20)
+            ->withQueryString();
+
+        // Jika AJAX request (dari pagination)
+        if ($request->ajax() || $request->has('ajax')) {
+            return response()->json([
+                'table'      => view('asetTetap.table', compact('items'))->render(),
+                'pagination' => view('asetTetap.pagenation', compact('items'))->render(),
+            ]);
+        }
+
+        return view('asetTetap.index', compact('items'));
     }
 
     public function create()
@@ -91,7 +123,7 @@ class BarangController extends Controller
 
         // --- Nilai & Waktu ---
         $material->nilai                   = $request->input('nilai');
-        $material->nilai_perolehan         = $request->input('nilai');           // alias nilai
+        $material->nilai_perolehan         = $request->input('nilai');
         $material->nilai_penyusutan        = $request->input('nilai_penyusutan');
         $material->nilai_buku              = $request->input('nilai_buku');
         $material->years                   = $request->input('tahun');
@@ -295,7 +327,7 @@ class BarangController extends Controller
         return redirect()->route('asetTetap.index')->with('success', 'Data deleted successfully');
     }
 
-    // ===================== EXPORT (XLSX Rapi) =====================
+    // ===================== EXPORT =====================
     public function export(Request $request)
     {
         $selectedAsets = $request->input('id_aset', []);
@@ -312,20 +344,16 @@ class BarangController extends Controller
         $oldNup = $request->input('old_nup');
 
         if ($oldNup) {
-            if ($nup !== $oldNup) {
-                $exists = Materials::where('nup', $nup)->where('code', $code)->exists();
-            } else {
-                $exists = false;
-            }
+            $exists = ($nup !== $oldNup)
+                ? Materials::where('nup', $nup)->where('code', $code)->exists()
+                : false;
         } else {
             $exists = Materials::where('nup', $nup)->where('code', $code)->exists();
         }
 
-        if ($exists) {
-            return response()->json(['message' => 'NUP with code ' . $code . ' already exists or has different values'], 400);
-        }
-
-        return response()->json(['message' => 'NUP is valid'], 200);
+        return $exists
+            ? response()->json(['message' => 'NUP with code ' . $code . ' already exists'], 400)
+            : response()->json(['message' => 'NUP is valid'], 200);
     }
 
     // ===================== CHECK NO SERI =====================
@@ -340,44 +368,45 @@ class BarangController extends Controller
             $exists = Materials::where('no_seri', $noSeri)->exists();
         }
 
-        if ($exists) {
-            return response()->json(['message' => 'No Seri already exists or has different values'], 400);
-        }
-
-        return response()->json(['message' => 'No Seri valid'], 200);
+        return $exists
+            ? response()->json(['message' => 'No Seri already exists'], 400)
+            : response()->json(['message' => 'No Seri valid'], 200);
     }
 
     // ===================== SEARCH =====================
+    // Digabung ke index() via AJAX, method ini tetap ada untuk kompatibilitas route POST /search
     public function search(Request $request)
     {
-        $locations  = DB::table('locations')->get();
-        $categories = DB::table('categories')->get();
-        $employees  = DB::table('employees')->get();
-        $tahun      = DB::table('materials')->get();
-        $query      = $request->input('query');
+        $query = $request->input('query');
 
-        $items = Materials::where('code', 'LIKE', '%' . $query . '%')
-            ->orWhere('nup', 'LIKE', '%' . $query . '%')
-            ->orWhere('name', 'LIKE', '%' . $query . '%')
-            ->orWhere('name_fix', 'LIKE', '%' . $query . '%')
-            ->orWhere('years', 'LIKE', '%' . $query . '%')
-            ->orWhere('jenis_bmn', 'LIKE', '%' . $query . '%')
-            ->orWhere('kode_satker', 'LIKE', '%' . $query . '%')
-            ->orWhere('nama_satker', 'LIKE', '%' . $query . '%')
-            ->get();
+        $items = Materials::where(function ($q) use ($query) {
+                $q->where('code',        'LIKE', '%' . $query . '%')
+                  ->orWhere('nup',        'LIKE', '%' . $query . '%')
+                  ->orWhere('name',       'LIKE', '%' . $query . '%')
+                  ->orWhere('name_fix',   'LIKE', '%' . $query . '%')
+                  ->orWhere('years',      'LIKE', '%' . $query . '%')
+                  ->orWhere('jenis_bmn',  'LIKE', '%' . $query . '%')
+                  ->orWhere('kode_satker','LIKE', '%' . $query . '%')
+                  ->orWhere('nama_satker','LIKE', '%' . $query . '%');
+            })
+            ->orderBy('id', 'desc')
+            ->paginate(20)
+            ->withQueryString();
 
-        return view('asetTetap.index', compact('items', 'locations', 'employees', 'categories', 'tahun'));
+        if ($request->ajax() || $request->has('ajax')) {
+            return response()->json([
+                'table'      => view('asetTetap.table', compact('items'))->render(),
+                'pagination' => view('asetTetap.pagenation', compact('items'))->render(),
+            ]);
+        }
+
+        return view('asetTetap.index', compact('items'));
     }
 
     // ===================== FILTER =====================
     public function filter(Request $request)
     {
-        $locations  = DB::table('locations')->get();
-        $categories = DB::table('categories')->get();
-        $employees  = DB::table('employees')->get();
-        $tahun      = DB::table('materials')->get();
-
-        $query = DB::table('materials');
+        $query = Materials::query();
 
         $type = $request->input('type');
         if ($type && $type !== 'all') {
@@ -389,25 +418,35 @@ class BarangController extends Controller
             $query->where('category', $category);
         }
 
-        $years_from = $request->input('years_from');
-        if ($years_from && $years_from !== 'dari') {
-            $query->where('years', '>=', $years_from);
+        $jenisBmn = $request->input('jenis_bmn');
+        if ($jenisBmn && $jenisBmn !== 'all') {
+            $query->where('jenis_bmn', $jenisBmn);
         }
 
-        $years_till = $request->input('years_till');
-        if ($years_till && $years_till !== 'sampai') {
-            $query->where('years', '<=', $years_till);
+        $kondisi = $request->input('kondisi');
+        if ($kondisi && $kondisi !== 'all') {
+            $query->where('condition', $kondisi);
         }
+
+        $statusBmn = $request->input('status_bmn');
+        if ($statusBmn && $statusBmn !== 'all') {
+            $query->where('status_bmn', $statusBmn);
+        }
+
+        $yearsDari   = $request->input('tahun_dari');
+        $yearsSampai = $request->input('tahun_sampai');
+        if ($yearsDari)   $query->where('years', '>=', $yearsDari);
+        if ($yearsSampai) $query->where('years', '<=', $yearsSampai);
 
         $office = $request->input('gedung');
         $floor  = $request->input('lantai');
         $room   = $request->input('ruangan');
-
         if ($office || $floor || $room) {
             $query->whereIn('store_location', function ($q) use ($office, $floor, $room) {
-                $q->select('id')->from('locations')->where('office', $office);
-                if ($floor) $q->where('floor', $floor);
-                if ($room)  $q->where('room', $room);
+                $q->select('id')->from('locations');
+                if ($office) $q->where('office', $office);
+                if ($floor)  $q->where('floor', $floor);
+                if ($room)   $q->where('room', $room);
             });
         }
 
@@ -426,9 +465,16 @@ class BarangController extends Controller
             $query->where('dikalibrasi', $calibrated);
         }
 
-        $items = $query->get();
+        $items = $query->orderBy('id', 'desc')->paginate(20)->withQueryString();
 
-        return view('asetTetap.index', compact('items', 'locations', 'employees', 'categories', 'tahun'));
+        if ($request->ajax() || $request->has('ajax')) {
+            return response()->json([
+                'table'      => view('asetTetap.table', compact('items'))->render(),
+                'pagination' => view('asetTetap.pagenation', compact('items'))->render(),
+            ]);
+        }
+
+        return view('asetTetap.index', compact('items'));
     }
 
     // ===================== IMPORT =====================
@@ -455,11 +501,10 @@ class BarangController extends Controller
         } catch (ValidationException $e) {
             return back()->withErrors($e->validator->errors());
         } catch (ReaderException $e) {
-            return back()->withErrors(['file' => 'Error loading the Excel file. Please check the file and try again.']);
+            return back()->withErrors(['file' => 'Error loading the Excel file.']);
         } catch (ExceptionsInvalidFormatException $e) {
-            return back()->withErrors(['file' => 'Invalid file format. Please upload a valid Excel file.']);
+            return back()->withErrors(['file' => 'Invalid file format.']);
         } catch (Exception $e) {
-            error_log("Error processing Excel file: " . $e->getMessage() . " in " . $e->getFile() . " at line " . $e->getLine());
             return back()->withErrors(['file' => 'There was a problem processing the Excel file: ' . $e->getMessage()]);
         }
     }

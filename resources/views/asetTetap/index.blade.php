@@ -18,25 +18,35 @@
     </div>
 </div>
 
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-circle me-2"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
 <section class="section">
 <div class="main-card">
 
     {{-- ── Toolbar ── --}}
     <div class="table-toolbar">
         <div class="toolbar-left">
-            <form action="{{ route('asetTetap.search') }}" method="POST" class="d-flex">
-                @csrf
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-white border-end-0">
-                        <i class="bi bi-search text-muted"></i>
-                    </span>
-                    <input type="text" name="query" class="form-control border-start-0 ps-0"
-                           placeholder="Cari Kode, NUP, atau Nama..." value="{{ request()->input('query') }}">
-                    <button type="button" class="btn btn-outline-secondary" id="filterButton" title="Filter Lanjutan">
-                        <i class="bi bi-funnel"></i>
-                    </button>
-                </div>
-            </form>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" id="searchInput" class="form-control border-start-0 ps-0"
+                       placeholder="Cari Kode, NUP, atau Nama..." value="{{ request('query') }}">
+                <button type="button" class="btn btn-outline-secondary" id="filterButton" title="Filter Lanjutan">
+                    <i class="bi bi-funnel"></i>
+                </button>
+            </div>
         </div>
         <div class="toolbar-right">
             <span class="selected-badge d-none me-1" id="selectedBadge">
@@ -55,143 +65,90 @@
             <button onclick="generateQRCodes('{{ route('generate_qrcodes') }}')" class="btn btn-info btn-sm me-1">
                 <i class="bi bi-qr-code"></i> QR
             </button>
-            <button onclick="multiDelete('{{ route('asetTetap.multiDelete') }}')" class="btn btn-danger btn-sm">
+            <button onclick="doMultiDelete()" class="btn btn-danger btn-sm">
                 <i class="bi bi-trash"></i> Hapus
             </button>
         </div>
     </div>
 
     {{-- ── Filter Panel ── --}}
-    <div id="filterFields" style="display:{{ request()->is('asetTetap/filter') ? 'block' : 'none' }};" class="filter-panel">
-        <div class="filter-panel-header"><span><i class="bi bi-funnel-fill"></i> Filter Lanjutan</span></div>
-        @include('asetTetap.filter')
+    <div id="filterFields" style="display:none" class="filter-panel">
+        <div class="filter-panel-header">
+            <span><i class="bi bi-funnel-fill"></i> Filter Lanjutan</span>
+            <button type="button" class="filter-reset-btn" id="resetFilter">
+                <i class="bi bi-x-circle"></i> Reset
+            </button>
+        </div>
+        <div class="row g-2">
+            <div class="col-md-3">
+                <label class="filter-label">Jenis BMN</label>
+                <select class="form-select form-select-sm" id="filterJenis">
+                    <option value="">Semua Jenis</option>
+                    <option value="ALAT BESAR">Alat Besar</option>
+                    <option value="ALAT ANGKUTAN BERMOTOR">Alat Angkutan Bermotor</option>
+                    <option value="BANGUNAN DAN GEDUNG">Bangunan dan Gedung</option>
+                    <option value="MESIN PERALATAN KHUSUS TIK">Mesin Peralatan TIK</option>
+                    <option value="MESIN PERALATAN NON TIK">Mesin Peralatan Non TIK</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="filter-label">Kondisi</label>
+                <select class="form-select form-select-sm" id="filterKondisi">
+                    <option value="">Semua</option>
+                    <option value="Baik">Baik</option>
+                    <option value="Rusak Ringan">Rusak Ringan</option>
+                    <option value="Rusak Berat">Rusak Berat</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="filter-label">Status BMN</label>
+                <select class="form-select form-select-sm" id="filterStatusBmn">
+                    <option value="">Semua</option>
+                    <option value="Aktif">Aktif</option>
+                    <option value="Tidak Aktif">Tidak Aktif</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-primary btn-sm w-100" id="applyFilter">
+                    <i class="bi bi-funnel-fill"></i> Terapkan
+                </button>
+            </div>
+        </div>
     </div>
 
-    {{-- ── Table ── --}}
-    <div class="table-responsive" style="max-height:650px; overflow-y:auto;">
-        <form action="" method="post" class="form-produk">
-            @csrf
-            <table class="table table-sm table-hover table-custom mb-0">
-                <thead style="position:sticky; top:0; z-index:10;">
-                    <tr>
-                        <th class="text-center" style="width:40px;">
-                            <input type="checkbox" id="select_all" class="form-check-input">
-                        </th>
-                        <th class="text-center" style="width:40px;">No</th>
-                        <th>Kode Barang</th>
-                        <th>NUP</th>
-                        <th>Nama Barang</th>
-                        <th>Merk</th>
-                        <th>Tipe</th>
-                        <th>Jenis BMN</th>
-                        <th class="text-center">Kondisi</th>
-                        <th class="text-center">Status BMN</th>
-                        <th class="text-end">Nilai Perolehan Pertama (Rp)</th>
-                        <th class="text-end">Nilai Perolehan (Rp)</th>
-                        <th class="text-end">Nilai Penyusutan (Rp)</th>
-                        <th class="text-end">Nilai Buku (Rp)</th>
-                        <th>Tgl Perolehan</th>
-                        <th>Tgl Buku Pertama</th>
-                        <th>No PSP</th>
-                        <th>Tgl PSP</th>
-                        <th>Kode Satker</th>
-                        <th>Nama Satker</th>
-                        <th>Alamat</th>
-                        <th class="text-center">Foto</th>
-                        <th class="text-center" style="min-width:80px;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php $no = 1; @endphp
-                    @forelse ($items as $item)
-                        @php
-                            $kondisi   = $item->kondisi ?? 'Baik';
-                            $condColor = match($kondisi) {
-                                'Baik'         => 'success',
-                                'Rusak Ringan' => 'warning',
-                                default        => 'danger',
-                            };
-                        @endphp
-                        <tr data-item-id="{{ $item->id }}">
-                            <td class="text-center">
-                                <input class="form-check-input" type="checkbox" name="id_aset[]"
-                                       value="{{ $item->id }}" style="transform:scale(0.8);">
-                            </td>
-                            <td class="text-center">{{ $no }}</td>
+    {{-- ── Table Container ── --}}
+    <div id="tableContainer">
+        @include('asetTetap.table', ['items' => $items])
+    </div>
 
-                            <td><span class="fw-bold text-primary code-text">{{ $item->kode_barang ?? '-' }}</span></td>
-                            <td>{{ $item->nup ?? '-' }}</td>
-                            <td><span class="fw-semibold">{{ Str::limit($item->nama_barang ?? '-', 40) }}</span></td>
-                            <td><span class="text-muted">{{ Str::limit($item->merk ?? '-', 25) }}</span></td>
-                            <td><span class="text-muted">{{ Str::limit($item->tipe ?? '-', 25) }}</span></td>
-                            <td><span class="badge-jenis">{{ Str::limit($item->jenis_bmn ?? '-', 30) }}</span></td>
-
-                            <td class="text-center">
-                                <span class="badge bg-{{ $condColor }}">{{ $kondisi }}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-{{ ($item->status_bmn ?? '') === 'Aktif' ? 'success' : 'secondary' }}">
-                                    {{ $item->status_bmn ?? '-' }}
-                                </span>
-                            </td>
-
-                            <td class="text-end">{{ $item->nilai_perolehan_pertama ? number_format($item->nilai_perolehan_pertama, 0, ',', '.') : '-' }}</td>
-                            <td class="text-end">{{ $item->nilai_perolehan         ? number_format($item->nilai_perolehan, 0, ',', '.')         : '-' }}</td>
-                            <td class="text-end">{{ $item->nilai_penyusutan        ? number_format($item->nilai_penyusutan, 0, ',', '.')        : '-' }}</td>
-                            <td class="text-end fw-semibold" style="color:#1e3a5f;">
-                                {{ $item->nilai_buku ? number_format($item->nilai_buku, 0, ',', '.') : '-' }}
-                            </td>
-
-                            <td>{{ $item->tanggal_perolehan    ? \Carbon\Carbon::parse($item->tanggal_perolehan)->format('d/m/Y')    : '-' }}</td>
-                            <td>{{ $item->tanggal_buku_pertama ? \Carbon\Carbon::parse($item->tanggal_buku_pertama)->format('d/m/Y') : '-' }}</td>
-
-                            <td>{{ $item->no_psp ?? '-' }}</td>
-                            <td>{{ $item->tanggal_psp ? \Carbon\Carbon::parse($item->tanggal_psp)->format('d/m/Y') : '-' }}</td>
-
-                            <td>{{ $item->kode_satker ?? '-' }}</td>
-                            <td>{{ Str::limit($item->nama_satker ?? '-', 25) }}</td>
-                            <td>{{ Str::limit($item->alamat ?? '-', 30) }}</td>
-
-                            <td class="text-center">
-                                @if(($item->jumlah_foto ?? 0) > 0)
-                                    <span class="badge bg-info">{{ $item->jumlah_foto }}</span>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-
-                            <td class="text-center">
-                                <div class="action-group">
-                                    <a href="{{ route('asetTetap.edit', $item->id) }}" class="abtn abtn-edit" title="Edit">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </a>
-                                    <button class="abtn abtn-del delete-button" data-item-id="{{ $item->id }}" title="Hapus">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        @php $no++; @endphp
-                    @empty
-                        <tr>
-                            <td colspan="23" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
-                                Data tidak ditemukan.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </form>
+    {{-- ── Footer: Pagination ── --}}
+    <div class="table-footer">
+        <div id="paginationContainer" class="pag-nav">
+            @include('asetTetap.pagenation', ['items' => $items])
+        </div>
     </div>
 
 </div>
 </section>
-</main>
+
+{{-- Form tersembunyi untuk multi-action --}}
+<form id="multiForm" method="POST" style="display:none">
+    @csrf
+    <div id="multiInputs"></div>
+</form>
+
+{{-- Form single delete --}}
+<form id="deleteForm" method="POST" style="display:none">
+    @csrf
+    @method('DELETE')
+</form>
 
 @include('asetTetap.scane')
 
+</main>
+
 <style>
+/* ── Page Title ── */
 .pagetitle { display:flex; align-items:center; margin-bottom:20px; }
 .pagetitle-left { display:flex; align-items:center; gap:12px; }
 .pagetitle-icon {
@@ -204,49 +161,70 @@
 .pagetitle .breadcrumb-item a { color:#4154f1; text-decoration:none; }
 .pagetitle .breadcrumb-item.active { color:#8a96a3; }
 
+/* ── Main card ── */
 .main-card {
     background:#fff; border-radius:10px;
     border:1px solid rgba(1,41,112,0.07);
     box-shadow:0 2px 14px rgba(1,41,112,0.07); overflow:hidden;
 }
+
+/* ── Toolbar ── */
 .table-toolbar {
     display:flex; align-items:center; justify-content:space-between;
-    padding:14px 18px; border-bottom:1px solid rgba(1,41,112,0.07); gap:8px; flex-wrap:wrap;
+    padding:10px 14px; border-bottom:1px solid rgba(1,41,112,0.07);
+    gap:8px; flex-wrap:wrap;
 }
 .toolbar-left  { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.toolbar-right { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.toolbar-right { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
 
-.action-btn {
-    display:inline-flex; align-items:center; gap:5px; height:34px; padding:0 13px;
-    border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;
-    border:none; text-decoration:none; transition:all .18s; white-space:nowrap;
+.selected-badge {
+    display:inline-flex; align-items:center; gap:5px;
+    background:linear-gradient(135deg,#012970,#4154f1);
+    color:#fff; border-radius:20px; padding:3px 11px;
+    font-size:0.76rem; font-weight:700;
 }
-.action-btn-success  { background:linear-gradient(135deg,#1a7f4b,#22a86a); color:#fff; box-shadow:0 2px 8px rgba(26,127,75,0.25); }
-.action-btn-success:hover  { transform:translateY(-1px); box-shadow:0 4px 14px rgba(26,127,75,0.35); color:#fff; }
-.action-btn-outline  { background:#fff; color:#012970; border:1.5px solid rgba(1,41,112,0.20); }
-.action-btn-outline:hover  { background:#f0f5ff; border-color:#4154f1; color:#4154f1; }
-.action-btn-secondary { background:#f4f6fb; color:#5a6a7e; border:1.5px solid rgba(1,41,112,0.15); }
-.action-btn-secondary:hover { background:#e8eef8; color:#012970; }
-.action-btn-danger   { background:#fff0f0; color:#dc2626; border:1.5px solid rgba(220,38,38,0.20); }
-.action-btn-danger:hover   { background:#ffe0e0; border-color:#dc2626; }
 
-.filter-panel { background:#f8fafd; border-bottom:1px solid rgba(1,41,112,0.07); padding:12px 18px; }
-.filter-panel-header { margin-bottom:10px; font-size:0.8rem; font-weight:700; color:#5a6a7e; }
+/* ── Filter panel ── */
+.filter-panel {
+    background:#f8fafd; border-bottom:1px solid rgba(1,41,112,0.07);
+    padding:12px 18px;
+}
+.filter-panel-header {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:10px; font-size:0.8rem; font-weight:700; color:#5a6a7e;
+}
+.filter-label {
+    font-size:0.71rem; font-weight:700; color:#7a8a9e;
+    text-transform:uppercase; letter-spacing:0.4px;
+    display:block; margin-bottom:3px;
+}
+.filter-reset-btn {
+    background:none; border:none; font-size:0.75rem; color:#dc2626;
+    cursor:pointer; display:flex; align-items:center;
+    gap:4px; font-weight:600; padding:0;
+}
 
-.table-custom { font-size:0.8rem; }
-.table-custom thead th {
-    background-color:#f6f9ff; color:#012970; font-weight:700; text-transform:uppercase;
-    font-size:0.69rem; letter-spacing:0.5px; padding:10px 11px; white-space:nowrap;
+/* ── Table ── */
+.table thead th {
+    background-color:#f6f9ff; color:#012970;
+    font-weight:700; text-transform:uppercase;
+    font-size:0.69rem; letter-spacing:0.5px;
+    padding:10px 11px; border:none; white-space:nowrap;
     border-bottom:2px solid #e0e8f5;
 }
-.table-custom tbody td {
-    padding:9px 11px; vertical-align:middle; font-size:0.8rem;
-    white-space:nowrap; border-bottom:1px solid rgba(1,41,112,0.05);
+.table tbody td {
+    padding:9px 11px; vertical-align:middle;
+    font-size:0.8rem; border-bottom:1px solid rgba(1,41,112,0.05);
+    white-space:nowrap;
 }
-.table-custom tbody tr:last-child td { border-bottom:none; }
-.table-custom tbody tr:hover td { background:rgba(65,84,241,0.03); }
+.table tbody tr:last-child td { border-bottom:none; }
+.table tbody tr:hover td { background:rgba(65,84,241,0.03); }
+tr.row-checked td { background:rgba(65,84,241,0.05) !important; }
 
-.code-text { font-family:'DM Mono','Courier New',monospace; font-size:0.78rem; }
+.code-text {
+    font-family:'DM Mono','Courier New',monospace;
+    font-size:0.75rem; font-weight:600; color:#012970;
+}
 .badge-jenis {
     display:inline-block; font-size:0.68rem; font-weight:700; padding:2px 8px;
     border-radius:20px; background:rgba(1,41,112,0.08); color:#012970;
@@ -259,64 +237,262 @@
 }
 .abtn-edit { color:#c49a2a; } .abtn-edit:hover { background:rgba(232,184,75,0.15); }
 .abtn-del  { color:#dc2626; } .abtn-del:hover  { background:rgba(220,38,38,0.10); }
+
+/* ── Table Footer ── */
+.table-footer {
+    display:flex; align-items:center; justify-content:space-between;
+    border-top:2px solid rgba(1,41,112,0.06);
+    background:#fafbfd; border-radius:0 0 10px 10px;
+    min-height:62px; flex-wrap:wrap;
+}
+
+/* ── Pagination ── */
+.pag-nav { display:flex; align-items:center; padding:10px 14px; flex:1; flex-wrap:wrap; gap:4px; }
+.pag-list { display:flex; align-items:center; gap:3px; list-style:none; margin:0; padding:0; }
+.pag-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:34px; height:34px; padding:0 9px; border-radius:6px;
+    font-size:0.8rem; font-weight:700; color:#012970;
+    background:#fff; border:1.5px solid rgba(1,41,112,0.13);
+    text-decoration:none; transition:all .15s ease; cursor:pointer;
+}
+.pag-btn:hover:not(.pag-btn-active) {
+    background:#012970; color:#fff; border-color:#012970;
+    text-decoration:none; transform:translateY(-1px);
+    box-shadow:0 3px 10px rgba(1,41,112,0.20);
+}
+.pag-btn-icon { min-width:34px; padding:0; color:#5a6a7e; }
+.pag-btn-active {
+    background:linear-gradient(135deg,#012970,#4154f1) !important;
+    color:#fff !important; border-color:transparent !important;
+    box-shadow:0 3px 12px rgba(65,84,241,0.28) !important;
+    transform:translateY(-1px) scale(1.06) !important;
+    min-width:38px; height:38px; font-size:0.85rem;
+}
+.pag-disabled .pag-btn { opacity:.3; cursor:not-allowed; pointer-events:none; }
+.pag-ellipsis span {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:34px; height:34px; color:#a0aab4; font-size:0.9rem; letter-spacing:2px;
+}
+.pag-info { font-size:0.74rem; color:#8a96a3; margin-left:8px; white-space:nowrap; }
+.pag-info strong { color:#012970; }
+
+/* Loading */
+#tableContainer { position:relative; min-height:120px; }
+.tbl-loading { position:absolute; inset:0; background:rgba(255,255,255,0.8); display:flex; align-items:center; justify-content:center; z-index:5; }
+.tbl-spinner { width:30px; height:30px; border:3px solid rgba(1,41,112,0.12); border-top-color:#012970; border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
 @media (max-width:768px) {
     .table-toolbar { flex-direction:column; align-items:stretch; }
     .toolbar-right { justify-content:flex-start; }
+    .table-footer { flex-direction:column; align-items:stretch; }
+    .pag-nav { justify-content:center; }
 }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
-<script src="{{ asset('js/indexaset.js') }}"></script>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script>
-function generateQRCodes(url) {
-    if ($('input[name="id_aset[]"]:checked').length < 1) {
-        Swal.fire('Pilih Data', 'Centang minimal satu aset untuk mencetak QR.', 'info'); return;
-    }
-    $('.form-produk').attr('target', '_blank').attr('action', url).submit();
+// ═══════════════════════════════════
+//  State centang lintas halaman
+// ═══════════════════════════════════
+const checkedIds = new Set();
+
+function updateBadge() {
+    const n = checkedIds.size;
+    const badge = document.getElementById('selectedBadge');
+    document.getElementById('selectedCount').textContent = n;
+    badge.classList.toggle('d-none', n === 0);
 }
-function multiDelete(url) {
-    if ($('input[name="id_aset[]"]:checked').length < 1) {
-        Swal.fire('Pilih Data', 'Centang data yang ingin dihapus.', 'info'); return;
+
+function syncCheckboxes() {
+    document.querySelectorAll('input[name="id_aset[]"]').forEach(cb => {
+        const id = cb.value;
+        cb.checked = checkedIds.has(id);
+        cb.closest('tr').classList.toggle('row-checked', cb.checked);
+        const fresh = cb.cloneNode(true);
+        cb.parentNode.replaceChild(fresh, cb);
+        fresh.checked = checkedIds.has(id);
+        fresh.addEventListener('change', function() {
+            this.checked ? checkedIds.add(id) : checkedIds.delete(id);
+            this.closest('tr').classList.toggle('row-checked', this.checked);
+            updateBadge();
+            syncSelectAll();
+        });
+    });
+    const sa = document.getElementById('select_all');
+    if (sa) {
+        const fresh = sa.cloneNode(true);
+        sa.parentNode.replaceChild(fresh, sa);
+        fresh.checked = false;
+        fresh.addEventListener('change', function() {
+            document.querySelectorAll('input[name="id_aset[]"]').forEach(cb => {
+                cb.checked = this.checked;
+                this.checked ? checkedIds.add(cb.value) : checkedIds.delete(cb.value);
+                cb.closest('tr').classList.toggle('row-checked', this.checked);
+            });
+            updateBadge();
+        });
     }
+}
+
+function syncSelectAll() {
+    const all = document.querySelectorAll('input[name="id_aset[]"]');
+    const chk = document.querySelectorAll('input[name="id_aset[]"]:checked');
+    const sa  = document.getElementById('select_all');
+    if (sa) sa.checked = all.length > 0 && all.length === chk.length;
+}
+
+// ═══════════════════════════════════
+//  AJAX load tabel
+// ═══════════════════════════════════
+let curPage   = 1;
+let curQuery  = '{{ request("query", "") }}';
+let curJenis  = '{{ request("jenis_bmn", "") }}';
+let curKondisi = '{{ request("kondisi", "") }}';
+let curStatusBmn = '{{ request("status_bmn", "") }}';
+
+function loadTable(page) {
+    curPage = page || 1;
+    const container = document.getElementById('tableContainer');
+    const spin = document.createElement('div');
+    spin.className = 'tbl-loading';
+    spin.innerHTML = '<div class="tbl-spinner"></div>';
+    container.appendChild(spin);
+
+    const params = new URLSearchParams({
+        page: curPage,
+        query: curQuery,
+        jenis_bmn: curJenis,
+        kondisi: curKondisi,
+        status_bmn: curStatusBmn,
+        ajax: 1
+    });
+
+    fetch(`{{ route('asetTetap.index') }}?${params}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        container.innerHTML = data.table;
+        document.getElementById('paginationContainer').innerHTML = data.pagination;
+        syncCheckboxes();
+        updateBadge();
+        bindDeleteButtons();
+        bindPaginationLinks();
+    })
+    .catch(() => {
+        window.location.href = `{{ route('asetTetap.index') }}?page=${curPage}&query=${curQuery}`;
+    })
+    .finally(() => {
+        container.querySelector('.tbl-loading')?.remove();
+    });
+}
+
+function bindPaginationLinks() {
+    document.querySelectorAll('.pag-link').forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            const pg = parseInt(link.dataset.page);
+            if (pg) loadTable(pg);
+        });
+    });
+}
+
+// ═══════════════════════════════════
+//  Single delete
+// ═══════════════════════════════════
+function bindDeleteButtons() {
+    document.querySelectorAll('.delete-button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            Swal.fire({
+                title: 'Hapus Aset?', text: 'Data tidak bisa dikembalikan!',
+                icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#012970', cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus!', cancelButtonText: 'Batal'
+            }).then(r => {
+                if (!r.isConfirmed) return;
+                const form = document.getElementById('deleteForm');
+                form.action = `/asetTetap/${id}`;
+                form.submit();
+            });
+        });
+    });
+}
+
+// ═══════════════════════════════════
+//  Multi actions
+// ═══════════════════════════════════
+function buildMultiForm(action, target) {
+    const form   = document.getElementById('multiForm');
+    const inputs = document.getElementById('multiInputs');
+    inputs.innerHTML = '';
+    checkedIds.forEach(id => {
+        const inp = document.createElement('input');
+        inp.type  = 'hidden';
+        inp.name  = 'id_aset[]';
+        inp.value = id;
+        inputs.appendChild(inp);
+    });
+    form.action = action;
+    form.target = target || '_self';
+    form.submit();
+}
+
+function generateQRCodes(url) {
+    if (checkedIds.size < 1) { Swal.fire('Pilih Data', 'Centang minimal satu aset untuk mencetak QR.', 'info'); return; }
+    buildMultiForm(url, '_blank');
+}
+
+function exportAset(url) {
+    buildMultiForm(url, '_self');
+}
+
+function doMultiDelete() {
+    if (checkedIds.size < 1) { Swal.fire('Pilih Data', 'Centang data yang ingin dihapus.', 'info'); return; }
     Swal.fire({
-        title: 'Hapus Terpilih?', text: "Data yang dicentang akan dihapus permanen.",
+        title: `Hapus ${checkedIds.size} Aset?`, text: 'Data dihapus permanen.',
         icon: 'warning', showCancelButton: true,
         confirmButtonColor: '#012970', cancelButtonColor: '#6c757d',
         confirmButtonText: 'Ya, Hapus!'
-    }).then(r => { if (r.isConfirmed) $('.form-produk').attr('action', url).submit(); });
+    }).then(r => {
+        if (r.isConfirmed) buildMultiForm('{{ route("asetTetap.multiDelete") }}', '_self');
+    });
 }
-function exportAset(url) { $('.form-produk').attr('action', url).submit(); }
 
-$(document).ready(function () {
-    var csrf = document.querySelector('input[name="_token"]').value;
-    $(document).on('click', '.delete-button', function (e) {
+// ═══════════════════════════════════
+//  Init
+// ═══════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    syncCheckboxes();
+    bindDeleteButtons();
+    bindPaginationLinks();
+
+    document.getElementById('searchInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') { curQuery = e.target.value; loadTable(1); }
+    });
+
+    document.getElementById('filterButton').addEventListener('click', (e) => {
         e.preventDefault();
-        var id = $(this).data('item-id');
-        Swal.fire({
-            title: 'Hapus Item?', text: "Data ini tidak bisa dikembalikan.",
-            icon: 'warning', showCancelButton: true,
-            confirmButtonColor: '#012970', cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Ya, Hapus'
-        }).then(r => {
-            if (r.isConfirmed) {
-                $.ajax({
-                    url: '/asetTetap/' + id, type: 'DELETE', data: { _token: csrf },
-                    success: function () {
-                        Swal.fire({ icon:'success', title:'Terhapus', showConfirmButton:false, timer:1000 })
-                            .then(() => location.reload());
-                    },
-                    error: function () { Swal.fire('Error', 'Gagal menghapus data.', 'error'); }
-                });
-            }
-        });
+        $('#filterFields').slideToggle();
     });
-    $('#select_all').change(function () { $('input[name="id_aset[]"]').prop('checked', this.checked); });
-    $('input[name="id_aset[]"]').change(function () {
-        $('#select_all').prop('checked',
-            $('input[name="id_aset[]"]').length === $('input[name="id_aset[]"]:checked').length);
+
+    document.getElementById('applyFilter').addEventListener('click', () => {
+        curJenis     = document.getElementById('filterJenis').value;
+        curKondisi   = document.getElementById('filterKondisi').value;
+        curStatusBmn = document.getElementById('filterStatusBmn').value;
+        loadTable(1);
     });
-    $('#filterButton').click(function (e) { e.preventDefault(); $('#filterFields').slideToggle(); });
+
+    document.getElementById('resetFilter').addEventListener('click', () => {
+        document.getElementById('filterJenis').value     = '';
+        document.getElementById('filterKondisi').value   = '';
+        document.getElementById('filterStatusBmn').value = '';
+        curJenis = ''; curKondisi = ''; curStatusBmn = '';
+        loadTable(1);
+    });
 });
 </script>
 @endsection
