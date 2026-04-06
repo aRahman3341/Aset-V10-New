@@ -2,14 +2,12 @@
 
 namespace App\Exports;
 
-use App\Models\Materials;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -37,88 +35,67 @@ class AsetExport implements
 
     public function collection()
     {
-        $categories = DB::table('categories')->pluck('name', 'id');
-        $employees  = DB::table('employees')->pluck('name', 'id');
-        $locations  = DB::table('locations')->get()->keyBy('id');
-
-        $query = Materials::query();
+        // Gunakan DB::table karena nama kolom DB menggunakan spasi
+        $query = DB::table('materials');
         if (!empty($this->ids)) {
             $query->whereIn('id', $this->ids);
         }
-        $data = $query->get();
+        $data = $query->orderBy('id', 'asc')->get();
 
-        return $data->map(function ($row, $index) use ($categories, $employees, $locations) {
-            $loc = $locations->get($row->store_location);
+        return $data->map(function ($row, $index) {
+            // Helper tanggal
+            $tgl = function($val) {
+                if (!$val) return '-';
+                try { return Carbon::parse($val)->format('d/m/Y'); }
+                catch (\Exception $e) { return '-'; }
+            };
+
+            // Ambil kolom DB spasi
+            $kode            = $row->{'Kode Barang'}             ?? '-';
+            $nama            = $row->{'Nama Barang'}             ?? '-';
+            $jenisBmn        = $row->{'Jenis BMN'}               ?? '-';
+            $statusBmn       = $row->{'Status BMN'}              ?? '-';
+            $nilaiPertama    = $row->{'Nilai Perolehan Pertama'} ?? 0;
+            $nilaiPerolehan  = $row->{'Nilai Perolehan'}         ?? 0;
+            $nilaiPenyusutan = $row->{'Nilai Penyusutan'}        ?? 0;
+            $nilaiBuku       = $row->{'Nilai Buku'}              ?? 0;
+            $tglPerolehan    = $row->{'Tanggal Perolehan'}       ?? null;
+            $tglBukuPertama  = $row->{'Tanggal Buku Pertama'}    ?? null;
+            $noPsp           = $row->{'No PSP'}                  ?? '-';
+            $tglPsp          = $row->{'Tanggal PSP'}             ?? null;
+            $jumlahFoto      = $row->{'Jumlah Foto'}             ?? 0;
 
             return [
-                // ── Identitas ──────────────────────────────────────
-                $index + 1,
-                $row->code                    ?? '-',
-                $row->nup                     ?? '-',
-                $row->name                    ?? '-',
-                $row->name_fix                ?? '-',
-                $row->no_seri                 ?? '-',
+                $index + 1,                     // No
 
-                // ── Klasifikasi ────────────────────────────────────
-                $row->jenis_bmn               ?? '-',
-                $categories[$row->category]   ?? '-',
-                $row->type                    ?? '-',
-                $row->condition               ?? '-',
-                $row->status                  ?? '-',
-                $row->status_bmn              ?? '-',
-                $row->intra_extra             ?? '-',
+                // ── Identitas ──
+                $kode,                          // Kode Barang
+                $row->nup          ?? '-',      // NUP
+                $nama,                          // Nama Barang
+                $row->merk         ?? '-',      // Merk
+                $row->tipe         ?? '-',      // Tipe
 
-                // ── Nilai ──────────────────────────────────────────
-                $row->years                   ?? '-',
-                $row->nilai_perolehan         ?? $row->nilai ?? 0,
-                $row->nilai_penyusutan        ?? 0,
-                $row->nilai_buku              ?? 0,
+                // ── Klasifikasi ──
+                $jenisBmn,                      // Jenis BMN
+                $row->kondisi      ?? 'Baik',   // Kondisi
+                $statusBmn,                     // Status BMN
 
-                // ── Tanggal ────────────────────────────────────────
-                $row->tanggal_perolehan    ? Carbon::parse($row->tanggal_perolehan)->format('d/m/Y')    : '-',
-                $row->tanggal_buku_pertama ? Carbon::parse($row->tanggal_buku_pertama)->format('d/m/Y') : '-',
-                $row->tanggal_pengapusan   ? Carbon::parse($row->tanggal_pengapusan)->format('d/m/Y')   : '-',
+                // ── Nilai ──
+                $nilaiPertama,                  // Nilai Perolehan Pertama
+                $nilaiPerolehan,                // Nilai Perolehan
+                $nilaiPenyusutan,               // Nilai Penyusutan
+                $nilaiBuku,                     // Nilai Buku
 
-                // ── Fisik ──────────────────────────────────────────
-                $row->quantity                ?? 1,
-                $row->satuan                  ?? '-',
-                $row->umur_aset               ?? $row->life_time ?? '-',
-                $row->specification           ?? '-',
+                // ── Tanggal ──
+                $tgl($tglPerolehan),            // Tgl Perolehan
+                $tgl($tglBukuPertama),          // Tgl Buku Pertama
 
-                // ── Lokasi Fisik ───────────────────────────────────
-                $loc->office                  ?? '-',
-                $loc->floor                   ?? '-',
-                $loc->room                    ?? '-',
+                // ── Dokumen PSP ──
+                $noPsp,                         // No PSP
+                $tgl($tglPsp),                  // Tgl PSP
 
-                // ── Lokasi BMN ─────────────────────────────────────
-                $row->kode_satker             ?? '-',
-                $row->nama_satker             ?? '-',
-                $row->kode_register           ?? '-',
-                $row->nama_kl                 ?? '-',
-                $row->nama_e1                 ?? '-',
-                $row->alamat                  ?? '-',
-                $row->kab_kota                ?? '-',
-                $row->provinsi                ?? '-',
-
-                // ── Dokumen BMN ────────────────────────────────────
-                $row->no_polisi               ?? '-',
-                $row->status_sertifikasi      ?? '-',
-                $row->no_psp                  ?? '-',
-                $row->tanggal_psp          ? Carbon::parse($row->tanggal_psp)->format('d/m/Y') : '-',
-                $row->status_penggunaan       ?? '-',
-                $row->no_stnk                 ?? '-',
-                $row->nama_pengguna           ?? '-',
-
-                // ── Kalibrasi ──────────────────────────────────────
-                $row->dikalibrasi == 1 ? 'Perlu' : 'Tidak',
-                $row->last_kalibrasi     ? Carbon::parse($row->last_kalibrasi)->format('d/m/Y')     : '-',
-                $row->schadule_kalibrasi ? Carbon::parse($row->schadule_kalibrasi)->format('d/m/Y') : '-',
-                $row->kalibrasi_by            ?? '-',
-
-                // ── Penanggung Jawab & Keterangan ──────────────────
-                $employees[$row->supervisor]  ?? $row->supervisor ?? '-',
-                $row->description             ?? '-',
-                $row->documentation           ?? '-',
+                // ── Foto ──
+                $jumlahFoto,                    // Jumlah Foto
             ];
         });
     }
@@ -126,84 +103,72 @@ class AsetExport implements
     public function headings(): array
     {
         return [
-            // Row 1: Grup header (akan di-merge di styles())
+            // Baris 1: Grup header
             [
                 'No',
-                'IDENTITAS BARANG', '', '', '', '',
-                'KLASIFIKASI', '', '', '', '', '', '',
-                'NILAI & WAKTU', '', '', '', '', '', '',
-                'FISIK', '', '', '',
-                'LOKASI FISIK', '', '',
-                'LOKASI BMN / SATKER', '', '', '', '', '', '', '',
-                'DOKUMEN BMN', '', '', '', '', '', '',
-                'KALIBRASI', '', '', '',
-                'KETERANGAN', '', '',
+                'IDENTITAS', '', '', '', '',
+                'KLASIFIKASI BMN', '', '',
+                'NILAI', '', '', '',
+                'TANGGAL', '',
+                'DOKUMEN PSP', '',
+                'FOTO',
             ],
-            // Row 2: Header kolom detail
+            // Baris 2: Header kolom detail
             [
                 'No',
-                'Kode Barang', 'NUP', 'Nama Barang', 'Nama Fix / Merk', 'No Seri',
-                'Jenis BMN', 'Kategori', 'Tipe Aset', 'Kondisi', 'Status', 'Status BMN', 'Intra/Extra',
-                'Tahun', 'Nilai Perolehan (Rp)', 'Nilai Penyusutan (Rp)', 'Nilai Buku (Rp)',
-                'Tgl Perolehan', 'Tgl Buku Pertama', 'Tgl Pengapusan',
-                'Qty', 'Satuan', 'Umur (Thn)', 'Spesifikasi',
-                'Gedung', 'Lantai', 'Ruangan',
-                'Kode Satker', 'Nama Satker', 'Kode Register', 'Nama K/L', 'Nama Unit (E1)',
-                'Alamat', 'Kab/Kota', 'Provinsi',
-                'No Polisi', 'Status Sertifikasi', 'No PSP', 'Tgl PSP',
-                'Status Penggunaan', 'No STNK', 'Nama Pengguna',
-                'Perlu Kalibrasi', 'Kalibrasi Terakhir', 'Jadwal Kalibrasi', 'Dikalibrasi Oleh',
-                'Penanggung Jawab', 'Deskripsi / Keterangan', 'Dokumentasi',
+                'Kode Barang',
+                'NUP',
+                'Nama Barang',
+                'Merk',
+                'Tipe',
+                'Jenis BMN',
+                'Kondisi',
+                'Status BMN',
+                'Nilai Perolehan Pertama (Rp)',
+                'Nilai Perolehan (Rp)',
+                'Nilai Penyusutan (Rp)',
+                'Nilai Buku (Rp)',
+                'Tgl Perolehan',
+                'Tgl Buku Pertama',
+                'No PSP',
+                'Tgl PSP',
+                'Jumlah Foto',
             ],
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        $lastCol  = 'AW'; // kolom terakhir (49 kolom)
-        $lastRow  = $sheet->getHighestRow();
+        $lastRow = $sheet->getHighestRow();
+        $lastCol = 'R'; // 18 kolom (A–R)
 
-        // ── Merge baris 1 (grup header) ──────────────────────────────
+        // ── Merge baris 1 (grup header) ──
         $merges = [
             'A1:A2',   // No
             'B1:G1',   // IDENTITAS
-            'H1:N1',   // KLASIFIKASI
-            'O1:U1',   // NILAI & WAKTU
-            'V1:Y1',   // FISIK
-            'Z1:AB1',  // LOKASI FISIK
-            'AC1:AJ1', // LOKASI BMN
-            'AK1:AQ1', // DOKUMEN BMN
-            'AR1:AU1', // KALIBRASI
-            'AV1:AX1', // KETERANGAN
+            'H1:J1',   // KLASIFIKASI BMN
+            'K1:N1',   // NILAI
+            'O1:P1',   // TANGGAL
+            'Q1:R1',   // DOKUMEN PSP
+            'S1:S2',   // FOTO  ← tambah jika perlu
         ];
+        // Cek dulu sebelum merge agar tidak error
         foreach ($merges as $merge) {
-            $sheet->mergeCells($merge);
+            try { $sheet->mergeCells($merge); } catch (\Exception $e) {}
         }
 
-        // ── Warna grup header baris 1 ────────────────────────────────
+        // ── Warna grup header baris 1 ──
         $groupColors = [
             'B1:G1'  => '1F4E79',  // biru tua  – Identitas
-            'H1:N1'  => '375623',  // hijau tua – Klasifikasi
-            'O1:U1'  => '7B2C2C',  // merah tua – Nilai
-            'V1:Y1'  => '4A3070',  // ungu      – Fisik
-            'Z1:AB1' => '1F4E79',  // biru      – Lokasi Fisik
-            'AC1:AJ1'=> '1C5C3A',  // hijau     – Lokasi BMN
-            'AK1:AQ1'=> '7B3B00',  // coklat    – Dokumen BMN
-            'AR1:AU1'=> '005050',  // teal      – Kalibrasi
-            'AV1:AX1'=> '404040',  // abu       – Keterangan
+            'H1:J1'  => '375623',  // hijau tua – Klasifikasi
+            'K1:N1'  => '7B2C2C',  // merah tua – Nilai
+            'O1:P1'  => '4A3070',  // ungu      – Tanggal
+            'Q1:R1'  => '7B3B00',  // coklat    – PSP
         ];
         foreach ($groupColors as $range => $color) {
             $sheet->getStyle($range)->applyFromArray([
-                'fill' => [
-                    'fillType'   => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => $color],
-                ],
-                'font' => [
-                    'bold'  => true,
-                    'color' => ['rgb' => 'FFFFFF'],
-                    'size'  => 10,
-                    'name'  => 'Arial',
-                ],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $color]],
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 10, 'name' => 'Arial'],
                 'alignment' => [
                     'horizontal' => Alignment::HORIZONTAL_CENTER,
                     'vertical'   => Alignment::VERTICAL_CENTER,
@@ -212,87 +177,65 @@ class AsetExport implements
             ]);
         }
 
-        // ── Style kolom No (A1:A2) ───────────────────────────────────
+        // ── Kolom No (A1:A2) ──
         $sheet->getStyle('A1:A2')->applyFromArray([
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '012970']],
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 10, 'name' => 'Arial'],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
 
-        // ── Header baris 2 ────────────────────────────────────────────
-        $sheet->getStyle('A2:AX2')->applyFromArray([
-            'fill' => [
-                'fillType'   => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => 'D9E1F2'],
-            ],
-            'font' => [
-                'bold' => true,
-                'size' => 9,
-                'name' => 'Arial',
-                'color' => ['rgb' => '012970'],
-            ],
+        // ── Header baris 2 ──
+        $sheet->getStyle("A2:{$lastCol}2")->applyFromArray([
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9E1F2']],
+            'font' => ['bold' => true, 'size' => 9, 'name' => 'Arial', 'color' => ['rgb' => '012970']],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
                 'vertical'   => Alignment::VERTICAL_CENTER,
                 'wrapText'   => true,
             ],
             'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                    'color'       => ['rgb' => 'B8CCE4'],
-                ],
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'B8CCE4']],
             ],
         ]);
 
-        // ── Baris data ────────────────────────────────────────────────
+        // ── Baris data ──
         if ($lastRow >= 3) {
-            $sheet->getStyle("A3:AX{$lastRow}")->applyFromArray([
-                'font' => ['size' => 9, 'name' => 'Arial'],
-                'alignment' => [
-                    'vertical'  => Alignment::VERTICAL_CENTER,
-                    'wrapText'  => false,
-                ],
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color'       => ['rgb' => 'D9D9D9'],
-                    ],
+            $sheet->getStyle("A3:{$lastCol}{$lastRow}")->applyFromArray([
+                'font'      => ['size' => 9, 'name' => 'Arial'],
+                'alignment' => ['vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => false],
+                'borders'   => [
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'D9D9D9']],
                 ],
             ]);
 
-            // Kolom No: center
+            // No: center
             $sheet->getStyle("A3:A{$lastRow}")->getAlignment()
                   ->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-            // Kolom nilai (O, P, Q): format angka ribuan
-            foreach (['O', 'P', 'Q'] as $col) {
+            // Kolom nilai (J, K, L, M) — format angka
+            foreach (['J', 'K', 'L', 'M'] as $col) {
                 $sheet->getStyle("{$col}3:{$col}{$lastRow}")
-                      ->getNumberFormat()
-                      ->setFormatCode('#,##0');
+                      ->getNumberFormat()->setFormatCode('#,##0');
                 $sheet->getStyle("{$col}3:{$col}{$lastRow}")
-                      ->getAlignment()
-                      ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                      ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
             }
 
-            // Baris alternating (zebra striping)
+            // Zebra striping
             for ($r = 3; $r <= $lastRow; $r++) {
                 if ($r % 2 == 0) {
-                    $sheet->getStyle("A{$r}:AX{$r}")->applyFromArray([
-                        'fill' => [
-                            'fillType'   => Fill::FILL_SOLID,
-                            'startColor' => ['rgb' => 'F2F6FC'],
-                        ],
+                    $sheet->getStyle("A{$r}:{$lastCol}{$r}")->applyFromArray([
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F2F6FC']],
                     ]);
                 }
             }
         }
 
-        // ── Freeze panes (header tetap saat scroll) ───────────────────
+        // ── Freeze header ──
         $sheet->freezePane('B3');
 
-        // ── Tinggi baris header ───────────────────────────────────────
+        // ── Tinggi baris header ──
         $sheet->getRowDimension(1)->setRowHeight(28);
-        $sheet->getRowDimension(2)->setRowHeight(35);
+        $sheet->getRowDimension(2)->setRowHeight(40);
 
         return [];
     }
@@ -300,55 +243,24 @@ class AsetExport implements
     public function columnWidths(): array
     {
         return [
-            'A'  => 5,   // No
-            'B'  => 16,  // Kode Barang
-            'C'  => 7,   // NUP
-            'D'  => 30,  // Nama Barang
-            'E'  => 22,  // Nama Fix
-            'F'  => 15,  // No Seri
-            'G'  => 18,  // Jenis BMN
-            'H'  => 18,  // Kategori
-            'I'  => 10,  // Tipe
-            'J'  => 12,  // Kondisi
-            'K'  => 13,  // Status
-            'L'  => 13,  // Status BMN
-            'M'  => 12,  // Intra/Extra
-            'N'  => 7,   // Tahun
-            'O'  => 20,  // Nilai Perolehan
-            'P'  => 20,  // Nilai Penyusutan
-            'Q'  => 18,  // Nilai Buku
-            'R'  => 13,  // Tgl Perolehan
-            'S'  => 15,  // Tgl Buku Pertama
-            'T'  => 14,  // Tgl Pengapusan
-            'U'  => 6,   // Qty
-            'V'  => 10,  // Satuan
-            'W'  => 10,  // Umur
-            'X'  => 25,  // Spesifikasi
-            'Y'  => 18,  // Gedung
-            'Z'  => 10,  // Lantai
-            'AA' => 18,  // Ruangan
-            'AB' => 16,  // Kode Satker
-            'AC' => 28,  // Nama Satker
-            'AD' => 16,  // Kode Register
-            'AE' => 28,  // Nama K/L
-            'AF' => 28,  // Nama Unit
-            'AG' => 30,  // Alamat
-            'AH' => 18,  // Kab/Kota
-            'AI' => 16,  // Provinsi
-            'AJ' => 12,  // No Polisi
-            'AK' => 22,  // Status Sertifikasi
-            'AL' => 18,  // No PSP
-            'AM' => 13,  // Tgl PSP
-            'AN' => 30,  // Status Penggunaan
-            'AO' => 12,  // No STNK
-            'AP' => 20,  // Nama Pengguna
-            'AQ' => 12,  // Perlu Kalibrasi
-            'AR' => 15,  // Kalibrasi Terakhir
-            'AS' => 15,  // Jadwal Kalibrasi
-            'AT' => 18,  // Dikalibrasi Oleh
-            'AU' => 20,  // Penanggung Jawab
-            'AV' => 30,  // Deskripsi
-            'AW' => 20,  // Dokumentasi
+            'A' => 5,    // No
+            'B' => 16,   // Kode Barang
+            'C' => 7,    // NUP
+            'D' => 35,   // Nama Barang
+            'E' => 22,   // Merk
+            'F' => 15,   // Tipe
+            'G' => 22,   // Jenis BMN
+            'H' => 14,   // Kondisi
+            'I' => 13,   // Status BMN
+            'J' => 22,   // Nilai Perolehan Pertama
+            'K' => 20,   // Nilai Perolehan
+            'L' => 20,   // Nilai Penyusutan
+            'M' => 18,   // Nilai Buku
+            'N' => 14,   // Tgl Perolehan
+            'O' => 15,   // Tgl Buku Pertama
+            'P' => 22,   // No PSP
+            'Q' => 13,   // Tgl PSP
+            'R' => 10,   // Jumlah Foto
         ];
     }
 }

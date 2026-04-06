@@ -3,70 +3,52 @@
 namespace App\Http\Controllers;
 
 use App\Exports\AsetExport;
-use App\Models\Materials;
-use App\Models\locations;
-use App\Models\employee;
-use App\Models\Category;
-use App\Models\users;
 use Carbon\Carbon;
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf as Pdf;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\AsetImport;
 use Carbon\Exceptions\InvalidFormatException as ExceptionsInvalidFormatException;
 use Exception;
-use Illuminate\Contracts\View\View;
-use Maatwebsite\Excel\Concerns\FromView;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\Exception as ReaderException;
-use PhpOffice\PhpSpreadsheet\Reader\InvalidFormatException;
 
 class BarangController extends Controller
 {
+    // ===================== INDEX =====================
     public function index(Request $request)
     {
-        $query      = $request->input('query');
-        $jenisBmn   = $request->input('jenis_bmn');
-        $kondisi    = $request->input('kondisi');
-        $statusBmn  = $request->input('status_bmn');
+        $query     = $request->input('query');
+        $jenisBmn  = $request->input('jenis_bmn');
+        $kondisi   = $request->input('kondisi');
+        $statusBmn = $request->input('status_bmn');
 
-        $items = Materials::query()
+        $items = DB::table('materials')
             ->when($query, function ($q) use ($query) {
                 $q->where(function ($sub) use ($query) {
-                    $sub->where('code',       'LIKE', '%' . $query . '%')
-                        ->orWhere('nup',       'LIKE', '%' . $query . '%')
-                        ->orWhere('name',      'LIKE', '%' . $query . '%')
-                        ->orWhere('name_fix',  'LIKE', '%' . $query . '%')
-                        ->orWhere('jenis_bmn', 'LIKE', '%' . $query . '%')
-                        ->orWhere('kode_satker','LIKE', '%' . $query . '%')
-                        ->orWhere('nama_satker','LIKE', '%' . $query . '%');
+                    $sub->where('Kode Barang', 'LIKE', '%' . $query . '%')
+                        ->orWhere('Nama Barang', 'LIKE', '%' . $query . '%')
+                        ->orWhere('Jenis BMN',   'LIKE', '%' . $query . '%')
+                        ->orWhere('nup',         'LIKE', '%' . $query . '%')
+                        ->orWhere('merk',        'LIKE', '%' . $query . '%');
                 });
             })
             ->when($jenisBmn, function ($q) use ($jenisBmn) {
-                $q->where('jenis_bmn', $jenisBmn);
+                $q->where('Jenis BMN', $jenisBmn);
             })
             ->when($kondisi, function ($q) use ($kondisi) {
-                $q->where('condition', $kondisi);
+                $q->where('kondisi', $kondisi);
             })
             ->when($statusBmn, function ($q) use ($statusBmn) {
-                $q->where('status_bmn', $statusBmn);
+                $q->where('Status BMN', $statusBmn);
             })
-            ->orderBy('id', 'desc')
-            ->paginate(20)
-            ->withQueryString();
+            ->orderBy('id', 'asc')
+            ->paginate(20);
 
-        // Jika AJAX request (dari pagination)
         if ($request->ajax() || $request->has('ajax')) {
             return response()->json([
-                'table'      => view('asetTetap.table', compact('items'))->render(),
+                'table'      => view('asetTetap.table',      compact('items'))->render(),
                 'pagination' => view('asetTetap.pagenation', compact('items'))->render(),
             ]);
         }
@@ -74,257 +56,123 @@ class BarangController extends Controller
         return view('asetTetap.index', compact('items'));
     }
 
+    // ===================== CREATE =====================
     public function create()
     {
-        $locations     = DB::table('locations')->get();
-        $categories    = DB::table('categories')->get();
-        $employees     = DB::table('employees')->get();
-        $gedungOptions = DB::table('locations')->distinct('office')->pluck('office');
-        $lantaiOptions = DB::table('locations')->distinct('floor')->pluck('floor');
-
-        return view('asetTetap.create', [
-            'locations'     => $locations,
-            'employees'     => $employees,
-            'categories'    => $categories,
-            'gedungOptions' => $gedungOptions,
-            'lantaiOptions' => $lantaiOptions,
-        ]);
+        return view('asetTetap.create');
     }
 
+    // ===================== STORE =====================
+    // Mapping: nama input form (create.blade.php) → nama kolom DB (pakai spasi)
     public function store(Request $request)
     {
-        $office     = $request->input('gedung');
-        $floor      = $request->input('lantai');
-        $room       = $request->input('ruangan');
+        $request->validate([
+            'code'     => 'required',
+            'nup'      => 'required',
+            'name'     => 'required',
+            'jenis_bmn'=> 'required',
+        ], [
+            'code.required'      => 'Kode Barang wajib diisi',
+            'nup.required'       => 'NUP wajib diisi',
+            'name.required'      => 'Nama Barang wajib diisi',
+            'jenis_bmn.required' => 'Jenis BMN wajib dipilih',
+        ]);
 
-        $locationId = DB::table('locations')
-            ->where('office', $office)
-            ->where('floor', $floor)
-            ->where('room', $room)
-            ->value('id');
+        DB::table('materials')->insert([
+            // ── Identitas ──
+            'Kode Barang'              => $request->input('code'),
+            'nup'                      => $request->input('nup'),
+            'Nama Barang'              => $request->input('name'),
+            'merk'                     => $request->input('name_fix'),
+            'tipe'                     => $request->input('type'),
 
-        $material = new Materials();
+            // ── Klasifikasi BMN ──
+            'Jenis BMN'                => $request->input('jenis_bmn'),
+            'kondisi'                  => $request->input('condition', 'Baik'),
+            'Status BMN'               => $request->input('status_bmn', 'Aktif'),
 
-        // --- Identitas Utama ---
-        $material->code          = $request->input('kode_barang');
-        $material->nup           = $request->input('nup');
-        $material->name          = $request->input('nama_barang');
-        $material->name_fix      = $request->input('merk');
-        $material->no_seri       = $request->input('no_seri');
+            // ── Nilai & Waktu ──
+            'Nilai Perolehan Pertama'  => $request->input('nilai')             ?: null,
+            'Nilai Perolehan'          => $request->input('nilai_perolehan')   ?: null,
+            'Nilai Penyusutan'         => $request->input('nilai_penyusutan')  ?: null,
+            'Nilai Buku'               => $request->input('nilai_buku')        ?: null,
+            'Tanggal Perolehan'        => $request->input('tanggal_perolehan') ?: null,
+            'Tanggal Buku Pertama'     => $request->input('tanggal_buku_pertama') ?: null,
 
-        // --- Klasifikasi ---
-        $material->category      = $request->input('category');
-        $material->condition     = $request->input('kondisi');
-        $material->status        = $request->input('status', 'Tidak Dipakai');
-        $material->type          = $request->input('type', 'Tetap');
-        $material->jenis_bmn     = $request->input('jenis_bmn');
-        $material->intra_extra   = $request->input('intra_extra');
-        $material->status_bmn    = $request->input('status_bmn');
+            // ── Dokumen PSP ──
+            'No PSP'                   => $request->input('no_psp'),
+            'Tanggal PSP'              => $request->input('tanggal_psp') ?: null,
 
-        // --- Nilai & Waktu ---
-        $material->nilai                   = $request->input('nilai');
-        $material->nilai_perolehan         = $request->input('nilai');
-        $material->nilai_penyusutan        = $request->input('nilai_penyusutan');
-        $material->nilai_buku              = $request->input('nilai_buku');
-        $material->years                   = $request->input('tahun');
-        $material->bulan                   = $request->input('bulan') ?? date('n');
-        $material->tanggal_perolehan       = $request->input('tanggal_perolehan');
-        $material->tanggal_buku_pertama    = $request->input('tanggal_buku_pertama');
-        $material->tanggal_pengapusan      = $request->input('tanggal_pengapusan');
+            'created_at'               => now(),
+            'updated_at'               => now(),
+        ]);
 
-        // --- Fisik ---
-        $material->satuan        = $request->input('satuan');
-        $material->umur_aset     = $request->input('lifetime');
-        $material->life_time     = $request->input('lifetime');
-        $material->specification = $request->input('spek');
-
-        // --- Lokasi Fisik ---
-        $material->store_location = $locationId;
-
-        // --- Lokasi / Data BMN ---
-        $material->kode_satker       = $request->input('kode_satker');
-        $material->nama_satker       = $request->input('nama_satker');
-        $material->kode_register     = $request->input('kode_register');
-        $material->nama_kl           = $request->input('nama_kl');
-        $material->nama_e1           = $request->input('nama_e1');
-        $material->alamat            = $request->input('alamat');
-        $material->kab_kota          = $request->input('kab_kota');
-        $material->provinsi          = $request->input('provinsi');
-
-        // --- Dokumen BMN ---
-        $material->status_sertifikasi = $request->input('status_sertifikasi');
-        $material->no_psp             = $request->input('no_psp');
-        $material->tanggal_psp        = $request->input('tanggal_psp');
-        $material->status_penggunaan  = $request->input('status_penggunaan');
-        $material->no_polisi          = $request->input('no_polisi');
-        $material->no_stnk            = $request->input('no_stnk');
-        $material->nama_pengguna      = $request->input('nama_pengguna');
-
-        // --- Kalibrasi ---
-        $material->dikalibrasi        = $request->input('calibrate') === '1' ? 1 : 0;
-        $material->kalibrasi_by       = $request->input('kalibrasi_by');
-        $material->last_kalibrasi     = $request->input('last_kalibrasi');
-        $material->schadule_kalibrasi = $request->input('schedule_kalibrasi');
-
-        // --- Penanggung Jawab & Keterangan ---
-        $material->supervisor  = $request->input('supervisor');
-        $material->description = $request->input('keterangan');
-
-        // --- Dokumentasi ---
-        if ($request->hasFile('dokumentasi')) {
-            $image       = $request->file('dokumentasi');
-            $filename    = $image->getClientOriginalName();
-            $destination = public_path('uploads');
-            $image->move($destination, $filename);
-            $material->documentation = $filename;
-        }
-
-        $material->save();
-
-        return redirect('/asetTetap')->with('success', 'Data aset berhasil disimpan.');
+        return redirect()->route('asetTetap.index')->with('success', 'Data aset berhasil disimpan.');
     }
 
+    // ===================== EDIT =====================
     public function edit($id)
     {
-        $item          = Materials::find($id);
-        $employees     = DB::table('employees')->get();
-        $locations     = DB::table('locations')->get();
-        $categories    = DB::table('categories')->get();
-        $prevLocation  = DB::table('locations')->where('id', $item->store_location)->first();
-        $gedungOptions = DB::table('locations')->distinct('office')->pluck('office');
-        $lantaiOptions = DB::table('locations')->distinct('floor')->pluck('floor');
-
-        return view('asetTetap.edit', [
-            'item'          => $item,
-            'locations'     => $locations,
-            'employees'     => $employees,
-            'gedungOptions' => $gedungOptions,
-            'lantaiOptions' => $lantaiOptions,
-            'prevLocation'  => $prevLocation,
-            'categories'    => $categories,
-        ]);
+        $item = DB::table('materials')->where('id', $id)->first();
+        return view('asetTetap.edit', compact('item'));
     }
 
+    // ===================== UPDATE =====================
     public function update(Request $request, $id)
     {
-        $office = $request->input('gedung');
-        $floor  = $request->input('lantai');
-        $room   = $request->input('ruangan');
+        $request->validate([
+            'code'     => 'required',
+            'nup'      => 'required',
+            'name'     => 'required',
+            'jenis_bmn'=> 'required',
+        ]);
 
-        $locationId = DB::table('locations')
-            ->where('office', $office)
-            ->where('floor', $floor)
-            ->where('room', $room)
-            ->value('id');
+        DB::table('materials')->where('id', $id)->update([
+            // ── Identitas ──
+            'Kode Barang'              => $request->input('code'),
+            'nup'                      => $request->input('nup'),
+            'Nama Barang'              => $request->input('name'),
+            'merk'                     => $request->input('name_fix'),
+            'tipe'                     => $request->input('type'),
 
-        $material = Materials::findOrFail($id);
+            // ── Klasifikasi BMN ──
+            'Jenis BMN'                => $request->input('jenis_bmn'),
+            'kondisi'                  => $request->input('condition', 'Baik'),
+            'Status BMN'               => $request->input('status_bmn', 'Aktif'),
 
-        // --- Identitas Utama ---
-        $material->code     = $request->input('code');
-        $material->nup      = $request->input('nup');
-        $material->name     = $request->input('name');
-        $material->name_fix = $request->input('name_fix');
-        $material->no_seri  = $request->input('no_seri');
+            // ── Nilai & Waktu ──
+            'Nilai Perolehan Pertama'  => $request->input('nilai')             ?: null,
+            'Nilai Perolehan'          => $request->input('nilai_perolehan')   ?: null,
+            'Nilai Penyusutan'         => $request->input('nilai_penyusutan')  ?: null,
+            'Nilai Buku'               => $request->input('nilai_buku')        ?: null,
+            'Tanggal Perolehan'        => $request->input('tanggal_perolehan') ?: null,
+            'Tanggal Buku Pertama'     => $request->input('tanggal_buku_pertama') ?: null,
 
-        // --- Klasifikasi ---
-        $material->category    = $request->input('category');
-        $material->condition   = $request->input('condition');
-        $material->status      = $request->input('status');
-        $material->type        = $request->input('type');
-        $material->jenis_bmn   = $request->input('jenis_bmn');
-        $material->intra_extra = $request->input('intra_extra');
-        $material->status_bmn  = $request->input('status_bmn');
+            // ── Dokumen PSP ──
+            'No PSP'                   => $request->input('no_psp'),
+            'Tanggal PSP'              => $request->input('tanggal_psp') ?: null,
 
-        // --- Nilai & Waktu ---
-        $material->nilai                = $request->input('nilai');
-        $material->nilai_perolehan      = $request->input('nilai');
-        $material->nilai_penyusutan     = $request->input('nilai_penyusutan');
-        $material->nilai_buku           = $request->input('nilai_buku');
-        $material->years                = $request->input('years');
-        $material->satuan               = $request->input('satuan');
-        $material->store_location       = $locationId;
-        $material->tanggal_perolehan    = $request->input('tanggal_perolehan');
-        $material->tanggal_buku_pertama = $request->input('tanggal_buku_pertama');
-        $material->tanggal_pengapusan   = $request->input('tanggal_pengapusan');
+            'updated_at'               => now(),
+        ]);
 
-        // --- Fisik ---
-        $material->umur_aset     = $request->input('umur_aset');
-        $material->life_time     = $request->input('life_time');
-        $material->quantity      = $request->input('quantity');
-        $material->specification = $request->input('specification');
-        $material->description   = $request->input('description');
-
-        // --- Lokasi BMN ---
-        $material->kode_satker   = $request->input('kode_satker');
-        $material->nama_satker   = $request->input('nama_satker');
-        $material->kode_register = $request->input('kode_register');
-        $material->nama_kl       = $request->input('nama_kl');
-        $material->nama_e1       = $request->input('nama_e1');
-        $material->alamat        = $request->input('alamat');
-        $material->kab_kota      = $request->input('kab_kota');
-        $material->provinsi      = $request->input('provinsi');
-
-        // --- Dokumen BMN ---
-        $material->status_sertifikasi = $request->input('status_sertifikasi');
-        $material->no_psp             = $request->input('no_psp');
-        $material->tanggal_psp        = $request->input('tanggal_psp');
-        $material->status_penggunaan  = $request->input('status_penggunaan');
-        $material->no_polisi          = $request->input('no_polisi');
-        $material->no_stnk            = $request->input('no_stnk');
-        $material->nama_pengguna      = $request->input('nama_pengguna');
-
-        // --- Kalibrasi ---
-        $material->dikalibrasi        = $request->has('dikalibrasi') ? 1 : 0;
-        $material->kalibrasi_by       = $request->input('kalibrasi_by');
-        $material->last_kalibrasi     = $request->input('last_kalibrasi');
-        $material->schadule_kalibrasi = $request->input('schadule_kalibrasi');
-
-        // --- Dokumentasi ---
-        if ($request->hasFile('documentation')) {
-            $image       = $request->file('documentation');
-            $filename    = time() . '_' . $image->getClientOriginalName();
-            $destination = public_path('uploads');
-            $image->move($destination, $filename);
-            $material->documentation = $filename;
-        }
-
-        $material->save();
-
-        return redirect('/asetTetap')->with('success', 'Data aset berhasil diperbarui.');
+        return redirect()->route('asetTetap.index')->with('success', 'Data aset berhasil diperbarui.');
     }
 
+    // ===================== DESTROY =====================
     public function destroy($id)
     {
-        $material = Materials::findOrFail($id);
-        $filename = $material->documentation;
-
-        if (!empty($filename)) {
-            $destination = public_path('uploads/' . $filename);
-            if (file_exists($destination)) {
-                unlink($destination);
-            }
-        }
-
-        $material->delete();
-        return response()->json(['message' => 'Data deleted successfully']);
+        DB::table('materials')->where('id', $id)->delete();
+        return redirect()->route('asetTetap.index')->with('success', 'Data berhasil dihapus.');
     }
 
+    // ===================== MULTI DELETE =====================
     public function multiDelete(Request $request)
     {
-        foreach ($request->id_aset as $id) {
-            $material = Materials::findOrFail($id);
-            $filename = $material->documentation;
-
-            if (!empty($filename)) {
-                $destination = public_path('uploads/' . $filename);
-                if (file_exists($destination)) {
-                    unlink($destination);
-                }
-            }
-            $material->delete();
+        $ids = $request->input('id_aset', []);
+        if (!empty($ids)) {
+            DB::table('materials')->whereIn('id', $ids)->delete();
         }
-
-        return redirect()->route('asetTetap.index')->with('success', 'Data deleted successfully');
+        return redirect()->route('asetTetap.index')->with('success', count($ids) . ' data berhasil dihapus');
     }
 
     // ===================== EXPORT =====================
@@ -332,70 +180,28 @@ class BarangController extends Controller
     {
         $selectedAsets = $request->input('id_aset', []);
         $fileName      = 'export_aset_' . date('Y-m-d') . '.xlsx';
-
         return Excel::download(new AsetExport($selectedAsets), $fileName);
     }
 
-    // ===================== CHECK NUP =====================
-    public function checkNupExists(Request $request)
-    {
-        $nup    = $request->input('nup');
-        $code   = $request->input('code');
-        $oldNup = $request->input('old_nup');
-
-        if ($oldNup) {
-            $exists = ($nup !== $oldNup)
-                ? Materials::where('nup', $nup)->where('code', $code)->exists()
-                : false;
-        } else {
-            $exists = Materials::where('nup', $nup)->where('code', $code)->exists();
-        }
-
-        return $exists
-            ? response()->json(['message' => 'NUP with code ' . $code . ' already exists'], 400)
-            : response()->json(['message' => 'NUP is valid'], 200);
-    }
-
-    // ===================== CHECK NO SERI =====================
-    public function checkNoSeriExists(Request $request)
-    {
-        $noSeri    = $request->input('no_seri');
-        $oldNoSeri = $request->input('old_no_seri');
-
-        if ($oldNoSeri) {
-            $exists = Materials::where('no_seri', $noSeri)->where('no_seri', '!=', $oldNoSeri)->exists();
-        } else {
-            $exists = Materials::where('no_seri', $noSeri)->exists();
-        }
-
-        return $exists
-            ? response()->json(['message' => 'No Seri already exists'], 400)
-            : response()->json(['message' => 'No Seri valid'], 200);
-    }
-
     // ===================== SEARCH =====================
-    // Digabung ke index() via AJAX, method ini tetap ada untuk kompatibilitas route POST /search
     public function search(Request $request)
     {
         $query = $request->input('query');
 
-        $items = Materials::where(function ($q) use ($query) {
-                $q->where('code',        'LIKE', '%' . $query . '%')
-                  ->orWhere('nup',        'LIKE', '%' . $query . '%')
-                  ->orWhere('name',       'LIKE', '%' . $query . '%')
-                  ->orWhere('name_fix',   'LIKE', '%' . $query . '%')
-                  ->orWhere('years',      'LIKE', '%' . $query . '%')
-                  ->orWhere('jenis_bmn',  'LIKE', '%' . $query . '%')
-                  ->orWhere('kode_satker','LIKE', '%' . $query . '%')
-                  ->orWhere('nama_satker','LIKE', '%' . $query . '%');
+        $items = DB::table('materials')
+            ->where(function ($q) use ($query) {
+                $q->where('Kode Barang', 'LIKE', '%' . $query . '%')
+                  ->orWhere('Nama Barang', 'LIKE', '%' . $query . '%')
+                  ->orWhere('Jenis BMN',   'LIKE', '%' . $query . '%')
+                  ->orWhere('nup',         'LIKE', '%' . $query . '%')
+                  ->orWhere('merk',        'LIKE', '%' . $query . '%');
             })
-            ->orderBy('id', 'desc')
-            ->paginate(20)
-            ->withQueryString();
+            ->orderBy('id', 'asc')
+            ->paginate(20);
 
         if ($request->ajax() || $request->has('ajax')) {
             return response()->json([
-                'table'      => view('asetTetap.table', compact('items'))->render(),
+                'table'      => view('asetTetap.table',      compact('items'))->render(),
                 'pagination' => view('asetTetap.pagenation', compact('items'))->render(),
             ]);
         }
@@ -406,75 +212,58 @@ class BarangController extends Controller
     // ===================== FILTER =====================
     public function filter(Request $request)
     {
-        $query = Materials::query();
-
-        $type = $request->input('type');
-        if ($type && $type !== 'all') {
-            $query->where('type', $type);
-        }
-
-        $category = $request->input('category');
-        if ($category && $category !== 'all') {
-            $query->where('category', $category);
-        }
+        $q = DB::table('materials');
 
         $jenisBmn = $request->input('jenis_bmn');
         if ($jenisBmn && $jenisBmn !== 'all') {
-            $query->where('jenis_bmn', $jenisBmn);
+            $q->where('Jenis BMN', $jenisBmn);
         }
 
         $kondisi = $request->input('kondisi');
         if ($kondisi && $kondisi !== 'all') {
-            $query->where('condition', $kondisi);
+            $q->where('kondisi', $kondisi);
         }
 
         $statusBmn = $request->input('status_bmn');
         if ($statusBmn && $statusBmn !== 'all') {
-            $query->where('status_bmn', $statusBmn);
+            $q->where('Status BMN', $statusBmn);
         }
 
         $yearsDari   = $request->input('tahun_dari');
         $yearsSampai = $request->input('tahun_sampai');
-        if ($yearsDari)   $query->where('years', '>=', $yearsDari);
-        if ($yearsSampai) $query->where('years', '<=', $yearsSampai);
+        if ($yearsDari)   $q->whereYear('Tanggal Perolehan', '>=', $yearsDari);
+        if ($yearsSampai) $q->whereYear('Tanggal Perolehan', '<=', $yearsSampai);
 
-        $office = $request->input('gedung');
-        $floor  = $request->input('lantai');
-        $room   = $request->input('ruangan');
-        if ($office || $floor || $room) {
-            $query->whereIn('store_location', function ($q) use ($office, $floor, $room) {
-                $q->select('id')->from('locations');
-                if ($office) $q->where('office', $office);
-                if ($floor)  $q->where('floor', $floor);
-                if ($room)   $q->where('room', $room);
-            });
-        }
-
-        $condition = $request->input('condition');
-        if ($condition && $condition !== 'all') {
-            $query->where('condition', $condition);
-        }
-
-        $supervisor = $request->input('supervisor');
-        if ($supervisor && $supervisor !== 'all') {
-            $query->where('supervisor', $supervisor);
-        }
-
-        $calibrated = $request->input('calibrate');
-        if ($calibrated !== null && $calibrated !== 'all') {
-            $query->where('dikalibrasi', $calibrated);
-        }
-
-        $items = $query->orderBy('id', 'desc')->paginate(20)->withQueryString();
+        $items = $q->orderBy('id', 'asc')->paginate(20);
 
         if ($request->ajax() || $request->has('ajax')) {
             return response()->json([
-                'table'      => view('asetTetap.table', compact('items'))->render(),
+                'table'      => view('asetTetap.table',      compact('items'))->render(),
                 'pagination' => view('asetTetap.pagenation', compact('items'))->render(),
             ]);
         }
 
         return view('asetTetap.index', compact('items'));
+    }
+
+    // ===================== CHECK NUP =====================
+    public function checkNupExists(Request $request)
+    {
+        $exists = DB::table('materials')
+            ->where('nup', $request->input('nup'))
+            ->where('Kode Barang', $request->input('code'))
+            ->exists();
+
+        return $exists
+            ? response()->json(['message' => 'NUP already exists'], 400)
+            : response()->json(['message' => 'NUP is valid'], 200);
+    }
+
+    // ===================== CHECK NO SERI =====================
+    public function checkNoSeriExists(Request $request)
+    {
+        // Kolom no_seri tidak ada di schema DB baru
+        return response()->json(['message' => 'No Seri valid'], 200);
     }
 
     // ===================== IMPORT =====================
@@ -485,19 +274,11 @@ class BarangController extends Controller
 
     public function importStore(Request $request)
     {
-        $request->validate([
-            'file' => 'required|mimes:xls,xlsx',
-        ]);
+        $request->validate(['file' => 'required|mimes:xls,xlsx']);
 
         try {
-            $file        = $request->file('file');
-            $spreadsheet = IOFactory::load($file);
-            $worksheet   = $spreadsheet->getActiveSheet();
-
-            Excel::import(new AsetImport, $file);
-
+            Excel::import(new AsetImport, $request->file('file'));
             return back()->withStatus('Import Berhasil');
-
         } catch (ValidationException $e) {
             return back()->withErrors($e->validator->errors());
         } catch (ReaderException $e) {
@@ -505,7 +286,7 @@ class BarangController extends Controller
         } catch (ExceptionsInvalidFormatException $e) {
             return back()->withErrors(['file' => 'Invalid file format.']);
         } catch (Exception $e) {
-            return back()->withErrors(['file' => 'There was a problem processing the Excel file: ' . $e->getMessage()]);
+            return back()->withErrors(['file' => 'Error: ' . $e->getMessage()]);
         }
     }
 }

@@ -76,75 +76,53 @@
                     @csrf
 
                     <div class="ak-divider">Informasi Dokumen</div>
-
                     <div class="row g-3">
                         <div class="col-md-6">
                             <div class="ak-field">
                                 <label class="ak-label">Nomor Dokumen <span class="req">*</span></label>
-                                <input type="text" name="nomor" class="ak-input"
-                                       placeholder="Contoh: 01/BA/SATKER/CB36/2025"
-                                       value="{{ old('nomor') }}" required>
+                                <input type="text" name="nomor" class="ak-input" placeholder="Contoh: 01/BA/SATKER/CB36/2025" value="{{ old('nomor') }}" required>
                                 @error('nomor') <span class="ak-field-error">{{ $message }}</span> @enderror
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="ak-field">
                                 <label class="ak-label">Diserahkan Kepada <span class="req">*</span></label>
-                                <input type="text" name="kepada" class="ak-input"
-                                       placeholder="Nama penerima"
-                                       value="{{ old('kepada') }}" required>
+                                <input type="text" name="kepada" class="ak-input" placeholder="Nama penerima" value="{{ old('kepada') }}" required>
                                 @error('kepada') <span class="ak-field-error">{{ $message }}</span> @enderror
                             </div>
                         </div>
                     </div>
 
                     <div class="ak-divider">Pihak yang Terlibat</div>
-
                     <div class="row g-3">
                         <div class="col-md-6">
                             <div class="ak-field">
                                 <label class="ak-label">Nama Pihak Kesatu <span class="req">*</span></label>
-                                <input type="text" name="pihakSatu" class="ak-input"
-                                       placeholder="Nama pihak kesatu"
-                                       value="{{ old('pihakSatu') }}" required>
+                                <input type="text" name="pihakSatu" class="ak-input" placeholder="Nama pihak kesatu" value="{{ old('pihakSatu') }}" required>
                                 @error('pihakSatu') <span class="ak-field-error">{{ $message }}</span> @enderror
                             </div>
                             <div class="ak-field">
                                 <label class="ak-label">NIP Pihak Kesatu</label>
-                                <input type="text" name="nipSatu" class="ak-input"
-                                       placeholder="NIP pihak kesatu"
-                                       value="{{ old('nipSatu') }}">
-                                @error('nipSatu') <span class="ak-field-error">{{ $message }}</span> @enderror
+                                <input type="text" name="nipSatu" class="ak-input" placeholder="NIP pihak kesatu" value="{{ old('nipSatu') }}">
                             </div>
                             <div class="ak-field">
                                 <label class="ak-label">Jabatan Pihak Kesatu</label>
-                                <input type="text" name="jabatanSatu" class="ak-input"
-                                       placeholder="Jabatan pihak kesatu"
-                                       value="{{ old('jabatanSatu') }}">
-                                @error('jabatanSatu') <span class="ak-field-error">{{ $message }}</span> @enderror
+                                <input type="text" name="jabatanSatu" class="ak-input" placeholder="Jabatan pihak kesatu" value="{{ old('jabatanSatu') }}">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="ak-field">
                                 <label class="ak-label">Nama Pihak Kedua <span class="req">*</span></label>
-                                <input type="text" name="pihakDua" class="ak-input"
-                                       placeholder="Nama pihak kedua"
-                                       value="{{ old('pihakDua') }}" required>
+                                <input type="text" name="pihakDua" class="ak-input" placeholder="Nama pihak kedua" value="{{ old('pihakDua') }}" required>
                                 @error('pihakDua') <span class="ak-field-error">{{ $message }}</span> @enderror
                             </div>
                             <div class="ak-field">
                                 <label class="ak-label">NIP Pihak Kedua</label>
-                                <input type="text" name="nipDua" class="ak-input"
-                                       placeholder="NIP pihak kedua"
-                                       value="{{ old('nipDua') }}">
-                                @error('nipDua') <span class="ak-field-error">{{ $message }}</span> @enderror
+                                <input type="text" name="nipDua" class="ak-input" placeholder="NIP pihak kedua" value="{{ old('nipDua') }}">
                             </div>
                             <div class="ak-field">
                                 <label class="ak-label">Jabatan Pihak Kedua</label>
-                                <input type="text" name="jabatanDua" class="ak-input"
-                                       placeholder="Jabatan pihak kedua"
-                                       value="{{ old('jabatanDua') }}">
-                                @error('jabatanDua') <span class="ak-field-error">{{ $message }}</span> @enderror
+                                <input type="text" name="jabatanDua" class="ak-input" placeholder="Jabatan pihak kedua" value="{{ old('jabatanDua') }}">
                             </div>
                         </div>
                     </div>
@@ -157,8 +135,10 @@
                             <select name="name[]" class="namebox" style="width:100%" required>
                                 <option value="">-- Pilih Aset --</option>
                                 @foreach ($items as $item)
-                                    @if ($item->status != "Diserahkan")
-                                        <option value="{{ $item->id }}">{{ $item->name }} — {{ $item->code }} (NUP: {{ $item->nup }})</option>
+                                    @if ($item->status != 'Diserahkan')
+                                        <option value="{{ $item->id }}">
+                                            {{ $item->{'Nama Barang'} ?? '-' }} — {{ $item->{'Kode Barang'} ?? '-' }} (NUP: {{ $item->nup }})
+                                        </option>
                                     @endif
                                 @endforeach
                             </select>
@@ -200,29 +180,29 @@ function initSelect2() {
 }
 initSelect2();
 
-const itemTemplate = `
-    <div class="aset-item">
-        <button type="button" class="aset-remove btn-remove-aset" title="Hapus"><i class="bi bi-x"></i></button>
-        <label class="ak-label">Aset</label>
-        <select name="name[]" class="namebox" style="width:100%">
-            <option value="">-- Pilih Aset --</option>
-            @foreach ($items as $item)
-                @if ($item->status != "Diserahkan")
-                    <option value="{{ $item->id }}">{{ $item->name }} — {{ $item->code }} (NUP: {{ $item->nup }})</option>
-                @endif
-            @endforeach
-        </select>
-    </div>`;
+const asetOptions = `
+    <option value="">-- Pilih Aset --</option>
+    @foreach ($items as $item)
+        @if ($item->status != 'Diserahkan')
+            <option value="{{ $item->id }}">{{ $item->{'Nama Barang'} ?? '-' }} — {{ $item->{'Kode Barang'} ?? '-' }} (NUP: {{ $item->nup }})</option>
+        @endif
+    @endforeach
+`;
 
 document.getElementById('btnAddAset').addEventListener('click', function () {
-    $('#aset-container').append(itemTemplate);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'aset-item';
+    wrapper.innerHTML = `
+        <button type="button" class="aset-remove btn-remove-aset" title="Hapus"><i class="bi bi-x"></i></button>
+        <label class="ak-label">Aset</label>
+        <select name="name[]" class="namebox" style="width:100%">${asetOptions}</select>
+    `;
+    document.getElementById('aset-container').appendChild(wrapper);
     initSelect2();
 });
 
 $(document).on('click', '.btn-remove-aset', function () {
-    if ($('.aset-item').length > 1) {
-        $(this).closest('.aset-item').remove();
-    }
+    if ($('.aset-item').length > 1) $(this).closest('.aset-item').remove();
 });
 </script>
 @endsection

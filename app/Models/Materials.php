@@ -14,57 +14,42 @@ class Materials extends Model
     protected $guarded = ['id'];
 
     protected $fillable = [
-        // ── Identitas Utama ──────────────────────────────────────────
         'code',
         'nup',
         'name',
         'name_fix',
         'no_seri',
-
-        // ── Klasifikasi ──────────────────────────────────────────────
         'category',
         'condition',
         'status',
         'type',
         'registered',
         'bulan',
-
-        // ── Kolom BMN Baru (dari daftar-aset-1) ─────────────────────
-        'jenis_bmn',          // Jenis BMN  (Alat Besar, dll)
-        'status_bmn',         // Status BMN (Aktif / Tidak Aktif)
-        'intra_extra',        // Intra / Extra
-        'henti_guna',         // Henti Guna
-        'status_sbsn',        // Status SBSN
-        'status_bmn_idle',    // Status BMN Idle
-        'status_kemitraan',   // Status Kemitraan
-
-        // ── Nilai ────────────────────────────────────────────────────
-        'nilai',                    // nilai perolehan (kolom lama, tetap dipakai)
-        'nilai_perolehan_pertama',  // Nilai Perolehan Pertama
-        'nilai_mutasi',             // Nilai Mutasi
-        'nilai_perolehan',          // Nilai Perolehan
-        'nilai_penyusutan',         // Nilai Penyusutan
-        'nilai_buku',               // Nilai Buku
-
-        // ── Waktu ────────────────────────────────────────────────────
+        'jenis_bmn',
+        'status_bmn',
+        'intra_extra',
+        'henti_guna',
+        'status_sbsn',
+        'status_bmn_idle',
+        'status_kemitraan',
+        'nilai',
+        'nilai_perolehan_pertama',
+        'nilai_mutasi',
+        'nilai_perolehan',
+        'nilai_penyusutan',
+        'nilai_buku',
         'years',
-        'tanggal_buku_pertama',   // Tanggal Buku Pertama
-        'tanggal_perolehan',      // Tanggal Perolehan
-        'tanggal_pengapusan',     // Tanggal Pengapusan
-        'life_time',              // Umur aset (date, kolom lama)
-
-        // ── Fisik ────────────────────────────────────────────────────
+        'tanggal_buku_pertama',
+        'tanggal_perolehan',
+        'tanggal_pengapusan',
+        'life_time',
         'quantity',
         'satuan',
-        'umur_aset',           // Umur Aset (integer tahun, kolom baru)
+        'umur_aset',
         'specification',
         'description',
         'documentation',
-
-        // ── Lokasi Fisik ─────────────────────────────────────────────
         'store_location',
-
-        // ── Lokasi / Data Satker (BMN) ───────────────────────────────
         'kode_satker',
         'nama_satker',
         'kode_register',
@@ -73,8 +58,6 @@ class Materials extends Model
         'alamat',
         'kab_kota',
         'provinsi',
-
-        // ── Dokumen BMN ──────────────────────────────────────────────
         'no_polisi',
         'status_sertifikasi',
         'no_psp',
@@ -82,47 +65,120 @@ class Materials extends Model
         'status_penggunaan',
         'no_stnk',
         'nama_pengguna',
-
-        // ── Kalibrasi ────────────────────────────────────────────────
         'dikalibrasi',
         'last_kalibrasi',
         'schadule_kalibrasi',
         'kalibrasi_by',
-
-        // ── Penanggung Jawab ─────────────────────────────────────────
         'supervisor',
     ];
 
-    // Cast kolom tanggal agar bisa dipanggil ->format() langsung
     protected $casts = [
-        'tanggal_perolehan'    => 'date',
-        'tanggal_buku_pertama' => 'date',
-        'tanggal_pengapusan'   => 'date',
-        'tanggal_psp'          => 'date',
-        'life_time'            => 'date',
-        'nilai'                => 'decimal:2',
-        'nilai_perolehan'      => 'decimal:2',
+        'tanggal_perolehan'       => 'date',
+        'tanggal_buku_pertama'    => 'date',
+        'tanggal_pengapusan'      => 'date',
+        'tanggal_psp'             => 'date',
+        'life_time'               => 'date',
+        'nilai'                   => 'decimal:2',
+        'nilai_perolehan'         => 'decimal:2',
         'nilai_perolehan_pertama' => 'decimal:2',
-        'nilai_mutasi'         => 'decimal:2',
-        'nilai_penyusutan'     => 'decimal:2',
-        'nilai_buku'           => 'decimal:2',
+        'nilai_mutasi'            => 'decimal:2',
+        'nilai_penyusutan'        => 'decimal:2',
+        'nilai_buku'              => 'decimal:2',
     ];
+
+    // =========================================================
+    // ACCESSOR — mapping kolom DB (spasi/kapital) ke snake_case
+    // Ini agar $material->nama_barang, ->kode_barang, dll bisa
+    // dipakai di seluruh aplikasi tanpa ubah file lain.
+    // =========================================================
+
+    public function getNamaBarangAttribute(): ?string
+    {
+        return $this->attributes['Nama Barang'] ?? $this->attributes['name'] ?? null;
+    }
+
+    public function getKodeBarangAttribute(): ?string
+    {
+        return $this->attributes['Kode Barang'] ?? $this->attributes['code'] ?? null;
+    }
+
+    public function getJenisBmnAttribute(): ?string
+    {
+        return $this->attributes['Jenis BMN'] ?? $this->attributes['jenis_bmn'] ?? null;
+    }
+
+    public function getStatusBmnAttribute(): ?string
+    {
+        return $this->attributes['Status BMN'] ?? $this->attributes['status_bmn'] ?? null;
+    }
+
+    public function getNilaiPerolehanPertamaAttribute(): ?string
+    {
+        return $this->attributes['Nilai Perolehan Pertama']
+            ?? $this->attributes['nilai_perolehan_pertama']
+            ?? null;
+    }
+
+    public function getNilaiMutasiAttribute(): ?string
+    {
+        return $this->attributes['Nilai Mutasi'] ?? $this->attributes['nilai_mutasi'] ?? null;
+    }
+
+    public function getNilaiPerolehanAttribute(): ?string
+    {
+        return $this->attributes['Nilai Perolehan'] ?? $this->attributes['nilai_perolehan'] ?? null;
+    }
+
+    public function getNilaiPenyusutanAttribute(): ?string
+    {
+        return $this->attributes['Nilai Penyusutan'] ?? $this->attributes['nilai_penyusutan'] ?? null;
+    }
+
+    public function getNilaiBukuAttribute(): ?string
+    {
+        return $this->attributes['Nilai Buku'] ?? $this->attributes['nilai_buku'] ?? null;
+    }
+
+    public function getTanggalBukuPertamaAttribute(): ?string
+    {
+        return $this->attributes['Tanggal Buku Pertama']
+            ?? $this->attributes['tanggal_buku_pertama']
+            ?? null;
+    }
+
+    public function getTanggalPerolehanAttribute(): ?string
+    {
+        return $this->attributes['Tanggal Perolehan']
+            ?? $this->attributes['tanggal_perolehan']
+            ?? null;
+    }
+
+    public function getNameAttribute(): ?string
+    {
+        return $this->attributes['name']
+            ?? $this->attributes['Nama Barang']
+            ?? null;
+    }
+
+    public function getCodeAttribute(): ?string
+    {
+        return $this->attributes['code']
+            ?? $this->attributes['Kode Barang']
+            ?? null;
+    }
 
     // ── Relasi ───────────────────────────────────────────────────────
 
-    /** Lokasi (gedung / lantai / ruangan) */
     public function location()
     {
         return $this->belongsTo(\App\Models\locations::class, 'store_location', 'id');
     }
 
-    /** Kategori */
     public function categoryRelation()
     {
         return $this->belongsTo(\App\Models\Category::class, 'category', 'id');
     }
 
-    /** Penanggung jawab */
     public function employee()
     {
         return $this->belongsTo(\App\Models\employee::class, 'supervisor', 'id');

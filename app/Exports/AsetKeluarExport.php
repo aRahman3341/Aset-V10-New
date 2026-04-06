@@ -8,7 +8,6 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -26,6 +25,39 @@ class AsetKeluarExport implements FromCollection, WithHeadings, WithStyles, With
         $this->to_date   = $to_date;
     }
 
+    /**
+     * Parse kolom `aset` dan kembalikan array of integer ID.
+     */
+    private function parseAsetIds(?string $asetJson): array
+    {
+        if (empty($asetJson)) {
+            return [];
+        }
+
+        $decoded = json_decode($asetJson, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($decoded as $item) {
+            if (is_array($item) && isset($item['name'])) {
+                $id = intval($item['name']);
+                if ($id > 0) {
+                    $ids[] = $id;
+                }
+            } elseif (is_numeric($item)) {
+                $id = intval($item);
+                if ($id > 0) {
+                    $ids[] = $id;
+                }
+            }
+        }
+
+        return array_unique($ids);
+    }
+
     public function collection()
     {
         $asetKeluarList = AsetKeluar::whereBetween('created_at', [
@@ -37,30 +69,31 @@ class AsetKeluarExport implements FromCollection, WithHeadings, WithStyles, With
         $no   = 1;
 
         foreach ($asetKeluarList as $item) {
-            // Ambil aset terkait
-            $asetIds          = json_decode($item->aset, true) ?? [];
-            $nameValues       = array_column($asetIds, 'name');
-            $relatedMaterials = Materials::whereIn('id', $nameValues)->get();
+            $nameValues = $this->parseAsetIds($item->aset);
 
-            // Nama aset digabung
-            $namaAset = $relatedMaterials->pluck('name')->implode(', ');
-            $kodeAset = $relatedMaterials->pluck('code')->implode(', ');
-            $nupAset  = $relatedMaterials->pluck('nup')->implode(', ');
+            $relatedMaterials = !empty($nameValues)
+                ? Materials::whereIn('id', $nameValues)->get()
+                : collect();
+
+            // Nama kolom disesuaikan dengan nama kolom asli di tabel DB
+            $namaAset = $relatedMaterials->pluck('Nama Barang')->filter()->implode(', ');
+            $kodeAset = $relatedMaterials->pluck('Kode Barang')->filter()->implode(', ');
+            $nupAset  = $relatedMaterials->pluck('nup')->filter()->implode(', ');
 
             $rows->push([
-                'No'              => $no++,
-                'Nomor Surat'     => $item->nomor,
-                'Nama Aset'       => $namaAset,
-                'Kode Aset'       => $kodeAset,
-                'NUP'             => $nupAset,
-                'Diserahkan Kepada' => $item->kepada,
-                'Pihak Kesatu'    => $item->pihakSatu,
-                'NIP Pihak Kesatu' => $item->pihakSatuNip,
+                'No'                   => $no++,
+                'Nomor Surat'          => $item->nomor,
+                'Nama Aset'            => $namaAset ?: '-',
+                'Kode Aset'            => $kodeAset ?: '-',
+                'NUP'                  => $nupAset  ?: '-',
+                'Diserahkan Kepada'    => $item->kepada,
+                'Pihak Kesatu'         => $item->pihakSatu,
+                'NIP Pihak Kesatu'     => $item->pihakSatuNip,
                 'Jabatan Pihak Kesatu' => $item->pihakSatuJabatan,
-                'Pihak Kedua'     => $item->pihakDua,
-                'NIP Pihak Kedua' => $item->pihakDuaNIP,
-                'Jabatan Pihak Kedua' => $item->pihakDuaJabatan,
-                'Tanggal'         => $item->created_at ? $item->created_at->format('d/m/Y') : '-',
+                'Pihak Kedua'          => $item->pihakDua,
+                'NIP Pihak Kedua'      => $item->pihakDuaNIP,
+                'Jabatan Pihak Kedua'  => $item->pihakDuaJabatan,
+                'Tanggal'              => $item->created_at ? $item->created_at->format('d/m/Y') : '-',
             ]);
         }
 
@@ -96,7 +129,6 @@ class AsetKeluarExport implements FromCollection, WithHeadings, WithStyles, With
         $lastRow = $sheet->getHighestRow();
         $lastCol = $sheet->getHighestColumn();
 
-        // ── Header row styling ──
         $sheet->getStyle('A1:' . $lastCol . '1')->applyFromArray([
             'font' => [
                 'bold'  => true,
@@ -120,7 +152,6 @@ class AsetKeluarExport implements FromCollection, WithHeadings, WithStyles, With
             ],
         ]);
 
-        // ── Data rows styling ──
         if ($lastRow > 1) {
             $sheet->getStyle('A2:' . $lastCol . $lastRow)->applyFromArray([
                 'font'      => ['size' => 10],
@@ -133,7 +164,6 @@ class AsetKeluarExport implements FromCollection, WithHeadings, WithStyles, With
                 ],
             ]);
 
-            // Zebra stripe
             for ($row = 2; $row <= $lastRow; $row++) {
                 if ($row % 2 === 0) {
                     $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->applyFromArray([
@@ -145,12 +175,10 @@ class AsetKeluarExport implements FromCollection, WithHeadings, WithStyles, With
                 }
             }
 
-            // Kolom No → center
             $sheet->getStyle('A2:A' . $lastRow)->getAlignment()
                   ->setHorizontal(Alignment::HORIZONTAL_CENTER);
         }
 
-        // ── Row height header ──
         $sheet->getRowDimension(1)->setRowHeight(30);
 
         return [];

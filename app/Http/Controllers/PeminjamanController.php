@@ -23,14 +23,13 @@ class PeminjamanController extends Controller
         $paging = 10;
         $query  = $request->input('query', '');
 
-        // FIX: kolom 'name' tidak ada di materials → pakai nama_barang & kode_barang
         $loan = peminjaman::with(['material', 'user'])
             ->where(function ($q) use ($query) {
-                $q->where('code',      'LIKE', '%' . $query . '%')
-                  ->orWhere('peminjam','LIKE', '%' . $query . '%')
+                $q->where('code',       'LIKE', '%' . $query . '%')
+                  ->orWhere('peminjam', 'LIKE', '%' . $query . '%')
                   ->orWhereHas('material', fn($m) =>
-                        $m->where('nama_barang', 'LIKE', '%' . $query . '%')
-                          ->orWhere('kode_barang','LIKE', '%' . $query . '%')
+                        $m->where('Nama Barang', 'LIKE', '%' . $query . '%')
+                          ->orWhere('Kode Barang', 'LIKE', '%' . $query . '%')
                   );
             })
             ->orderBy('created_at', 'desc')
@@ -48,11 +47,11 @@ class PeminjamanController extends Controller
 
         $loan = peminjaman::with(['material', 'user'])
             ->where(function ($q) use ($query) {
-                $q->where('code',      'LIKE', '%' . $query . '%')
-                  ->orWhere('peminjam','LIKE', '%' . $query . '%')
+                $q->where('code',       'LIKE', '%' . $query . '%')
+                  ->orWhere('peminjam', 'LIKE', '%' . $query . '%')
                   ->orWhereHas('material', fn($m) =>
-                        $m->where('nama_barang', 'LIKE', '%' . $query . '%')
-                          ->orWhere('kode_barang','LIKE', '%' . $query . '%')
+                        $m->where('Nama Barang', 'LIKE', '%' . $query . '%')
+                          ->orWhere('Kode Barang', 'LIKE', '%' . $query . '%')
                   );
             })
             ->orderBy('created_at', 'desc')
@@ -63,10 +62,9 @@ class PeminjamanController extends Controller
 
     public function create()
     {
-        // Petugas = User yang bisa login (Admin, Manager, Operator)
         $users    = User::whereIn('jabatan', ['Admin', 'Manager', 'Operator', 'admin', 'manager', 'operator'])
                         ->orderBy('name')->get();
-        $material = Materials::where('kondisi', '!=', 'Rusak Berat')->orderBy('nama_barang')->get();
+        $material = Materials::where('kondisi', '!=', 'Rusak Berat')->orderBy('Nama Barang')->get();
         return view('peminjaman.add', compact('material', 'users'));
     }
 
@@ -101,7 +99,7 @@ class PeminjamanController extends Controller
             'material_id' => $validated['material_id'],
             'tgl_pinjam'  => $validated['tgl_pinjam'],
             'tgl_kembali' => $validated['tgl_kembali'],
-            'employee_id' => $validated['employee_id'],   // ← dari form, bukan session
+            'employee_id' => $validated['employee_id'],
             'peminjam'    => $validated['peminjam'],
             'status'      => 'Dipinjam',
             'created_at'  => Carbon::now(),
@@ -172,9 +170,6 @@ class PeminjamanController extends Controller
         return redirect('/peminjaman')->with('success', 'Data berhasil dihapus.');
     }
 
-    // ══════════════════════════════════════════════
-    //  CETAK SURAT PEMINJAMAN (download .docx)
-    // ══════════════════════════════════════════════
     public function cetakSurat($id)
     {
         $loan = peminjaman::with(['material', 'user'])->findOrFail($id);
@@ -187,28 +182,24 @@ class PeminjamanController extends Controller
 
         $template = new TemplateProcessor($templatePath);
 
-        // Petugas / operator
         $user = $loan->user;
         $template->setValue('nama_petugas', $user->name    ?? '-');
         $template->setValue('nip_petugas',  $user->nip     ?? '-');
         $template->setValue('jabatan',      $user->jabatan ?? 'Petugas Gudang');
         $template->setValue('bagian',       $user->bagian  ?? '-');
 
-        // Nomor & tanggal surat
         $template->setValue('nomor',       $loan->code ?? '-');
         $template->setValue('tgl_pinjam',  $loan->tgl_pinjam  ? Carbon::parse($loan->tgl_pinjam)->locale('id')->isoFormat('D MMMM Y')  : '-');
         $template->setValue('tgl_kembali', $loan->tgl_kembali ? Carbon::parse($loan->tgl_kembali)->locale('id')->isoFormat('D MMMM Y') : '-');
 
-        // Peminjam
         $template->setValue('peminjam', $loan->peminjam ?? '-');
 
-        // Barang
         $m = $loan->material;
-        $template->setValue('jenis_bmn',   $m->jenis_bmn   ?? '-');
-        $template->setValue('nama_barang', $m->nama_barang ?? '-');
-        $template->setValue('kode_barang', $m->kode_barang ?? '-');
-        $template->setValue('nup',         $m->nup         ?? '-');
-        $template->setValue('kondisi',     $m->kondisi     ?? 'Baik');
+        $template->setValue('jenis_bmn',   $m->{'Jenis BMN'}   ?? '-');
+        $template->setValue('nama_barang', $m->{'Nama Barang'} ?? '-');
+        $template->setValue('kode_barang', $m->{'Kode Barang'} ?? '-');
+        $template->setValue('nup',         $m->nup             ?? '-');
+        $template->setValue('kondisi',     $m->kondisi         ?? 'Baik');
 
         $filename = 'Surat_Peminjaman_' . ($loan->code ?? $id) . '.docx';
         $tempPath = storage_path('app/public/' . $filename);
@@ -222,9 +213,6 @@ class PeminjamanController extends Controller
         return response()->download($tempPath, $filename)->deleteFileAfterSend(true);
     }
 
-    // ══════════════════════════════════════════════
-    //  REPORT & EXPORT
-    // ══════════════════════════════════════════════
     public function report()
     {
         $loan = peminjaman::with(['material'])->paginate(10);
@@ -250,7 +238,7 @@ class PeminjamanController extends Controller
 
     public function filter(Request $request)
     {
-        $query  = peminjaman::query();
+        $query   = peminjaman::query();
         $employe = $request->input('code');
         if ($employe && $employe !== 'all') {
             $query->where('employee_id', $employe);

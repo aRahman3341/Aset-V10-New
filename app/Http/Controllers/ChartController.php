@@ -3,15 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Items;
-use App\Models\Materials;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ChartController extends Controller
 {
     public function index(Request $request)
     {
-        // ── Filter Tahun (null = semua tahun) ──
+        // ── Filter Tahun ──
         $tahun     = $request->get('tahun', null);
         $tahunList = range(Carbon::now()->year, 2020);
 
@@ -21,20 +21,22 @@ class ChartController extends Controller
             $bulanLabels[$i] = Carbon::create()->month($i)->monthName;
         }
 
-        // ── Aset per bulan — dikelompokkan by jenis_bmn (pengganti kolom 'type') ──
-        // Kelompok 1 → Mesin & Peralatan (ditampilkan sebagai "Tetap" di chart lama)
-        $queryMesin = Materials::whereIn('jenis_bmn', [
-            'MESIN PERALATAN NON TIK',
-            'MESIN PERALATAN KHUSUS TIK',
-        ]);
+        // ── Aset Tetap per bulan — pakai DB::table karena kolom DB pakai spasi ──
+        // Kelompok 1: Mesin & Peralatan
+        $queryMesin = DB::table('materials')
+            ->whereIn('Jenis BMN', [
+                'MESIN PERALATAN NON TIK',
+                'MESIN PERALATAN KHUSUS TIK',
+            ]);
 
-        // Kelompok 2 → Kendaraan & Infrastruktur (ditampilkan sebagai "Bergerak" di chart lama)
-        $queryInfra = Materials::whereIn('jenis_bmn', [
-            'ALAT ANGKUTAN BERMOTOR',
-            'ALAT BESAR',
-            'BANGUNAN DAN GEDUNG',
-            'JALAN DAN JEMBATAN',
-        ]);
+        // Kelompok 2: Kendaraan & Infrastruktur
+        $queryInfra = DB::table('materials')
+            ->whereIn('Jenis BMN', [
+                'ALAT ANGKUTAN BERMOTOR',
+                'ALAT BESAR',
+                'BANGUNAN DAN GEDUNG',
+                'JALAN DAN JEMBATAN',
+            ]);
 
         if ($tahun) {
             $queryMesin->whereYear('created_at', $tahun);
@@ -53,8 +55,6 @@ class ChartController extends Controller
             ->pluck('jumlah', 'bulan')
             ->toArray();
 
-        // Nama variabel $quantityTetap / $quantityBergerak dipertahankan
-        // agar view home.blade.php tidak perlu diubah
         $quantityTetap    = [];
         $quantityBergerak = [];
         foreach ($bulanLabels as $bulanNum => $namaBulan) {
@@ -73,13 +73,16 @@ class ChartController extends Controller
             $queryLab->whereYear('created_at', $tahun);
         }
 
-        $atkPerBulan = $queryATK->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
+        $atkPerBulan = $queryATK
+            ->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
             ->groupBy('bulan')->pluck('jumlah', 'bulan')->toArray();
 
-        $rtPerBulan  = $queryRT->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
+        $rtPerBulan = $queryRT
+            ->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
             ->groupBy('bulan')->pluck('jumlah', 'bulan')->toArray();
 
-        $labPerBulan = $queryLab->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
+        $labPerBulan = $queryLab
+            ->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
             ->groupBy('bulan')->pluck('jumlah', 'bulan')->toArray();
 
         $quantityATK = [];
