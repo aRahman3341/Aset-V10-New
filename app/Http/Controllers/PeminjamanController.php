@@ -23,14 +23,11 @@ class PeminjamanController extends Controller
         $paging = 10;
         $query  = $request->input('query', '');
 
-        $loan = peminjaman::with(['material', 'user'])
+        // with(['materials']) dihapus — materials adalah accessor, bukan Eloquent relation
+        $loan = peminjaman::with(['user'])
             ->where(function ($q) use ($query) {
                 $q->where('code',       'LIKE', '%' . $query . '%')
-                  ->orWhere('peminjam', 'LIKE', '%' . $query . '%')
-                  ->orWhereHas('material', fn($m) =>
-                        $m->where('Nama Barang', 'LIKE', '%' . $query . '%')
-                          ->orWhere('Kode Barang', 'LIKE', '%' . $query . '%')
-                  );
+                  ->orWhere('peminjam', 'LIKE', '%' . $query . '%');
             })
             ->orderBy('created_at', 'desc')
             ->paginate($paging);
@@ -45,14 +42,10 @@ class PeminjamanController extends Controller
         $paging = 10;
         $query  = $request->input('query', '');
 
-        $loan = peminjaman::with(['material', 'user'])
+        $loan = peminjaman::with(['user'])
             ->where(function ($q) use ($query) {
                 $q->where('code',       'LIKE', '%' . $query . '%')
-                  ->orWhere('peminjam', 'LIKE', '%' . $query . '%')
-                  ->orWhereHas('material', fn($m) =>
-                        $m->where('Nama Barang', 'LIKE', '%' . $query . '%')
-                          ->orWhere('Kode Barang', 'LIKE', '%' . $query . '%')
-                  );
+                  ->orWhere('peminjam', 'LIKE', '%' . $query . '%');
             })
             ->orderBy('created_at', 'desc')
             ->paginate($paging);
@@ -75,19 +68,21 @@ class PeminjamanController extends Controller
 
     public function dataStore(Request $request)
     {
-        $validated = $request->validate([
-            'material_id' => 'required',
-            'tgl_pinjam'  => 'required',
-            'tgl_kembali' => 'required',
-            'peminjam'    => 'required',
-            'employee_id' => 'required|exists:users,id',
+        $request->validate([
+            'material_id'   => 'required|array|min:1',
+            'material_id.*' => 'required',
+            'tgl_pinjam'    => 'required',
+            'tgl_kembali'   => 'required',
+            'peminjam'      => 'required',
+            'employee_id'   => 'required|exists:users,id',
         ], [
-            'material_id.required' => 'Nama aset harus diisi',
-            'tgl_pinjam.required'  => 'Tanggal pinjam harus diisi',
-            'tgl_kembali.required' => 'Tanggal kembali harus diisi',
-            'peminjam.required'    => 'Peminjam harus diisi',
-            'employee_id.required' => 'Petugas gudang harus dipilih',
-            'employee_id.exists'   => 'Petugas tidak valid',
+            'material_id.required'   => 'Pilih minimal 1 barang',
+            'material_id.*.required' => 'Barang tidak boleh kosong',
+            'tgl_pinjam.required'    => 'Tanggal pinjam harus diisi',
+            'tgl_kembali.required'   => 'Tanggal kembali harus diisi',
+            'peminjam.required'      => 'Peminjam harus diisi',
+            'employee_id.required'   => 'Petugas gudang harus dipilih',
+            'employee_id.exists'     => 'Petugas tidak valid',
         ]);
 
         $lastCode  = DB::table('peminjamen')->max('code');
@@ -96,11 +91,11 @@ class PeminjamanController extends Controller
 
         DB::table('peminjamen')->insert([
             'code'        => $code,
-            'material_id' => $validated['material_id'],
-            'tgl_pinjam'  => $validated['tgl_pinjam'],
-            'tgl_kembali' => $validated['tgl_kembali'],
-            'employee_id' => $validated['employee_id'],
-            'peminjam'    => $validated['peminjam'],
+            'material_id' => json_encode(array_values($request->material_id)),
+            'tgl_pinjam'  => $request->tgl_pinjam,
+            'tgl_kembali' => $request->tgl_kembali,
+            'employee_id' => $request->employee_id,
+            'peminjam'    => $request->peminjam,
             'status'      => 'Dipinjam',
             'created_at'  => Carbon::now(),
             'updated_at'  => Carbon::now(),
@@ -111,7 +106,7 @@ class PeminjamanController extends Controller
 
     public function kembali(Request $request, $id)
     {
-        $loan  = peminjaman::with('material')->findOrFail($id);
+        $loan  = peminjaman::with('user')->findOrFail($id);
         $users = User::whereIn('jabatan', ['Admin', 'Manager', 'Operator', 'admin', 'manager', 'operator'])
                      ->orderBy('name')->get();
         return view('peminjaman.update', compact('loan', 'users'));
@@ -146,18 +141,19 @@ class PeminjamanController extends Controller
 
     public function update(Request $request, $id)
     {
-        $validated = $request->validate([
-            'material_id' => 'required',
-            'tgl_pinjam'  => 'required',
-            'tgl_kembali' => 'required',
-            'peminjam'    => 'required',
+        $request->validate([
+            'material_id'   => 'required|array|min:1',
+            'material_id.*' => 'required',
+            'tgl_pinjam'    => 'required',
+            'tgl_kembali'   => 'required',
+            'peminjam'      => 'required',
         ]);
 
         peminjaman::where('id', $id)->update([
-            'material_id' => $validated['material_id'],
-            'tgl_pinjam'  => $validated['tgl_pinjam'],
-            'tgl_kembali' => $validated['tgl_kembali'],
-            'peminjam'    => $validated['peminjam'],
+            'material_id' => json_encode(array_values($request->material_id)),
+            'tgl_pinjam'  => $request->tgl_pinjam,
+            'tgl_kembali' => $request->tgl_kembali,
+            'peminjam'    => $request->peminjam,
             'updated_at'  => Carbon::now(),
         ]);
 
@@ -172,12 +168,12 @@ class PeminjamanController extends Controller
 
     public function cetakSurat($id)
     {
-        $loan = peminjaman::with(['material', 'user'])->findOrFail($id);
+        // Gunakan with('user') saja, materials diakses via accessor
+        $loan = peminjaman::with(['user'])->findOrFail($id);
 
         $templatePath = public_path('assets/templates/surat_peminjaman.docx');
-
         if (!file_exists($templatePath)) {
-            return back()->with('error', 'Template surat tidak ditemukan. Pastikan file ada di: public/assets/templates/surat_peminjaman.docx');
+            return back()->with('error', 'Template surat tidak ditemukan.');
         }
 
         $template = new TemplateProcessor($templatePath);
@@ -191,15 +187,20 @@ class PeminjamanController extends Controller
         $template->setValue('nomor',       $loan->code ?? '-');
         $template->setValue('tgl_pinjam',  $loan->tgl_pinjam  ? Carbon::parse($loan->tgl_pinjam)->locale('id')->isoFormat('D MMMM Y')  : '-');
         $template->setValue('tgl_kembali', $loan->tgl_kembali ? Carbon::parse($loan->tgl_kembali)->locale('id')->isoFormat('D MMMM Y') : '-');
+        $template->setValue('peminjam',    $loan->peminjam ?? '-');
 
-        $template->setValue('peminjam', $loan->peminjam ?? '-');
+        $materials = $loan->materials; // accessor dari model
+        $rowCount  = max($materials->count(), 1);
+        $template->cloneRow('jenis_bmn', $rowCount);
 
-        $m = $loan->material;
-        $template->setValue('jenis_bmn',   $m->{'Jenis BMN'}   ?? '-');
-        $template->setValue('nama_barang', $m->{'Nama Barang'} ?? '-');
-        $template->setValue('kode_barang', $m->{'Kode Barang'} ?? '-');
-        $template->setValue('nup',         $m->nup             ?? '-');
-        $template->setValue('kondisi',     $m->kondisi         ?? 'Baik');
+        foreach ($materials as $i => $m) {
+            $idx = $i + 1;
+            $template->setValue("jenis_bmn#{$idx}",  $m->{'Jenis BMN'}   ?? '-');
+            $template->setValue("nama_barang#{$idx}", $m->{'Nama Barang'} ?? '-');
+            $template->setValue("kode_barang#{$idx}", $m->{'Kode Barang'} ?? '-');
+            $template->setValue("nup#{$idx}",         $m->nup             ?? '-');
+            $template->setValue("kondisi#{$idx}",     $m->kondisi         ?? 'Baik');
+        }
 
         $filename = 'Surat_Peminjaman_' . ($loan->code ?? $id) . '.docx';
         $tempPath = storage_path('app/public/' . $filename);
@@ -215,7 +216,7 @@ class PeminjamanController extends Controller
 
     public function report()
     {
-        $loan = peminjaman::with(['material'])->paginate(10);
+        $loan = peminjaman::paginate(10);
         return view('peminjaman.report', ['loan' => $loan]);
     }
 
@@ -251,7 +252,7 @@ class PeminjamanController extends Controller
                 Carbon::parse($end)->endOfDay(),
             ]);
         }
-        $loan  = $query->with(['material', 'user'])->paginate(20);
+        $loan  = $query->with(['user'])->paginate(20);
         $codes = peminjaman::select('employee_id')->distinct()->get();
         $sess  = Session::all();
         return view('peminjaman.getData', compact('loan', 'codes', 'sess'));

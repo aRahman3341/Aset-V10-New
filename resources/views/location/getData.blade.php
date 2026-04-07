@@ -25,6 +25,43 @@
 .abtn-edit { color:#c49a2a; background:#fef9e7; } .abtn-edit:hover { background:#c49a2a; color:#fff; }
 .abtn-del  { color:#dc2626; background:#fff0f0; } .abtn-del:hover  { background:#dc2626; color:#fff; }
 .loc-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-size:0.72rem; font-weight:700; background:#eff6ff; color:#1d4ed8; }
+
+/* ── Pagination ── */
+.table-footer {
+    display:flex; align-items:center; justify-content:space-between;
+    border-top:2px solid rgba(30,58,95,0.06);
+    background:#fafbfd; border-radius:0 0 12px 12px;
+    min-height:62px; flex-wrap:wrap;
+}
+.pag-nav { display:flex; align-items:center; padding:10px 16px; flex:1; flex-wrap:wrap; gap:4px; }
+.pag-list { display:flex; align-items:center; gap:3px; list-style:none; margin:0; padding:0; }
+.pag-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:34px; height:34px; padding:0 9px; border-radius:6px;
+    font-size:0.8rem; font-weight:700; color:#1e3a5f;
+    background:#fff; border:1.5px solid rgba(30,58,95,0.13);
+    text-decoration:none; transition:all .15s ease; cursor:pointer;
+}
+.pag-btn:hover:not(.pag-btn-active) {
+    background:#1e3a5f; color:#fff; border-color:#1e3a5f;
+    text-decoration:none; transform:translateY(-1px);
+    box-shadow:0 3px 10px rgba(30,58,95,0.20);
+}
+.pag-btn-icon { min-width:34px; padding:0; color:#5a6a7e; }
+.pag-btn-active {
+    background:linear-gradient(135deg,#1e3a5f,#2d5a8e) !important;
+    color:#fff !important; border-color:transparent !important;
+    box-shadow:0 3px 12px rgba(45,90,142,0.28) !important;
+    transform:translateY(-1px) scale(1.06) !important;
+    min-width:38px; height:38px; font-size:0.85rem;
+}
+.pag-disabled .pag-btn { opacity:.3; cursor:not-allowed; pointer-events:none; }
+.pag-ellipsis span {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:34px; height:34px; color:#a0aab4; font-size:0.9rem; letter-spacing:2px;
+}
+.pag-info { font-size:0.74rem; color:#8a96a3; margin-left:8px; white-space:nowrap; }
+.pag-info strong { color:#1e3a5f; }
 </style>
 
 <div class="pagetitle">
@@ -116,13 +153,12 @@
             </tbody>
         </table>
     </div>
-    
-    <div class="px-4 py-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <small class="text-muted">
-            Menampilkan <strong>{{ $location->firstItem() ?? 0 }}</strong>–<strong>{{ $location->lastItem() ?? 0 }}</strong>
-            dari <strong>{{ $location->total() }}</strong> lokasi
-        </small>
-        <div>{{ $location->links() }}</div>
+
+    {{-- ── Footer Pagination (sama seperti Aset Tetap) ── --}}
+    <div class="table-footer">
+        <div class="pag-nav">
+            @include('location.pagenation')
+        </div>
     </div>
 </div>
 

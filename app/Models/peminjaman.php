@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class peminjaman extends Model
 {
+    protected $table = 'peminjamen';
 
     protected $fillable = [
         'code',
@@ -20,20 +21,48 @@ class peminjaman extends Model
     ];
 
     /**
-     * Get the user that owns the peminjaman
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * Relasi ke banyak Materials berdasarkan JSON array material_id.
+     * Mengembalikan Collection of Materials.
      */
-    public function material(): BelongsTo
+    public function getMaterialsAttribute()
     {
-        return $this->belongsTo(Materials::class, 'material_id', 'id');
+        $ids = json_decode($this->material_id, true);
+
+        // Backward-compatible: jika material_id bukan JSON (integer lama)
+        if (!is_array($ids)) {
+            $ids = [$this->material_id];
+        }
+
+        $ids = array_filter(array_map('intval', $ids));
+
+        return Materials::whereIn('id', $ids)->get();
     }
 
     /**
-     * Get the employee that owns the peminjaman
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * Relasi material tunggal (backward-compatible untuk view lama).
+     * Mengembalikan material pertama.
      */
+    public function getMaterialAttribute()
+    {
+        return $this->materials->first();
+    }
+
+    /**
+     * Eager load helper — dipakai di with(['materials'])
+     * Catatan: karena ini JSON, tidak bisa pakai Eloquent relation biasa.
+     * Gunakan $loan->materials (accessor) di view.
+     */
+    public function material(): BelongsTo
+    {
+        // Fallback: ambil ID pertama dari JSON untuk kompatibilitas
+        $firstId = is_array(json_decode($this->material_id ?? '[]', true))
+            ? (json_decode($this->material_id, true)[0] ?? $this->material_id)
+            : $this->material_id;
+
+        return $this->belongsTo(Materials::class, 'material_id', 'id')
+                    ->withDefault();
+    }
+
     public function employee(): BelongsTo
     {
         return $this->belongsTo(employee::class, 'employee_id', 'id');

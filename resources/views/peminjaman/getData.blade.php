@@ -3,7 +3,6 @@
 @section('content')
 <main id="main" class="main">
 
-{{-- Page Title --}}
 <div class="pagetitle">
     <div class="pagetitle-left">
         <div class="pagetitle-icon" style="background:linear-gradient(135deg,#1e6f3e,#28a745)">
@@ -37,7 +36,6 @@
 <section class="section">
 <div class="main-card">
 
-    {{-- ── Toolbar ── --}}
     <div class="table-toolbar">
         <div class="toolbar-left">
             <form action="{{ route('peminjaman.search') }}" method="POST">
@@ -47,7 +45,7 @@
                         <i class="bi bi-search text-muted"></i>
                     </span>
                     <input type="text" name="query" class="form-control border-start-0 ps-0"
-                           placeholder="Cari kode, peminjam, atau nama barang..." value="{{ request()->input('query') }}">
+                           placeholder="Cari kode atau peminjam..." value="{{ request()->input('query') }}">
                     <button type="button" class="btn btn-outline-secondary" id="filterButton" title="Filter">
                         <i class="bi bi-funnel"></i>
                     </button>
@@ -64,7 +62,6 @@
         </div>
     </div>
 
-    {{-- ── Filter Panel ── --}}
     <div id="filterPanel" style="display:none;" class="filter-panel">
         <div class="filter-panel-header">
             <span><i class="bi bi-funnel-fill"></i> Filter Data</span>
@@ -100,7 +97,6 @@
         </form>
     </div>
 
-    {{-- ── Tabel ── --}}
     <div class="table-responsive">
         <table class="table table-hover mb-0">
             <thead>
@@ -117,10 +113,25 @@
             </thead>
             <tbody>
                 @forelse($loan as $i => $item)
+                @php $materials = $item->materials; @endphp
                 <tr>
                     <td class="text-center text-muted small">{{ $loan->firstItem() + $i }}</td>
                     <td><span class="fw-bold text-success">{{ $item->code }}</span></td>
-                    <td class="fw-semibold">{{ $item->material->nama_barang ?? '-' }}</td>
+                    <td>
+                        {{-- Tampilkan semua barang yang dipinjam --}}
+                        @forelse($materials as $m)
+                            <div class="ak-aset-item">
+                                <span class="ak-aset-dot"></span>
+                                <span style="font-size:0.82rem;">{{ $m->nama_barang ?? '-' }}</span>
+                                @if($m->kode_barang)
+                                    <span class="ak-aset-code">{{ $m->kode_barang }}</span>
+                                @endif
+                                <span class="ak-aset-nup">NUP {{ $m->nup ?? '-' }}</span>
+                            </div>
+                        @empty
+                            <span class="text-muted">-</span>
+                        @endforelse
+                    </td>
                     <td>{{ $item->peminjam }}</td>
                     <td class="text-center small">{{ $item->tgl_pinjam }}</td>
                     <td class="text-center small">{{ $item->tgl_kembali }}</td>
@@ -133,26 +144,20 @@
                     </td>
                     <td class="text-center">
                         <div class="action-group">
-                            {{-- Cetak Surat --}}
                             <a href="{{ route('peminjaman.cetakSurat', $item->id) }}"
                                class="abtn abtn-print" title="Cetak Surat">
                                 <i class="bi bi-printer"></i>
                             </a>
-
                             @if($item->status !== 'Dikembalikan')
-                                {{-- Pengembalian --}}
                                 <a href="{{ route('peminjaman.kembali', $item->id) }}"
                                    class="abtn abtn-kembali" title="Kembalikan">
                                     <i class="bi bi-box-arrow-in-left"></i>
                                 </a>
-                                {{-- Edit --}}
                                 <a href="{{ route('peminjaman.edit', $item->id) }}"
                                    class="abtn abtn-edit" title="Edit">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
                             @endif
-
-                            {{-- Hapus --}}
                             <form action="{{ route('peminjaman.destroy', $item->id) }}"
                                   method="POST" class="d-inline delete-form">
                                 @csrf @method('DELETE')
@@ -176,7 +181,6 @@
         </table>
     </div>
 
-    {{-- Pagination --}}
     @if($loan->lastPage() > 1)
     <div class="pag-nav">
         @include('pengguna.pagenation', ['items' => $loan])
@@ -190,93 +194,51 @@
 <style>
 .pagetitle { display:flex; align-items:center; margin-bottom:20px; }
 .pagetitle-left { display:flex; align-items:center; gap:12px; }
-.pagetitle-icon {
-    width:44px; height:44px; border-radius:12px;
-    display:flex; align-items:center; justify-content:center;
-    color:#fff; font-size:1.15rem; box-shadow:0 4px 12px rgba(40,167,69,0.3);
-}
+.pagetitle-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.15rem; box-shadow:0 4px 12px rgba(40,167,69,0.3); }
 .pagetitle h1 { font-size:1.25rem; font-weight:800; color:#012970; margin:0 0 2px; }
 .pagetitle .breadcrumb { margin:0; padding:0; background:transparent; font-size:0.76rem; }
 .pagetitle .breadcrumb-item a { color:#4154f1; text-decoration:none; }
 .pagetitle .breadcrumb-item.active { color:#8a96a3; }
-
-.main-card {
-    background:#fff; border-radius:10px;
-    border:1px solid rgba(1,41,112,0.07);
-    box-shadow:0 2px 14px rgba(1,41,112,0.07); overflow:hidden;
-}
-.table-toolbar {
-    display:flex; align-items:center; justify-content:space-between;
-    padding:10px 14px; border-bottom:1px solid rgba(1,41,112,0.07);
-    gap:8px; flex-wrap:wrap;
-}
+.main-card { background:#fff; border-radius:10px; border:1px solid rgba(1,41,112,0.07); box-shadow:0 2px 14px rgba(1,41,112,0.07); overflow:hidden; }
+.table-toolbar { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid rgba(1,41,112,0.07); gap:8px; flex-wrap:wrap; }
 .toolbar-left  { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .toolbar-right { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
-.filter-panel {
-    background:#f8fafd; border-bottom:1px solid rgba(1,41,112,0.07); padding:12px 18px;
-}
+.filter-panel { background:#f8fafd; border-bottom:1px solid rgba(1,41,112,0.07); padding:12px 18px; }
 .filter-panel-header { margin-bottom:10px; font-size:0.8rem; font-weight:700; color:#5a6a7e; }
-.table thead th {
-    background-color:#f6f9ff; color:#012970; font-weight:700;
-    text-transform:uppercase; font-size:0.69rem; letter-spacing:0.5px;
-    padding:10px 11px; border:none; white-space:nowrap; border-bottom:2px solid #e0e8f5;
-}
-.table tbody td {
-    padding:9px 11px; vertical-align:middle;
-    font-size:0.83rem; border-bottom:1px solid rgba(1,41,112,0.05);
-}
+.table thead th { background-color:#f6f9ff; color:#012970; font-weight:700; text-transform:uppercase; font-size:0.69rem; letter-spacing:0.5px; padding:10px 11px; border:none; white-space:nowrap; border-bottom:2px solid #e0e8f5; }
+.table tbody td { padding:9px 11px; vertical-align:middle; font-size:0.83rem; border-bottom:1px solid rgba(1,41,112,0.05); }
 .table tbody tr:last-child td { border-bottom:none; }
 .table tbody tr:hover td { background:rgba(65,84,241,0.03); }
+
+/* Aset item styling */
+.ak-aset-item { display:flex; align-items:center; gap:5px; margin-bottom:3px; }
+.ak-aset-item:last-child { margin-bottom:0; }
+.ak-aset-dot { width:5px; height:5px; border-radius:50%; background:#2d5a8e; flex-shrink:0; }
+.ak-aset-code { font-family:'DM Mono',monospace; font-size:0.71rem; background:rgba(65,84,241,0.08); color:#4154f1; padding:1px 6px; border-radius:4px; }
+.ak-aset-nup { font-size:0.7rem; color:#8a96a3; }
 
 .bstatus { display:inline-block; font-size:0.68rem; font-weight:700; padding:2px 9px; border-radius:20px; }
 .bstatus-pinjam  { background:rgba(255,193,7,0.15); color:#b45309; }
 .bstatus-kembali { background:rgba(16,185,129,0.12); color:#047857; }
-
 .action-group { display:flex; align-items:center; justify-content:center; gap:4px; }
-.abtn {
-    width:28px; height:28px; border-radius:6px;
-    display:inline-flex; align-items:center; justify-content:center;
-    font-size:0.8rem; border:none; cursor:pointer; transition:all .15s; background:transparent;
-}
+.abtn { width:28px; height:28px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:0.8rem; border:none; cursor:pointer; transition:all .15s; background:transparent; }
 .abtn-edit    { color:#c49a2a; } .abtn-edit:hover    { background:rgba(232,184,75,0.15); }
 .abtn-del     { color:#dc2626; } .abtn-del:hover     { background:rgba(220,38,38,0.10); }
 .abtn-print   { color:#4154f1; } .abtn-print:hover   { background:rgba(65,84,241,0.10); }
 .abtn-kembali { color:#10b981; } .abtn-kembali:hover { background:rgba(16,185,129,0.12); }
-
 .empty-row { text-align:center; padding:44px 0 !important; color:#8a96a3; }
 .empty-row i { font-size:2.2rem; display:block; margin-bottom:8px; }
-
-.pag-nav { display:flex; align-items:center; padding:10px 14px; flex-wrap:wrap; gap:4px;
-           border-top:1px solid rgba(1,41,112,0.06); background:#fafbfd; }
-.pag-list { display:flex; align-items:center; gap:3px; list-style:none; margin:0; padding:0; }
-.pag-btn {
-    display:inline-flex; align-items:center; justify-content:center;
-    min-width:34px; height:34px; padding:0 9px; border-radius:6px;
-    font-size:0.8rem; font-weight:700; color:#012970;
-    background:#fff; border:1.5px solid rgba(1,41,112,0.13);
-    text-decoration:none; transition:all .15s ease; cursor:pointer;
-}
-.pag-btn:hover:not(.pag-btn-active) { background:#012970; color:#fff; border-color:#012970; text-decoration:none; }
-.pag-btn-active {
-    background:linear-gradient(135deg,#012970,#4154f1) !important;
-    color:#fff !important; border-color:transparent !important;
-    box-shadow:0 3px 12px rgba(65,84,241,0.28) !important;
-}
-.pag-disabled .pag-btn { opacity:.3; cursor:not-allowed; pointer-events:none; }
-.pag-info { font-size:0.74rem; color:#8a96a3; margin-left:8px; }
-.pag-info strong { color:#012970; }
+.pag-nav { display:flex; align-items:center; padding:10px 14px; flex-wrap:wrap; gap:4px; border-top:1px solid rgba(1,41,112,0.06); background:#fafbfd; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-
     document.getElementById('filterButton').addEventListener('click', function (e) {
         e.preventDefault();
         const f = document.getElementById('filterPanel');
         f.style.display = f.style.display === 'none' ? 'block' : 'none';
     });
-
     document.querySelectorAll('.delete-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
             const name = this.dataset.name;
@@ -290,7 +252,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }).then(r => { if (r.isConfirmed) form.submit(); });
         });
     });
-
 });
 </script>
 @endsection

@@ -31,6 +31,16 @@
 .pm-btn-submit:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(30,58,95,0.35); }
 .pm-btn-back { width:100%; padding:11px; background:#f4f6fb; color:#5a6a7e; border:1.5px solid #dee2e6; border-radius:10px; font-size:0.88rem; font-weight:600; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:7px; transition:all .15s; }
 .pm-btn-back:hover { background:#e8ecf5; color:#1e3a5f; text-decoration:none; }
+.pm-btn-add { padding:9px 16px; background:#eff6ff; color:#1d4ed8; border:1.5px solid #bfdbfe; border-radius:8px; font-size:0.82rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all .15s; }
+.pm-btn-add:hover { background:#1d4ed8; color:#fff; }
+
+/* Barang item */
+.barang-item { background:#f8fafd; border:1.5px solid #e0e8f5; border-radius:10px; padding:14px; margin-bottom:12px; position:relative; }
+.barang-item:first-child .btn-remove-barang { display:none; }
+.btn-remove-barang { position:absolute; top:10px; right:10px; width:26px; height:26px; border-radius:6px; background:#fff0f0; color:#dc2626; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.8rem; }
+.btn-remove-barang:hover { background:#dc2626; color:#fff; }
+
+/* Select2 custom */
 .select2-container--default .select2-selection--single { height:42px!important; border-radius:10px!important; border:1.5px solid #dee2e6!important; background:#f8fafd!important; display:flex; align-items:center; }
 .select2-container--default .select2-selection--single .select2-selection__rendered { line-height:42px!important; padding-left:14px!important; font-size:0.85rem; color:#1e3a5f; }
 .select2-container--default .select2-selection--single .select2-selection__arrow { height:40px!important; }
@@ -55,7 +65,7 @@
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-lg-7 col-md-10">
+    <div class="col-lg-8 col-md-11">
         <div class="pm-card">
             <div class="pm-card-header">
                 <i class="bi bi-file-earmark-plus"></i>
@@ -72,24 +82,33 @@
                 <form method="POST" action="{{ route('peminjaman.store') }}">
                     @csrf
 
-                    {{-- Pilih Aset --}}
-                    <div class="pm-field">
-                        <label class="pm-label">Nama Barang / Aset <span class="req">*</span></label>
-                        <select name="material_id" class="namebox" style="width:100%" required>
-                            <option value="">-- Pilih Aset --</option>
-                            @foreach ($material as $item)
-                                <option value="{{ $item->id }}" {{ old('material_id') == $item->id ? 'selected' : '' }}>
-                                    {{ $item->nama_barang }}
-                                    @if($item->kode_barang) — {{ $item->kode_barang }} @endif
-                                    (NUP: {{ $item->nup ?? '-' }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('material_id')
-                            <span class="pm-field-error"><i class="bi bi-exclamation-circle me-1"></i>{{ $message }}</span>
-                        @enderror
+                    {{-- ── Daftar Barang ── --}}
+                    <div class="pm-divider">Daftar Barang yang Dipinjam</div>
+
+                    <div id="barang-container">
+                        <div class="barang-item">
+                            <button type="button" class="btn-remove-barang" title="Hapus">
+                                <i class="bi bi-x"></i>
+                            </button>
+                            <label class="pm-label">Nama Barang / Aset <span class="req">*</span></label>
+                            <select name="material_id[]" class="namebox" style="width:100%" required>
+                                <option value="">-- Pilih Aset --</option>
+                                @foreach ($material as $item)
+                                    <option value="{{ $item->id }}">
+                                        {{ $item->nama_barang }}
+                                        @if($item->kode_barang) — {{ $item->kode_barang }} @endif
+                                        (NUP: {{ $item->nup ?? '-' }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
 
+                    <button type="button" class="pm-btn-add mb-4" id="btnTambahBarang">
+                        <i class="bi bi-plus-circle"></i> Tambah Barang Lagi
+                    </button>
+
+                    {{-- ── Periode ── --}}
                     <div class="pm-divider">Periode Peminjaman</div>
 
                     <div class="row g-3">
@@ -103,9 +122,7 @@
                                            placeholder="yyyy-mm-dd"
                                            value="{{ old('tgl_pinjam') }}" required>
                                 </div>
-                                @error('tgl_pinjam')
-                                    <span class="pm-field-error">{{ $message }}</span>
-                                @enderror
+                                @error('tgl_pinjam') <span class="pm-field-error">{{ $message }}</span> @enderror
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -118,13 +135,12 @@
                                            placeholder="yyyy-mm-dd"
                                            value="{{ old('tgl_kembali') }}" required>
                                 </div>
-                                @error('tgl_kembali')
-                                    <span class="pm-field-error">{{ $message }}</span>
-                                @enderror
+                                @error('tgl_kembali') <span class="pm-field-error">{{ $message }}</span> @enderror
                             </div>
                         </div>
                     </div>
 
+                    {{-- ── Peminjam ── --}}
                     <div class="pm-divider">Data Peminjam</div>
 
                     <div class="pm-field">
@@ -135,11 +151,10 @@
                                    placeholder="Masukkan nama peminjam"
                                    value="{{ old('peminjam') }}" required>
                         </div>
-                        @error('peminjam')
-                            <span class="pm-field-error">{{ $message }}</span>
-                        @enderror
+                        @error('peminjam') <span class="pm-field-error">{{ $message }}</span> @enderror
                     </div>
 
+                    {{-- ── Petugas ── --}}
                     <div class="pm-divider">Petugas Gudang</div>
 
                     <div class="pm-field">
@@ -152,9 +167,7 @@
                                 </option>
                             @endforeach
                         </select>
-                        @error('employee_id')
-                            <span class="pm-field-error"><i class="bi bi-exclamation-circle me-1"></i>{{ $message }}</span>
-                        @enderror
+                        @error('employee_id') <span class="pm-field-error">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="row g-3 mt-2">
@@ -176,15 +189,60 @@
 </div>
 </main>
 
+{{-- Template barang item untuk JS --}}
+<template id="barang-template">
+    <div class="barang-item">
+        <button type="button" class="btn-remove-barang" title="Hapus">
+            <i class="bi bi-x"></i>
+        </button>
+        <label class="pm-label">Nama Barang / Aset</label>
+        <select name="material_id[]" class="namebox-new" style="width:100%" required>
+            <option value="">-- Pilih Aset --</option>
+            @foreach ($material as $item)
+                <option value="{{ $item->id }}">
+                    {{ $item->nama_barang }}
+                    @if($item->kode_barang) — {{ $item->kode_barang }} @endif
+                    (NUP: {{ $item->nup ?? '-' }})
+                </option>
+            @endforeach
+        </select>
+    </div>
+</template>
+
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function () {
-    $('.namebox').select2({ placeholder: '-- Pilih Aset --', allowClear: true });
+    // Init select2 untuk baris pertama
+    initSelect2($('.namebox'));
     $('.petugasbox').select2({ placeholder: '-- Pilih Petugas Gudang --', allowClear: true });
     $("#datepicker").datepicker({ dateFormat: "yy-mm-dd" });
     $("#datepicker1").datepicker({ dateFormat: "yy-mm-dd" });
+
+    // Tambah barang baru
+    $('#btnTambahBarang').on('click', function () {
+        const tmpl  = document.getElementById('barang-template');
+        const clone = tmpl.content.cloneNode(true);
+        const div   = $(clone).find('.barang-item')[0] || clone;
+        $('#barang-container').append(clone);
+
+        // Init select2 pada elemen baru
+        const newSelect = $('#barang-container .barang-item:last .namebox-new');
+        newSelect.removeClass('namebox-new').addClass('namebox');
+        initSelect2(newSelect);
+    });
+
+    // Hapus barang
+    $(document).on('click', '.btn-remove-barang', function () {
+        if ($('.barang-item').length > 1) {
+            $(this).closest('.barang-item').remove();
+        }
+    });
 });
+
+function initSelect2(el) {
+    el.select2({ placeholder: '-- Pilih Aset --', allowClear: true });
+}
 </script>
 @endsection

@@ -1,16 +1,16 @@
-{{-- resources/views/asetHabisPakai/_pagination.blade.php --}}
+{{-- resources/views/pengguna/pagenation.blade.php --}}
 @if ($items->lastPage() > 1)
 <ul class="pag-list">
 
     {{-- First --}}
     <li class="{{ $items->onFirstPage() ? 'pag-disabled' : '' }}">
-        <a href="#" class="pag-btn pag-btn-icon pag-link" data-page="1" title="Pertama">
+        <a href="{{ $items->url(1) }}" class="pag-btn pag-btn-icon" title="Pertama">
             <i class="bi bi-chevron-double-left"></i>
         </a>
     </li>
     {{-- Prev --}}
     <li class="{{ $items->onFirstPage() ? 'pag-disabled' : '' }}">
-        <a href="#" class="pag-btn pag-btn-icon pag-link" data-page="{{ $items->currentPage() - 1 }}" title="Sebelumnya">
+        <a href="{{ $items->previousPageUrl() ?? '#' }}" class="pag-btn pag-btn-icon" title="Sebelumnya">
             <i class="bi bi-chevron-left"></i>
         </a>
     </li>
@@ -32,21 +32,23 @@
             <li class="pag-ellipsis"><span>···</span></li>
         @endif
         <li>
-            <a href="#" class="pag-btn pag-link {{ $page == $cur ? 'pag-btn-active' : '' }}"
-               data-page="{{ $page }}">{{ $page }}</a>
+            <a href="{{ $items->url($page) }}"
+               class="pag-btn {{ $page == $cur ? 'pag-btn-active' : '' }}">
+                {{ $page }}
+            </a>
         </li>
         @php $prev = $page; @endphp
     @endforeach
 
     {{-- Next --}}
     <li class="{{ !$items->hasMorePages() ? 'pag-disabled' : '' }}">
-        <a href="#" class="pag-btn pag-btn-icon pag-link" data-page="{{ $items->currentPage() + 1 }}" title="Berikutnya">
+        <a href="{{ $items->nextPageUrl() ?? '#' }}" class="pag-btn pag-btn-icon" title="Berikutnya">
             <i class="bi bi-chevron-right"></i>
         </a>
     </li>
     {{-- Last --}}
     <li class="{{ !$items->hasMorePages() ? 'pag-disabled' : '' }}">
-        <a href="#" class="pag-btn pag-btn-icon pag-link" data-page="{{ $items->lastPage() }}" title="Terakhir">
+        <a href="{{ $items->url($items->lastPage()) }}" class="pag-btn pag-btn-icon" title="Terakhir">
             <i class="bi bi-chevron-double-right"></i>
         </a>
     </li>
@@ -54,7 +56,7 @@
 </ul>
 @endif
 
-{{-- Info teks di samping pagination --}}
+{{-- Info teks --}}
 <span class="pag-info">
     <strong>{{ $items->firstItem() ?? 0 }}–{{ $items->lastItem() ?? 0 }}</strong>
     dari <strong>{{ $items->total() }}</strong> data
