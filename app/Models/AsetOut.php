@@ -26,7 +26,7 @@ class AsetOut extends Model
     }
 
     /**
-     * Relasi ke tabel ajuans (semua item dalam faktur ini)
+     * Relasi ke tabel ajuans 
      * Menggunakan HasMany karena 1 AsetOut punya banyak Ajuan
      */
     public function ajuan(): HasMany

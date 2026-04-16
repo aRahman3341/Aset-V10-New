@@ -93,7 +93,6 @@ class PenggunaController extends Controller
     {
         $sess = session('user');
 
-        // Hanya Admin yang boleh tambah pengguna
         if ($sess['jabatan'] !== 'admin') {
             abort(403);
         }
@@ -129,12 +128,10 @@ class PenggunaController extends Controller
         $data = $request->only(['nip', 'name', 'email', 'jabatan', 'gender', 'alamat', 'phone_number']);
 
         if (in_array($jabatan, self::LOGIN_ROLES)) {
-            // Simpan ke users — password default = NIP (di-hash)
             User::create(array_merge($data, [
                 'password' => Hash::make($request->nip),
             ]));
         } else {
-            // Karyawan → employees, tanpa kolom password
             Employee::create($data);
         }
 
@@ -148,9 +145,8 @@ class PenggunaController extends Controller
     public function edit(Request $request, $id)
     {
         $sess  = session('user');
-        $type  = $request->input('type', 'user'); // 'user' | 'employee'
+        $type  = $request->input('type', 'user'); 
 
-        // Operator hanya boleh edit diri sendiri
         if ($sess['jabatan'] === 'operator') {
             if ($sess['id'] != $id || $sess['type'] !== $type) {
                 abort(403);
@@ -202,9 +198,7 @@ class PenggunaController extends Controller
             $rules['password'] = [
                 'string',
                 'min:8',
-                // Harus mengandung angka
                 'regex:/[0-9]/',
-                // Harus mengandung simbol
                 'regex:/[\W_]/',
             ];
         }

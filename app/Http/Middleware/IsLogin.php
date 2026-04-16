@@ -12,7 +12,7 @@ class IsLogin
     public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::check()) {
-            return redirect()->route('session.formLogin');  // atau auth.formLogin jika kamu pakai itu
+            return redirect()->route('session.formLogin');  
         }
 
         return $next($request);

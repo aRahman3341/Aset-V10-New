@@ -21,14 +21,11 @@ class ItemsImport implements ToModel, WithHeadingRow, SkipsOnError
      */
     public function headingRow(): int
     {
-        // Heading ada di baris 3 template (baris 1=judul, baris 2=instruksi)
         return 3;
     }
 
     public function model(array $row)
     {
-        // Debug: uncomment baris ini jika masih ada masalah
-        // \Log::info('Import row:', $row);
 
         // Lewati baris yang semua kolomnya kosong
         $kode = trim($row['kode_barang'] ?? $row['kode barang'] ?? '');
@@ -38,7 +35,7 @@ class ItemsImport implements ToModel, WithHeadingRow, SkipsOnError
             return null;
         }
 
-        // Normalisasi kategori (toleran terhadap variasi penulisan)
+        // Normalisasi kategori 
         $rawKat = strtolower(trim($row['kategori'] ?? ''));
         $catMap = [
             'atk'          => 'ATK',

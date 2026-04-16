@@ -15,7 +15,6 @@ class SessionController extends Controller
 
 	public function login(Request $request)
 	{
-		// Session::flash('email',$request->email);
 		$request->validate([
 			'email'=>'required',
 			'password'=>'required',
@@ -38,7 +37,6 @@ class SessionController extends Controller
 
 			return redirect('/')->with('success', 'berhasil login');
 		} else {
-			//return 'gagal';
 			return redirect('session')->withErrors('Username dan password yang dimasukan salah');
 		}
 	}

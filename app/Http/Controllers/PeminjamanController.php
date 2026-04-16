@@ -23,7 +23,6 @@ class PeminjamanController extends Controller
         $paging = 10;
         $query  = $request->input('query', '');
 
-        // with(['materials']) dihapus — materials adalah accessor, bukan Eloquent relation
         $loan = peminjaman::with(['user'])
             ->where(function ($q) use ($query) {
                 $q->where('code',       'LIKE', '%' . $query . '%')

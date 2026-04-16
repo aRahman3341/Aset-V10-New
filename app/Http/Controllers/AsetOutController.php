@@ -359,10 +359,20 @@ class AsetOutController extends Controller
     //  REPORT
     // ══════════════════════════════════════════
     public function report()
-    {
-        $ajuan = Ajuan::with(['item', 'asetOuts'])->paginate(10);
-        return view('asetout.report', compact('ajuan'));
+{
+    $asetKeluarList = \App\Models\AsetKeluar::orderBy('created_at', 'desc')->paginate(15);
+
+    $asets = [];
+    foreach ($asetKeluarList as $item) {
+        $asetIds    = json_decode($item->aset, true) ?? [];
+        $nameValues = array_filter(array_map('intval', array_column($asetIds, 'name')));
+        $asets[$item->id] = !empty($nameValues)
+            ? \App\Models\Materials::whereIn('id', $nameValues)->get()
+            : collect();
     }
+
+    return view('asetout.report', compact('asetKeluarList', 'asets'));
+}
 
     public function exportAll()
     {

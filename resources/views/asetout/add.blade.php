@@ -54,11 +54,6 @@
 							@enderror
 						</div>						
 					@endif
-
-					<!-- Multiple inputs for name, qty, and satuan -->
-					<!-- ... (previous code) ... -->
-
-					<!-- Multiple inputs for name, qty, and satuan -->
 					<div class="col-12">
 						<label class="form-label fw-bold">Barang yang keluar</label><br>
 						<div id="barang_keluar_container">
@@ -110,9 +105,8 @@
 <script>
 
 $(document).ready(function() {
-    let counter = 1; // Initialize a counter variable
+    let counter = 1;
 
-    // Function to handle adding and removing item rows
     $("#add_item_btn").click(function() {
         const newItemRow = `
             <div class="barang_keluar_item">
@@ -134,10 +128,8 @@ $(document).ready(function() {
 
         $("#barang_keluar_container").append(newItemRow);
 
-        // Initialize Select2 for the newly added select element
         $(`#nam_${counter}`).select2();
 
-        // Increment the counter for the next element
         counter++;
     });
 

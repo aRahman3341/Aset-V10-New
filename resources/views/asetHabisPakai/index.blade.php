@@ -52,7 +52,6 @@
             </div>
         </div>
 
-        {{-- Kanan: Action buttons - sama persis dengan aset tetap --}}
         <div class="toolbar-right">
             <span class="selected-badge d-none me-1" id="selectedBadge">
                 <i class="bi bi-check2-square"></i>

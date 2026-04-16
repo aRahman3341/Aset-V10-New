@@ -14,13 +14,6 @@ class QrCodeController extends Controller
     //  ASET TETAP
     // ══════════════════════════════════════════════════════════
 
-    /**
-     * Cetak QR Code aset tetap
-     * Route: POST /asetTetap/qrcodes → name: generate_qrcodes
-     *
-     * QR berisi URL edit aset: http://domain/asetTetap/{id}/edit
-     * Saat di-scan → langsung buka halaman edit aset tersebut
-     */
     public function generateQRCodes(Request $request)
     {
         $ids = $request->input('id_aset', []);
@@ -29,7 +22,6 @@ class QrCodeController extends Controller
             return back()->with('error', 'Pilih minimal satu aset untuk cetak QR.');
         }
 
-        // Gunakan DB::table karena nama kolom DB menggunakan spasi
         $dataproduk = DB::table('materials')
             ->whereIn('id', $ids)
             ->get();

@@ -152,7 +152,6 @@ class AsetExport implements
             'Q1:R1',   // DOKUMEN PSP
             'S1:S2',   // FOTO  ← tambah jika perlu
         ];
-        // Cek dulu sebelum merge agar tidak error
         foreach ($merges as $merge) {
             try { $sheet->mergeCells($merge); } catch (\Exception $e) {}
         }

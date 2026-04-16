@@ -37,12 +37,10 @@ class ItemsController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        // COUNT (jumlah item) — sama dengan dashboard
         $countRT  = Items::where('categories', 'Rumah Tangga')->count();
         $countLab = Items::where('categories', 'Laboratorium')->count();
         $countATK = Items::where('categories', 'ATK')->count();
 
-        // Jika AJAX request
         if ($request->ajax() || $request->has('ajax')) {
             return response()->json([
                 'table'      => view('asetHabisPakai.table', compact('items'))->render(),
@@ -168,7 +166,6 @@ class ItemsController extends Controller
         }
     }
 
-    // Export per kategori (tab "Export per Kategori")
     public function export(Request $request)
     {
         $validator = $request->validate(
@@ -182,7 +179,6 @@ class ItemsController extends Controller
         return Excel::download(new ItemsExport($data, $totalBalance, $categories), $filename);
     }
 
-    // Export barang terpilih dari checkbox (tab "Export Terpilih")
     public function exportSelected(Request $request)
     {
         $selectedIds = $request->input('id_items', []);
@@ -201,9 +197,6 @@ class ItemsController extends Controller
         if (empty($selectedIds)) {
             return redirect()->route('items.index')->with('error', 'Pilih minimal satu barang untuk cetak QR');
         }
-
-        // QR di-generate oleh JavaScript (QRCode.js) di browser
-        // Controller cukup kirim data barang, tidak perlu generate QR di PHP
         $dataproduk = Items::whereIn('id', $selectedIds)->get();
 
         return view('asetHabisPakai.qrcode', compact('dataproduk'));

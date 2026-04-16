@@ -199,7 +199,6 @@ document.querySelectorAll('.export-tab-btn').forEach(btn => {
     });
 });
 
-// ── Saat modal dibuka, update info barang terpilih ──
 document.getElementById('ModalExport').addEventListener('show.bs.modal', function () {
     const count = typeof checkedIds !== 'undefined' ? checkedIds.size : 0;
     const msg   = document.getElementById('exportSelectedMsg');
@@ -218,7 +217,6 @@ document.getElementById('ModalExport').addEventListener('show.bs.modal', functio
         document.getElementById('btnExportSelected').disabled = false;
         document.getElementById('btnExportSelected').classList.replace('btn-secondary','btn-primary');
 
-        // Tampilkan nama barang dari baris tabel yang diceklis
         items.innerHTML = '';
         let shown = 0;
         document.querySelectorAll('input[name="id_items[]"]:checked').forEach(cb => {
@@ -250,7 +248,6 @@ document.getElementById('btnExportSelected').addEventListener('click', function 
         inp.type = 'hidden'; inp.name = 'id_items[]'; inp.value = id;
         inputs.appendChild(inp);
     });
-    // Submit → download langsung (controller return Excel::download)
     form.submit();
     bootstrap.Modal.getInstance(document.getElementById('ModalExport')).hide();
 });

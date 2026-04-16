@@ -75,7 +75,6 @@ class AsetKeluarExport implements FromCollection, WithHeadings, WithStyles, With
                 ? Materials::whereIn('id', $nameValues)->get()
                 : collect();
 
-            // Nama kolom disesuaikan dengan nama kolom asli di tabel DB
             $namaAset = $relatedMaterials->pluck('Nama Barang')->filter()->implode(', ');
             $kodeAset = $relatedMaterials->pluck('Kode Barang')->filter()->implode(', ');
             $nupAset  = $relatedMaterials->pluck('nup')->filter()->implode(', ');
