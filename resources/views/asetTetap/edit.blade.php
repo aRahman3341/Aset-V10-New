@@ -21,6 +21,55 @@
 .btn-batal:hover{background:#e8ecf5;color:#3d5170}
 </style>
 
+@php
+    /*
+     * Helper: baca properti yang mungkin berasal dari Eloquent (accessor)
+     * ATAU dari DB::table (stdClass dengan kolom nama spasi).
+     * Urutan: cek accessor-name dulu, lalu fallback ke kolom DB spasi.
+     */
+    $kodeBarang       = old('code',                $item->code                ?? $item->{'Kode Barang'}             ?? '');
+    $nup              = old('nup',                 $item->nup                 ?? '');
+    $namaBarang       = old('name',                $item->name                ?? $item->{'Nama Barang'}             ?? '');
+    $merk             = old('name_fix',            $item->merk                ?? $item->name_fix                    ?? '');
+    $noSeri           = old('no_seri',             $item->no_seri             ?? '');
+    $jenisBmn         = old('jenis_bmn',           $item->jenis_bmn           ?? $item->{'Jenis BMN'}               ?? '');
+    $tipeAset         = old('type',                $item->tipe                ?? $item->type                        ?? 'Tetap');
+    $kondisi          = old('condition',           $item->kondisi             ?? $item->condition                   ?? 'Baik');
+    $statusPenggunaan = old('status',              $item->status              ?? 'Tidak Dipakai');
+    $statusBmn        = old('status_bmn',          $item->status_bmn          ?? $item->{'Status BMN'}              ?? 'Aktif');
+    $satuan           = old('satuan',              $item->satuan              ?? '');
+    $nilaiAwal        = old('nilai',               $item->nilai               ?? $item->{'Nilai Perolehan Pertama'} ?? '');
+    $nilaiPerolehan   = old('nilai_perolehan',     $item->nilai_perolehan     ?? $item->{'Nilai Perolehan'}         ?? '');
+    $nilaiPenyusutan  = old('nilai_penyusutan',    $item->nilai_penyusutan    ?? $item->{'Nilai Penyusutan'}        ?? '');
+    $nilaiBuku        = old('nilai_buku',          $item->nilai_buku          ?? $item->{'Nilai Buku'}              ?? '');
+    $years            = old('years',               $item->years               ?? '');
+
+    // Tanggal — parse aman
+    $tglPerolehan = '';
+    $rawTglP = $item->tanggal_perolehan ?? $item->{'Tanggal Perolehan'} ?? null;
+    if ($rawTglP) { try { $tglPerolehan = \Carbon\Carbon::parse($rawTglP)->format('Y-m-d'); } catch(\Exception $e){} }
+    $tglPerolehan = old('tanggal_perolehan', $tglPerolehan);
+
+    $tglBukuPertama = '';
+    $rawTglB = $item->tanggal_buku_pertama ?? $item->{'Tanggal Buku Pertama'} ?? null;
+    if ($rawTglB) { try { $tglBukuPertama = \Carbon\Carbon::parse($rawTglB)->format('Y-m-d'); } catch(\Exception $e){} }
+    $tglBukuPertama = old('tanggal_buku_pertama', $tglBukuPertama);
+
+    $lifeTime   = old('life_time',       $item->life_time   ?? $item->umur_aset ?? '');
+    $noPsp      = old('no_psp',          $item->no_psp      ?? $item->{'No PSP'} ?? '');
+
+    $tglPsp = '';
+    $rawTglPsp = $item->tanggal_psp ?? $item->{'Tanggal PSP'} ?? null;
+    if ($rawTglPsp) { try { $tglPsp = \Carbon\Carbon::parse($rawTglPsp)->format('Y-m-d'); } catch(\Exception $e){} }
+    $tglPsp = old('tanggal_psp', $tglPsp);
+
+    $kodeSatker = old('kode_satker', $item->kode_satker ?? '');
+    $namaSatker = old('nama_satker', $item->nama_satker ?? '');
+    $alamat     = old('alamat',      $item->alamat      ?? '');
+    $kabKota    = old('kab_kota',    $item->kab_kota    ?? '');
+    $provinsi   = old('provinsi',    $item->provinsi    ?? '');
+@endphp
+
 <div class="pagetitle">
     <h1 style="font-size:1.2rem;font-weight:800;color:#1e3a5f;">
         <i class="bi bi-pencil-square me-2"></i>Edit Aset Tetap
@@ -56,33 +105,34 @@
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <label class="form-label-custom">Kode Barang <span class="req">*</span></label>
-        <input type="text" name="code" class="form-control @error('code') is-invalid @enderror"
-               value="{{ old('code', $item->code) }}" required>
+        <input type="text" name="code"
+               class="form-control @error('code') is-invalid @enderror"
+               value="{{ $kodeBarang }}" required>
         @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-2">
         <label class="form-label-custom">NUP <span class="req">*</span></label>
-        <input type="text" name="nup" class="form-control @error('nup') is-invalid @enderror"
-               value="{{ old('nup', $item->nup) }}" required>
+        <input type="text" name="nup"
+               class="form-control @error('nup') is-invalid @enderror"
+               value="{{ $nup }}" required>
         @error('nup')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-7">
         <label class="form-label-custom">Nama Barang <span class="req">*</span></label>
-        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-               value="{{ old('name', $item->name) }}" required>
+        <input type="text" name="name"
+               class="form-control @error('name') is-invalid @enderror"
+               value="{{ $namaBarang }}" required>
         @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">Merk / Uraian</label>
         <input type="text" name="name_fix" class="form-control"
-               value="{{ old('name_fix', $item->name_fix) }}"
-               placeholder="Contoh: Honda, Asus">
+               value="{{ $merk }}" placeholder="Contoh: Honda, Asus">
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">No. Seri</label>
         <input type="text" name="no_seri" class="form-control"
-               value="{{ old('no_seri', $item->no_seri) }}"
-               placeholder="Nomor seri barang">
+               value="{{ $noSeri }}" placeholder="Nomor seri barang">
     </div>
 </div>
 
@@ -94,46 +144,46 @@
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <label class="form-label-custom">Jenis BMN <span class="req">*</span></label>
-        <input type="text" name="jenis_bmn" class="form-control @error('jenis_bmn') is-invalid @enderror"
-               value="{{ old('jenis_bmn', $item->jenis_bmn) }}"
+        <input type="text" name="jenis_bmn"
+               class="form-control @error('jenis_bmn') is-invalid @enderror"
+               value="{{ $jenisBmn }}"
                placeholder="Contoh: ALAT BESAR" required>
         @error('jenis_bmn')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">Tipe Aset</label>
         <select name="type" class="form-select">
-            <option value="Tetap"      {{ old('type', $item->type) == 'Tetap'      ? 'selected':'' }}>Tetap</option>
-            <option value="Alat besar" {{ old('type', $item->type) == 'Alat besar' ? 'selected':'' }}>Alat Besar</option>
+            <option value="Tetap"      {{ $tipeAset == 'Tetap'      ? 'selected':'' }}>Tetap</option>
+            <option value="Alat besar" {{ $tipeAset == 'Alat besar' ? 'selected':'' }}>Alat Besar</option>
         </select>
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">Kondisi</label>
         <select name="condition" class="form-select">
-            <option value="Baik"         {{ old('condition', $item->condition) == 'Baik'         ? 'selected':'' }}>Baik</option>
-            <option value="Rusak Ringan" {{ old('condition', $item->condition) == 'Rusak Ringan' ? 'selected':'' }}>Rusak Ringan</option>
-            <option value="Rusak Berat"  {{ old('condition', $item->condition) == 'Rusak Berat'  ? 'selected':'' }}>Rusak Berat</option>
+            <option value="Baik"         {{ $kondisi == 'Baik'         ? 'selected':'' }}>Baik</option>
+            <option value="Rusak Ringan" {{ $kondisi == 'Rusak Ringan' ? 'selected':'' }}>Rusak Ringan</option>
+            <option value="Rusak Berat"  {{ $kondisi == 'Rusak Berat'  ? 'selected':'' }}>Rusak Berat</option>
         </select>
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">Status Penggunaan</label>
         <select name="status" class="form-select">
-            <option value="Tidak Dipakai" {{ old('status', $item->status) == 'Tidak Dipakai' ? 'selected':'' }}>Tidak Dipakai</option>
-            <option value="Dipakai"       {{ old('status', $item->status) == 'Dipakai'       ? 'selected':'' }}>Dipakai</option>
-            <option value="Maintenance"   {{ old('status', $item->status) == 'Maintenance'   ? 'selected':'' }}>Maintenance</option>
+            <option value="Tidak Dipakai" {{ $statusPenggunaan == 'Tidak Dipakai' ? 'selected':'' }}>Tidak Dipakai</option>
+            <option value="Dipakai"       {{ $statusPenggunaan == 'Dipakai'       ? 'selected':'' }}>Dipakai</option>
+            <option value="Maintenance"   {{ $statusPenggunaan == 'Maintenance'   ? 'selected':'' }}>Maintenance</option>
         </select>
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">Status BMN</label>
         <select name="status_bmn" class="form-select">
-            <option value="Aktif"       {{ old('status_bmn', $item->status_bmn) == 'Aktif'       ? 'selected':'' }}>Aktif</option>
-            <option value="Tidak Aktif" {{ old('status_bmn', $item->status_bmn) == 'Tidak Aktif' ? 'selected':'' }}>Tidak Aktif</option>
+            <option value="Aktif"       {{ $statusBmn == 'Aktif'       ? 'selected':'' }}>Aktif</option>
+            <option value="Tidak Aktif" {{ $statusBmn == 'Tidak Aktif' ? 'selected':'' }}>Tidak Aktif</option>
         </select>
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">Satuan</label>
         <input type="text" name="satuan" class="form-control"
-               value="{{ old('satuan', $item->satuan) }}"
-               placeholder="Contoh: Unit, Buah">
+               value="{{ $satuan }}" placeholder="Contoh: Unit, Buah">
     </div>
 </div>
 
@@ -144,45 +194,44 @@
 </div>
 <div class="row g-3 mb-4">
     <div class="col-md-3">
-        <label class="form-label-custom">Nilai Awal (Rp)</label>
+        <label class="form-label-custom">Nilai Perolehan Pertama (Rp)</label>
         <input type="number" name="nilai" class="form-control" min="0"
-               value="{{ old('nilai', $item->nilai) }}">
+               value="{{ $nilaiAwal }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Nilai Perolehan (Rp)</label>
         <input type="number" name="nilai_perolehan" class="form-control" min="0"
-               value="{{ old('nilai_perolehan', $item->nilai_perolehan) }}">
+               value="{{ $nilaiPerolehan }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Nilai Penyusutan (Rp)</label>
         <input type="number" name="nilai_penyusutan" class="form-control" min="0"
-               value="{{ old('nilai_penyusutan', $item->nilai_penyusutan) }}">
+               value="{{ $nilaiPenyusutan }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Nilai Buku (Rp)</label>
         <input type="number" name="nilai_buku" class="form-control" min="0"
-               value="{{ old('nilai_buku', $item->nilai_buku) }}">
+               value="{{ $nilaiBuku }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Tahun Perolehan</label>
         <input type="number" name="years" class="form-control"
-               min="1900" max="{{ date('Y') }}"
-               value="{{ old('years', $item->years) }}">
+               min="1900" max="{{ date('Y') }}" value="{{ $years }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Tanggal Perolehan</label>
         <input type="date" name="tanggal_perolehan" class="form-control"
-               value="{{ old('tanggal_perolehan', $item->tanggal_perolehan ? \Carbon\Carbon::parse($item->tanggal_perolehan)->format('Y-m-d') : '') }}">
+               value="{{ $tglPerolehan }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Tanggal Buku Pertama</label>
         <input type="date" name="tanggal_buku_pertama" class="form-control"
-               value="{{ old('tanggal_buku_pertama', $item->tanggal_buku_pertama ? \Carbon\Carbon::parse($item->tanggal_buku_pertama)->format('Y-m-d') : '') }}">
+               value="{{ $tglBukuPertama }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Umur Aset (Tahun)</label>
         <input type="number" name="life_time" class="form-control" min="0"
-               value="{{ old('life_time', $item->life_time ?? $item->umur_aset) }}">
+               value="{{ $lifeTime }}">
     </div>
 </div>
 
@@ -195,13 +244,12 @@
     <div class="col-md-6">
         <label class="form-label-custom">No PSP</label>
         <input type="text" name="no_psp" class="form-control"
-               value="{{ old('no_psp', $item->no_psp) }}"
-               placeholder="Nomor PSP">
+               value="{{ $noPsp }}" placeholder="Nomor PSP">
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">Tanggal PSP</label>
         <input type="date" name="tanggal_psp" class="form-control"
-               value="{{ old('tanggal_psp', $item->tanggal_psp ? \Carbon\Carbon::parse($item->tanggal_psp)->format('Y-m-d') : '') }}">
+               value="{{ $tglPsp }}">
     </div>
 </div>
 
@@ -214,31 +262,27 @@
     <div class="col-md-3">
         <label class="form-label-custom">Kode Satker</label>
         <input type="text" name="kode_satker" class="form-control"
-               value="{{ old('kode_satker', $item->kode_satker) }}"
-               placeholder="Kode Satuan Kerja">
+               value="{{ $kodeSatker }}" placeholder="Kode Satuan Kerja">
     </div>
     <div class="col-md-9">
         <label class="form-label-custom">Nama Satker</label>
         <input type="text" name="nama_satker" class="form-control"
-               value="{{ old('nama_satker', $item->nama_satker) }}"
-               placeholder="Nama Satuan Kerja">
+               value="{{ $namaSatker }}" placeholder="Nama Satuan Kerja">
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">Alamat</label>
         <textarea name="alamat" class="form-control" rows="2"
-                  placeholder="Alamat lengkap aset">{{ old('alamat', $item->alamat) }}</textarea>
+                  placeholder="Alamat lengkap aset">{{ $alamat }}</textarea>
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Kab / Kota</label>
         <input type="text" name="kab_kota" class="form-control"
-               value="{{ old('kab_kota', $item->kab_kota) }}"
-               placeholder="Contoh: Kota Bandung">
+               value="{{ $kabKota }}" placeholder="Contoh: Kota Bandung">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Provinsi</label>
         <input type="text" name="provinsi" class="form-control"
-               value="{{ old('provinsi', $item->provinsi) }}"
-               placeholder="Contoh: Jawa Barat">
+               value="{{ $provinsi }}" placeholder="Contoh: Jawa Barat">
     </div>
 </div>
 

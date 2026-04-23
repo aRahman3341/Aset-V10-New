@@ -58,7 +58,7 @@
     <section class="section dashboard">
         <div class="row g-4">
 
-            {{-- Chart: Statistik Aset --}}
+            {{-- Chart: Statistik Aset per Jenis BMN --}}
             <div class="col-lg-8 col-md-12">
                 <div class="chart-card">
                     <div class="chart-card-header">
@@ -67,8 +67,8 @@
                                 <i class="bi bi-graph-up-arrow"></i>
                             </div>
                             <div>
-                                <h5>Statistik Aset</h5>
-                                <p>Tren aset per jenis BMN — <strong>{{ $tahun ? $tahun : 'Semua Tahun' }}</strong></p>
+                                <h5>Statistik Aset Tetap</h5>
+                                <p>Jumlah aset per Jenis BMN — <strong>{{ $tahun ? $tahun : 'Semua Tahun' }}</strong></p>
                             </div>
                         </div>
                         <a href="{{ url('asetTetap') }}" class="chart-detail-btn">
@@ -92,7 +92,7 @@
                             </div>
                             <div>
                                 <h5>Barang Habis Pakai</h5>
-                                <p>Stok terpakai per kategori — <strong>{{ $tahun ? $tahun : 'Semua Tahun' }}</strong></p>
+                                <p>Stok per kategori — <strong>{{ $tahun ? $tahun : 'Semua Tahun' }}</strong></p>
                             </div>
                         </div>
                         <a href="{{ url('items') }}" class="chart-detail-btn">
@@ -150,7 +150,7 @@
 .pagetitle h1 { font-size: 1.45rem; font-weight: 700; color: #1e3a5f; margin: 0 0 4px; letter-spacing: -0.3px; }
 .pagetitle .breadcrumb { margin: 0; padding: 0; background: transparent; font-size: 0.8rem; }
 .pagetitle .breadcrumb-item a { color: #2d5a8e; text-decoration: none; display: flex; align-items: center; gap: 4px; }
-.pagetitle .breadcrumb-item.active { color: #6c757d; }
+.pagetitle .breadcrumb-item.active { color: #6c7a8d; }
 .date-badge {
     display: flex; align-items: center; gap: 8px;
     background: rgba(30,58,95,0.06); border: 1px solid rgba(30,58,95,0.12);
@@ -192,7 +192,6 @@
 }
 </style>
 
-{{-- Highcharts dari CDN dengan fallback lokal --}}
 <script src="https://code.highcharts.com/highcharts.js"
         onerror="loadHighchartsFromAlternate()"></script>
 <script src="https://code.highcharts.com/modules/exporting.js"></script>
@@ -200,190 +199,200 @@
 <script src="https://code.highcharts.com/modules/accessibility.js"></script>
 
 <script>
-    // Fallback CDN jika code.highcharts.com gagal
-    function loadHighchartsFromAlternate() {
-        var s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.2.0/highcharts.js';
-        s.onload = function() { initCharts(); };
-        document.head.appendChild(s);
-    }
+function loadHighchartsFromAlternate() {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.2.0/highcharts.js';
+    s.onload = function() { initCharts(); };
+    document.head.appendChild(s);
+}
 
-    // Set tanggal
-    document.getElementById('current-date').textContent = new Date().toLocaleDateString('id-ID', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+document.getElementById('current-date').textContent = new Date().toLocaleDateString('id-ID', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+});
+
+// ── Data per Jenis BMN dari Laravel ──
+var dataPerJenis = @json($dataPerJenis);
+var dataRT       = @json(array_values($quantityRT));
+var dataATK      = @json(array_values($quantityATK));
+var dataLab      = @json(array_values($quantityLab));
+var labelBulan   = @json(array_values($bulan));
+
+// Palet warna untuk 6 jenis BMN
+var JENIS_CONFIG = {
+    'ALAT BESAR':                 { label: 'Alat Besar',            color: '#4154f1' },
+    'ALAT ANGKUTAN BERMOTOR':     { label: 'Alat Angkutan Bermotor',color: '#2eca6a' },
+    'BANGUNAN DAN GEDUNG':        { label: 'Bangunan dan Gedung',   color: '#ff771d' },
+    'JALAN DAN JEMBATAN':         { label: 'Jalan dan Jembatan',    color: '#e84c88' },
+    'MESIN PERALATAN KHUSUS TIK': { label: 'Mesin Peralatan TIK',  color: '#f5a623' },
+    'MESIN PERALATAN NON TIK':    { label: 'Mesin Peralatan Non TIK', color: '#1abfbf' },
+};
+
+function buildAsetSeries() {
+    return Object.entries(dataPerJenis).map(function([jenis, data]) {
+        var cfg = JENIS_CONFIG[jenis] || { label: jenis, color: '#8a96a3' };
+        return {
+            name:  cfg.label,
+            data:  data,
+            color: cfg.color,
+            fillColor: {
+                linearGradient: { x1:0, y1:0, x2:0, y2:1 },
+                stops: [
+                    [0, cfg.color + '40'],  // ~25% opacity
+                    [1, cfg.color + '00'],  // 0% opacity
+                ]
+            }
+        };
     });
+}
 
-    // ── Data dari Laravel (PHP → JS) ──
-    var dataAsetMesin = @json(array_values($quantityTetap));
-    var dataAsetInfra = @json(array_values($quantityBergerak));
-    var dataRT        = @json(array_values($quantityRT));
-    var dataATK       = @json(array_values($quantityATK));
-    var dataLab       = @json(array_values($quantityLab));
-    var labelBulan    = @json(array_values($bulan));
-
-    function initCharts() {
-        if (typeof Highcharts === 'undefined') {
-            document.getElementById('grafikAset').innerHTML =
-                '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8a96a3;font-size:.85rem;">' +
-                '<i class="bi bi-exclamation-circle me-2"></i>Highcharts gagal dimuat. Periksa koneksi internet.</div>';
-            document.getElementById('grafikBarang').innerHTML =
+function initCharts() {
+    if (typeof Highcharts === 'undefined') {
+        ['grafikAset','grafikBarang'].forEach(function(id) {
+            document.getElementById(id).innerHTML =
                 '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8a96a3;font-size:.85rem;">' +
                 '<i class="bi bi-exclamation-circle me-2"></i>Highcharts gagal dimuat.</div>';
-            return;
-        }
-
-        Highcharts.setOptions({
-            chart: { style: { fontFamily: '"Plus Jakarta Sans","Nunito",sans-serif' } },
-            lang:  { decimalPoint: ',', thousandsSep: '.', noData: 'Tidak ada data' }
         });
-
-        // ── Grafik Statistik Aset ──
-        Highcharts.chart('grafikAset', {
-            chart: {
-                type: 'areaspline', backgroundColor: 'transparent',
-                spacingTop: 10, spacingBottom: 5,
-                animation: { duration: 800 },
-                reflow: true
-            },
-            title: { text: '' },
-            xAxis: {
-                categories: labelBulan,
-                crosshair: { width: 1, color: 'rgba(30,58,95,0.15)', dashStyle: 'Dash' },
-                gridLineWidth: 0, lineColor: '#e8ecf0', tickColor: 'transparent',
-                labels: { style: { fontSize: '11px', color: '#8a96a3' } }
-            },
-            yAxis: {
-                title: { text: '' },
-                allowDecimals: false,
-                gridLineDashStyle: 'LongDash', gridLineColor: '#f0f3f6',
-                labels: { style: { fontSize: '11px', color: '#8a96a3' } }
-            },
-            tooltip: {
-                shared: true, useHTML: true,
-                backgroundColor: 'rgba(255,255,255,0.97)', borderWidth: 0, borderRadius: 12,
-                shadow: { color: 'rgba(30,58,95,0.12)', offsetX: 0, offsetY: 4, opacity: 0.8, width: 16 },
-                headerFormat: '<div style="font-size:11px;font-weight:600;color:#8a96a3;margin-bottom:6px">{point.key}</div>',
-                pointFormat: '<div style="display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:3px">' +
-                             '<span style="display:flex;align-items:center;gap:6px">' +
-                             '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{series.color}"></span>' +
-                             '<span style="color:#4a5568;font-size:12px">{series.name}</span></span>' +
-                             '<b style="color:#1e3a5f;font-size:12px">{point.y} unit</b></div>',
-                footerFormat: ''
-            },
-            legend: {
-                align: 'center', verticalAlign: 'bottom',
-                itemStyle: { fontSize: '12px', fontWeight: '600', color: '#4a5568' },
-                symbolRadius: 4
-            },
-            plotOptions: {
-                areaspline: {
-                    fillOpacity: 0.08, lineWidth: 2.5,
-                    marker: { radius: 4, lineColor: '#fff', lineWidth: 2, symbol: 'circle', enabled: true },
-                    states: { hover: { lineWidth: 3 } }
-                }
-            },
-            series: [{
-                name: 'Mesin & Peralatan',
-                data: dataAsetMesin,
-                color: '#2eca6a',
-                fillColor: { linearGradient: { x1:0,y1:0,x2:0,y2:1 },
-                    stops: [[0,'rgba(46,202,106,0.35)'],[1,'rgba(46,202,106,0.00)']] }
-            },{
-                name: 'Kendaraan & Infrastruktur',
-                data: dataAsetInfra,
-                color: '#4154f1',
-                fillColor: { linearGradient: { x1:0,y1:0,x2:0,y2:1 },
-                    stops: [[0,'rgba(65,84,241,0.35)'],[1,'rgba(65,84,241,0.00)']] }
-            }],
-            credits: { enabled: false },
-            noData: { style: { fontSize: '14px', color: '#8a96a3' } },
-            exporting: {
-                enabled: true,
-                buttons: { contextButton: {
-                    menuItems: ['viewFullscreen','printChart','separator',
-                                'downloadPNG','downloadJPEG','downloadSVG','separator',
-                                'downloadCSV','downloadXLS']
-                }}
-            }
-        });
-
-        // ── Grafik Barang Habis Pakai ──
-        Highcharts.chart('grafikBarang', {
-            chart: {
-                type: 'column', backgroundColor: 'transparent',
-                spacingTop: 10, spacingBottom: 5,
-                animation: { duration: 800 },
-                reflow: true
-            },
-            title: { text: '' },
-            xAxis: {
-                categories: labelBulan,
-                crosshair: { width: 1, color: 'rgba(30,58,95,0.15)', dashStyle: 'Dash' },
-                lineColor: '#e8ecf0', tickColor: 'transparent',
-                labels: { style: { fontSize: '11px', color: '#8a96a3' } }
-            },
-            yAxis: {
-                min: 0, title: { text: '' }, allowDecimals: false,
-                gridLineDashStyle: 'LongDash', gridLineColor: '#f0f3f6',
-                labels: { style: { fontSize: '11px', color: '#8a96a3' } }
-            },
-            tooltip: {
-                shared: true, useHTML: true,
-                backgroundColor: 'rgba(255,255,255,0.97)', borderWidth: 0, borderRadius: 12,
-                shadow: { color: 'rgba(30,58,95,0.12)', offsetX: 0, offsetY: 4, opacity: 0.8, width: 16 },
-                headerFormat: '<div style="font-size:11px;font-weight:600;color:#8a96a3;margin-bottom:6px">{point.key}</div>',
-                pointFormat: '<div style="display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:3px">' +
-                             '<span style="display:flex;align-items:center;gap:6px">' +
-                             '<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:{series.color}"></span>' +
-                             '<span style="color:#4a5568;font-size:12px">{series.name}</span></span>' +
-                             '<b style="color:#1e3a5f;font-size:12px">{point.y}</b></div>',
-                footerFormat: ''
-            },
-            legend: {
-                align: 'center', verticalAlign: 'bottom',
-                itemStyle: { fontSize: '11px', fontWeight: '600', color: '#4a5568' },
-                symbolRadius: 3, symbolHeight: 10, symbolWidth: 10
-            },
-            plotOptions: {
-                column: {
-                    pointPadding: 0.15, groupPadding: 0.1,
-                    borderWidth: 0, borderRadius: 5,
-                    states: { hover: { brightness: -0.05 } }
-                }
-            },
-            series: [
-                { name: 'Rumah Tangga', data: dataRT,  color: '#ff771d' },
-                { name: 'Laboratorium', data: dataLab, color: '#4154f1' },
-                { name: 'ATK',          data: dataATK, color: '#2eca6a' }
-            ],
-            credits: { enabled: false },
-            noData: { style: { fontSize: '14px', color: '#8a96a3' } },
-            exporting: {
-                enabled: true,
-                buttons: { contextButton: {
-                    menuItems: ['viewFullscreen','printChart','separator',
-                                'downloadPNG','downloadJPEG','downloadSVG','separator',
-                                'downloadCSV','downloadXLS']
-                }}
-            }
-        });
+        return;
     }
 
-    // Tunggu DOM + Highcharts siap
-    document.addEventListener('DOMContentLoaded', function () {
-        // Retry sampai Highcharts tersedia (maks 5 detik)
-        var attempts = 0;
-        var interval = setInterval(function () {
-            attempts++;
-            if (typeof Highcharts !== 'undefined') {
-                clearInterval(interval);
-                initCharts();
-            } else if (attempts > 50) {
-                clearInterval(interval);
-                loadHighchartsFromAlternate();
-            }
-        }, 100);
+    Highcharts.setOptions({
+        chart: { style: { fontFamily: '"Plus Jakarta Sans","Nunito",sans-serif' } },
+        lang:  { decimalPoint: ',', thousandsSep: '.', noData: 'Tidak ada data' }
     });
+
+    // ── Grafik Aset Tetap per Jenis BMN ──
+    Highcharts.chart('grafikAset', {
+        chart: {
+            type: 'areaspline',
+            backgroundColor: 'transparent',
+            spacingTop: 10, spacingBottom: 5,
+            animation: { duration: 800 },
+        },
+        title: { text: '' },
+        xAxis: {
+            categories: labelBulan,
+            crosshair: { width: 1, color: 'rgba(30,58,95,0.15)', dashStyle: 'Dash' },
+            gridLineWidth: 0, lineColor: '#e8ecf0', tickColor: 'transparent',
+            labels: { style: { fontSize: '11px', color: '#8a96a3' } }
+        },
+        yAxis: {
+            title: { text: '' },
+            allowDecimals: false,
+            gridLineDashStyle: 'LongDash', gridLineColor: '#f0f3f6',
+            labels: { style: { fontSize: '11px', color: '#8a96a3' } }
+        },
+        tooltip: {
+            shared: true, useHTML: true,
+            backgroundColor: 'rgba(255,255,255,0.97)', borderWidth: 0, borderRadius: 12,
+            shadow: { color: 'rgba(30,58,95,0.12)', offsetX: 0, offsetY: 4, opacity: 0.8, width: 16 },
+            headerFormat: '<div style="font-size:11px;font-weight:600;color:#8a96a3;margin-bottom:8px">{point.key}</div>',
+            pointFormat:
+                '<div style="display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:4px">' +
+                '<span style="display:flex;align-items:center;gap:6px">' +
+                '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{series.color}"></span>' +
+                '<span style="color:#4a5568;font-size:12px">{series.name}</span></span>' +
+                '<b style="color:#1e3a5f;font-size:12px">{point.y} unit</b></div>',
+        },
+        legend: {
+            align: 'center', verticalAlign: 'bottom',
+            layout: 'horizontal',
+            itemStyle: { fontSize: '11px', fontWeight: '600', color: '#4a5568' },
+            symbolRadius: 4,
+            itemDistance: 12,
+        },
+        plotOptions: {
+            areaspline: {
+                fillOpacity: 0.1, lineWidth: 2.5,
+                marker: { radius: 3, lineColor: '#fff', lineWidth: 2, symbol: 'circle', enabled: true },
+                states: { hover: { lineWidth: 3 } }
+            }
+        },
+        series: buildAsetSeries(),
+        credits: { enabled: false },
+        exporting: {
+            enabled: true,
+            buttons: { contextButton: {
+                menuItems: ['viewFullscreen','printChart','separator',
+                            'downloadPNG','downloadJPEG','downloadSVG','separator',
+                            'downloadCSV','downloadXLS']
+            }}
+        }
+    });
+
+    // ── Grafik Barang Habis Pakai ──
+    Highcharts.chart('grafikBarang', {
+        chart: {
+            type: 'column',
+            backgroundColor: 'transparent',
+            spacingTop: 10, spacingBottom: 5,
+            animation: { duration: 800 },
+        },
+        title: { text: '' },
+        xAxis: {
+            categories: labelBulan,
+            crosshair: { width: 1, color: 'rgba(30,58,95,0.15)', dashStyle: 'Dash' },
+            lineColor: '#e8ecf0', tickColor: 'transparent',
+            labels: { style: { fontSize: '11px', color: '#8a96a3' } }
+        },
+        yAxis: {
+            min: 0, title: { text: '' }, allowDecimals: false,
+            gridLineDashStyle: 'LongDash', gridLineColor: '#f0f3f6',
+            labels: { style: { fontSize: '11px', color: '#8a96a3' } }
+        },
+        tooltip: {
+            shared: true, useHTML: true,
+            backgroundColor: 'rgba(255,255,255,0.97)', borderWidth: 0, borderRadius: 12,
+            shadow: { color: 'rgba(30,58,95,0.12)', offsetX: 0, offsetY: 4, opacity: 0.8, width: 16 },
+            headerFormat: '<div style="font-size:11px;font-weight:600;color:#8a96a3;margin-bottom:8px">{point.key}</div>',
+            pointFormat:
+                '<div style="display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:4px">' +
+                '<span style="display:flex;align-items:center;gap:6px">' +
+                '<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:{series.color}"></span>' +
+                '<span style="color:#4a5568;font-size:12px">{series.name}</span></span>' +
+                '<b style="color:#1e3a5f;font-size:12px">{point.y}</b></div>',
+        },
+        legend: {
+            align: 'center', verticalAlign: 'bottom',
+            itemStyle: { fontSize: '11px', fontWeight: '600', color: '#4a5568' },
+            symbolRadius: 3, symbolHeight: 10, symbolWidth: 10,
+        },
+        plotOptions: {
+            column: {
+                pointPadding: 0.15, groupPadding: 0.1,
+                borderWidth: 0, borderRadius: 5,
+                states: { hover: { brightness: -0.05 } }
+            }
+        },
+        series: [
+            { name: 'Rumah Tangga', data: dataRT,  color: '#ff771d' },
+            { name: 'Laboratorium', data: dataLab, color: '#4154f1' },
+            { name: 'ATK',          data: dataATK, color: '#2eca6a' }
+        ],
+        credits: { enabled: false },
+        exporting: {
+            enabled: true,
+            buttons: { contextButton: {
+                menuItems: ['viewFullscreen','printChart','separator',
+                            'downloadPNG','downloadJPEG','downloadSVG','separator',
+                            'downloadCSV','downloadXLS']
+            }}
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    var attempts = 0;
+    var interval = setInterval(function () {
+        attempts++;
+        if (typeof Highcharts !== 'undefined') {
+            clearInterval(interval);
+            initCharts();
+        } else if (attempts > 50) {
+            clearInterval(interval);
+            loadHighchartsFromAlternate();
+        }
+    }, 100);
+});
 </script>
 
 @endsection

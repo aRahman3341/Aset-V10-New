@@ -13,21 +13,24 @@ class ItemsImport implements ToModel, WithHeadingRow, SkipsOnError
     use SkipsErrors;
 
     /**
-     * WithHeadingRow membaca baris pertama sebagai key.
-     * Key dikonversi otomatis: spasi→underscore, huruf kecil semua.
+     * headingRow: 1 — baris pertama adalah header kolom.
+     * Konsisten dengan format export ItemsExport.
      *
-     * Heading di template: kode_barang | nama_barang | kategori | satuan | saldo | status
-     * Key yang terbaca   : kode_barang | nama_barang | kategori | satuan | saldo | status
+     * Header yang dibaca (otomatis dikonversi ke snake_case):
+     *   Kode Barang → kode_barang
+     *   Nama Barang → nama_barang
+     *   Kategori    → kategori
+     *   Satuan      → satuan
+     *   Saldo       → saldo
+     *   Status      → status
      */
     public function headingRow(): int
     {
-        return 3;
+        return 1;
     }
 
     public function model(array $row)
     {
-
-        // Lewati baris yang semua kolomnya kosong
         $kode = trim($row['kode_barang'] ?? $row['kode barang'] ?? '');
         $nama = trim($row['nama_barang'] ?? $row['nama barang'] ?? '');
 
@@ -35,7 +38,7 @@ class ItemsImport implements ToModel, WithHeadingRow, SkipsOnError
             return null;
         }
 
-        // Normalisasi kategori 
+        // Normalisasi kategori
         $rawKat = strtolower(trim($row['kategori'] ?? ''));
         $catMap = [
             'atk'          => 'ATK',
@@ -51,7 +54,6 @@ class ItemsImport implements ToModel, WithHeadingRow, SkipsOnError
         $rawStatus = strtolower(trim($row['status'] ?? ''));
         $status    = in_array($rawStatus, ['1', 'teregister', 'ya', 'yes', 'true', 'aktif']) ? 1 : 0;
 
-        // Normalisasi saldo
         $saldo = preg_replace('/[^0-9]/', '', (string)($row['saldo'] ?? '0'));
         $saldo = (int)($saldo ?: 0);
 

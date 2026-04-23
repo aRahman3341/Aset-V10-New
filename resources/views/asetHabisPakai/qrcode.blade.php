@@ -15,7 +15,6 @@
             background: #fff;
         }
 
-        /* ── Toolbar (tidak ikut print) ── */
         .toolbar {
             display: flex;
             align-items: center;
@@ -39,7 +38,6 @@
             cursor: pointer; font-family: Arial, sans-serif;
         }
 
-        /* ── Grid utama — 2 kolom ── */
         .page-wrapper { width: 100%; padding: 10px; }
 
         table.grid {
@@ -53,7 +51,6 @@
             vertical-align: top;
         }
 
-        /* ── Label Card ── */
         .label-card {
             border: 1.5px solid #333;
             width: 100%;
@@ -66,7 +63,6 @@
             vertical-align: middle;
         }
 
-        /* Header row */
         .label-card .row-header td {
             background-color: #003087;
             color: #fff;
@@ -77,7 +73,6 @@
             padding: 4px 6px;
         }
 
-        /* Logo cell — ukuran sama dengan QR (100px wide, 90px img) */
         .cell-logo {
             width: 100px;
             text-align: center;
@@ -93,13 +88,15 @@
             margin: auto;
         }
 
-        /* Info cell */
-        .cell-info { line-height: 1.6; }
+        .cell-info { line-height: 1.6; padding: 6px 8px !important; }
 
         .cell-info .code-label {
             font-size: 10px;
             font-weight: bold;
             color: #003087;
+            border-bottom: 1px solid #e0e8f5;
+            padding-bottom: 3px;
+            margin-bottom: 4px;
         }
 
         .cell-info .name-label {
@@ -111,9 +108,17 @@
         .cell-info .sub-label {
             font-size: 9px;
             color: #555;
+            margin-top: 2px;
         }
 
-        /* QR cell */
+        .cell-info .scan-note {
+            margin-top: 6px;
+            font-size: 8px;
+            color: #888;
+            border-top: 1px dashed #ddd;
+            padding-top: 4px;
+        }
+
         .cell-qr {
             width: 100px;
             text-align: center;
@@ -136,7 +141,6 @@
             background: #f9f9f9; margin: auto;
         }
 
-        /* ── Print styles ── */
         @media print {
             .toolbar { display: none !important; }
             body { background: #fff; padding: 0; }
@@ -155,7 +159,7 @@
         <div class="toolbar-title">&#9641; Cetak QR Code Barang Habis Pakai</div>
         <div class="toolbar-meta">
             {{ count($dataproduk) }} barang dipilih &middot;
-            Scan QR → menampilkan kode &amp; nama barang
+            Scan QR → langsung buka halaman Edit barang
         </div>
     </div>
     <div class="toolbar-right">
@@ -170,7 +174,11 @@
         <tbody>
             <tr>
             @forelse ($dataproduk as $index => $item)
-                @php $colIndex = $index % 2; @endphp
+                @php
+                    $colIndex = $index % 2;
+                    // URL edit — ini yang di-encode ke QR, scan = langsung buka halaman edit
+                    $editUrl = url('/items/' . $item->id . '/edit');
+                @endphp
 
                 <td>
                     <table class="label-card">
@@ -202,24 +210,27 @@
                                 </div>
                                 @if ($item->categories)
                                     <div class="sub-label">
-                                        Kategori&nbsp;: {{ $item->categories }}
+                                        Kategori : {{ $item->categories }}
                                     </div>
                                 @endif
                                 <div class="sub-label">
-                                    Satuan&nbsp;: {{ $item->satuan ?? '-' }}
+                                    Satuan : {{ $item->satuan ?? '-' }}
                                     @if ($item->saldo !== null)
-                                        &nbsp;&nbsp;Saldo&nbsp;: {{ $item->saldo }}
+                                        &nbsp;&nbsp;Saldo : {{ $item->saldo }}
                                     @endif
+                                </div>
+                                <div class="scan-note">
+                                    &#x1F4F1; Scan QR untuk edit barang
                                 </div>
                             </td>
 
-                            {{-- QR Code --}}
+                            {{-- QR Code — isi URL edit --}}
                             <td class="cell-qr">
                                 <div class="qr-loading" id="loading-{{ $index }}">...</div>
                                 <div class="qr-target"
                                      id="qr-{{ $index }}"
                                      style="display:none"
-                                     data-content="{{ ($item->code ?? '') . '*' . mb_strimwidth($item->name ?? '', 0, 40, '') . '*' . ($item->categories ?? '') }}">
+                                     data-url="{{ $editUrl }}">
                                 </div>
                             </td>
                         </tr>
@@ -246,21 +257,21 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.qr-target').forEach(function (target) {
-        const content = target.getAttribute('data-content');
-        const idx     = target.id.replace('qr-', '');
-        const loadEl  = document.getElementById('loading-' + idx);
+        const url    = target.getAttribute('data-url');
+        const idx    = target.id.replace('qr-', '');
+        const loadEl = document.getElementById('loading-' + idx);
 
         target.style.display = 'block';
         if (loadEl) loadEl.style.display = 'none';
 
         try {
             new QRCode(target, {
-                text:         content,
+                text:         url,            
                 width:        90,
                 height:       90,
                 colorDark:    '#000000',
                 colorLight:   '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H,
+                correctLevel: QRCode.CorrectLevel.M,
             });
         } catch (err) {
             target.innerHTML = '<div style="font-size:8px;color:red;padding:4px;">Gagal</div>';

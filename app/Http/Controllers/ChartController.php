@@ -11,7 +11,6 @@ class ChartController extends Controller
 {
     public function index(Request $request)
     {
-        // ── Filter Tahun ──
         $tahun     = $request->get('tahun', null);
         $tahunList = range(Carbon::now()->year, 2020);
 
@@ -21,45 +20,33 @@ class ChartController extends Controller
             $bulanLabels[$i] = Carbon::create()->month($i)->monthName;
         }
 
-        // ── Aset Tetap per bulan — pakai DB::table karena kolom DB pakai spasi ──
-        // Kelompok 1: Mesin & Peralatan
-        $queryMesin = DB::table('materials')
-            ->whereIn('Jenis BMN', [
-                'MESIN PERALATAN NON TIK',
-                'MESIN PERALATAN KHUSUS TIK',
-            ]);
+        // ── Aset Tetap — per Jenis BMN ──
+        $jenisBmnList = [
+            'ALAT BESAR',
+            'ALAT ANGKUTAN BERMOTOR',
+            'BANGUNAN DAN GEDUNG',
+            'JALAN DAN JEMBATAN',
+            'MESIN PERALATAN KHUSUS TIK',
+            'MESIN PERALATAN NON TIK',
+        ];
 
-        // Kelompok 2: Kendaraan & Infrastruktur
-        $queryInfra = DB::table('materials')
-            ->whereIn('Jenis BMN', [
-                'ALAT ANGKUTAN BERMOTOR',
-                'ALAT BESAR',
-                'BANGUNAN DAN GEDUNG',
-                'JALAN DAN JEMBATAN',
-            ]);
+        $dataPerJenis = [];
+        foreach ($jenisBmnList as $jenis) {
+            $q = DB::table('materials')->where('Jenis BMN', $jenis);
+            if ($tahun) $q->whereYear('created_at', $tahun);
 
-        if ($tahun) {
-            $queryMesin->whereYear('created_at', $tahun);
-            $queryInfra->whereYear('created_at', $tahun);
-        }
+            $perBulan = $q
+                ->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
+                ->groupByRaw("MONTH(created_at)")
+                ->pluck('jumlah', 'bulan')
+                ->toArray();
 
-        $mesinPerBulan = $queryMesin
-            ->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
-            ->groupByRaw("MONTH(created_at)")
-            ->pluck('jumlah', 'bulan')
-            ->toArray();
+            $series = [];
+            foreach ($bulanLabels as $bulanNum => $namaBulan) {
+                $series[] = $perBulan[$bulanNum] ?? 0;
+            }
 
-        $infraPerBulan = $queryInfra
-            ->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
-            ->groupByRaw("MONTH(created_at)")
-            ->pluck('jumlah', 'bulan')
-            ->toArray();
-
-        $quantityTetap    = [];
-        $quantityBergerak = [];
-        foreach ($bulanLabels as $bulanNum => $namaBulan) {
-            $quantityTetap[]    = $mesinPerBulan[$bulanNum] ?? 0;
-            $quantityBergerak[] = $infraPerBulan[$bulanNum] ?? 0;
+            $dataPerJenis[$jenis] = $series;
         }
 
         // ── Barang Habis Pakai per bulan ──
@@ -73,21 +60,14 @@ class ChartController extends Controller
             $queryLab->whereYear('created_at', $tahun);
         }
 
-        $atkPerBulan = $queryATK
-            ->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
+        $atkPerBulan = $queryATK->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
+            ->groupBy('bulan')->pluck('jumlah', 'bulan')->toArray();
+        $rtPerBulan  = $queryRT->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
+            ->groupBy('bulan')->pluck('jumlah', 'bulan')->toArray();
+        $labPerBulan = $queryLab->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
             ->groupBy('bulan')->pluck('jumlah', 'bulan')->toArray();
 
-        $rtPerBulan = $queryRT
-            ->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
-            ->groupBy('bulan')->pluck('jumlah', 'bulan')->toArray();
-
-        $labPerBulan = $queryLab
-            ->selectRaw("MONTH(created_at) as bulan, COUNT(*) as jumlah")
-            ->groupBy('bulan')->pluck('jumlah', 'bulan')->toArray();
-
-        $quantityATK = [];
-        $quantityRT  = [];
-        $quantityLab = [];
+        $quantityATK = $quantityRT = $quantityLab = [];
         foreach ($bulanLabels as $bulanNum => $namaBulan) {
             $quantityATK[] = $atkPerBulan[$bulanNum] ?? 0;
             $quantityRT[]  = $rtPerBulan[$bulanNum]  ?? 0;
@@ -98,7 +78,7 @@ class ChartController extends Controller
         $bulan1 = $bulan;
 
         return view('home', compact(
-            'quantityTetap', 'quantityBergerak',
+            'dataPerJenis',
             'bulan', 'bulan1',
             'quantityATK', 'quantityRT', 'quantityLab',
             'tahun', 'tahunList'

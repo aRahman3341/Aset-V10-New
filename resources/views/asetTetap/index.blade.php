@@ -18,6 +18,12 @@
     </div>
 </div>
 
+@if(session('status'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>{{ session('status') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
@@ -27,6 +33,16 @@
 @if(session('error'))
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <i class="bi bi-exclamation-circle me-2"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+@if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Import gagal:</strong>
+        <ul class="mb-0 mt-1 ps-3">
+            @foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach
+        </ul>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 @endif
@@ -56,9 +72,11 @@
             <a href="{{ route('asetTetap.create') }}" class="btn btn-success btn-sm me-1 shadow-sm">
                 <i class="bi bi-plus-lg"></i> Tambah
             </a>
-            <a href="{{ route('asetTetap.import') }}" class="btn btn-success btn-sm me-1">
+            {{-- Import → modal, bukan halaman baru --}}
+            <button type="button" data-bs-toggle="modal" data-bs-target="#ModalImportAset"
+                    class="btn btn-success btn-sm me-1">
                 <i class="bi bi-file-earmark-arrow-down"></i> Import
-            </a>
+            </button>
             <button onclick="exportAset('{{ route('asetTetap.export') }}')" class="btn btn-primary btn-sm me-1">
                 <i class="bi bi-file-earmark-arrow-up"></i> Export
             </button>
@@ -87,6 +105,7 @@
                     <option value="ALAT BESAR">Alat Besar</option>
                     <option value="ALAT ANGKUTAN BERMOTOR">Alat Angkutan Bermotor</option>
                     <option value="BANGUNAN DAN GEDUNG">Bangunan dan Gedung</option>
+                    <option value="JALAN DAN JEMBATAN">Jalan dan Jembatan</option>
                     <option value="MESIN PERALATAN KHUSUS TIK">Mesin Peralatan TIK</option>
                     <option value="MESIN PERALATAN NON TIK">Mesin Peralatan Non TIK</option>
                 </select>
@@ -143,6 +162,10 @@
     @method('DELETE')
 </form>
 
+{{-- Modal Import Aset Tetap --}}
+@include('asetTetap.import')
+
+{{-- Modal Scan QR --}}
 @include('asetTetap.scane')
 
 </main>
@@ -294,16 +317,12 @@ tr.row-checked td { background:rgba(65,84,241,0.05) !important; }
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script>
-// ═══════════════════════════════════
-//  State centang lintas halaman
-// ═══════════════════════════════════
 const checkedIds = new Set();
 
 function updateBadge() {
     const n = checkedIds.size;
-    const badge = document.getElementById('selectedBadge');
     document.getElementById('selectedCount').textContent = n;
-    badge.classList.toggle('d-none', n === 0);
+    document.getElementById('selectedBadge').classList.toggle('d-none', n === 0);
 }
 
 function syncCheckboxes() {
@@ -317,8 +336,7 @@ function syncCheckboxes() {
         fresh.addEventListener('change', function() {
             this.checked ? checkedIds.add(id) : checkedIds.delete(id);
             this.closest('tr').classList.toggle('row-checked', this.checked);
-            updateBadge();
-            syncSelectAll();
+            updateBadge(); syncSelectAll();
         });
     });
     const sa = document.getElementById('select_all');
@@ -344,14 +362,10 @@ function syncSelectAll() {
     if (sa) sa.checked = all.length > 0 && all.length === chk.length;
 }
 
-// ═══════════════════════════════════
-//  AJAX load tabel
-// ═══════════════════════════════════
-let curPage   = 1;
-let curQuery  = '{{ request("query", "") }}';
-let curJenis  = '{{ request("jenis_bmn", "") }}';
-let curKondisi = '{{ request("kondisi", "") }}';
-let curStatusBmn = '{{ request("status_bmn", "") }}';
+let curPage = 1, curQuery = '{{ request("query","") }}';
+let curJenis = '{{ request("jenis_bmn","") }}';
+let curKondisi = '{{ request("kondisi","") }}';
+let curStatusBmn = '{{ request("status_bmn","") }}';
 
 function loadTable(page) {
     curPage = page || 1;
@@ -362,12 +376,8 @@ function loadTable(page) {
     container.appendChild(spin);
 
     const params = new URLSearchParams({
-        page: curPage,
-        query: curQuery,
-        jenis_bmn: curJenis,
-        kondisi: curKondisi,
-        status_bmn: curStatusBmn,
-        ajax: 1
+        page: curPage, query: curQuery,
+        jenis_bmn: curJenis, kondisi: curKondisi, status_bmn: curStatusBmn, ajax: 1
     });
 
     fetch(`{{ route('asetTetap.index') }}?${params}`, {
@@ -377,17 +387,12 @@ function loadTable(page) {
     .then(data => {
         container.innerHTML = data.table;
         document.getElementById('paginationContainer').innerHTML = data.pagination;
-        syncCheckboxes();
-        updateBadge();
-        bindDeleteButtons();
-        bindPaginationLinks();
+        syncCheckboxes(); updateBadge(); bindDeleteButtons(); bindPaginationLinks();
     })
     .catch(() => {
         window.location.href = `{{ route('asetTetap.index') }}?page=${curPage}&query=${curQuery}`;
     })
-    .finally(() => {
-        container.querySelector('.tbl-loading')?.remove();
-    });
+    .finally(() => container.querySelector('.tbl-loading')?.remove());
 }
 
 function bindPaginationLinks() {
@@ -400,18 +405,14 @@ function bindPaginationLinks() {
     });
 }
 
-// ═══════════════════════════════════
-//  Single delete
-// ═══════════════════════════════════
 function bindDeleteButtons() {
     document.querySelectorAll('.delete-button').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
             Swal.fire({
-                title: 'Hapus Aset?', text: 'Data tidak bisa dikembalikan!',
-                icon: 'warning', showCancelButton: true,
-                confirmButtonColor: '#012970', cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Hapus!', cancelButtonText: 'Batal'
+                title:'Hapus Aset?', text:'Data tidak bisa dikembalikan!', icon:'warning',
+                showCancelButton:true, confirmButtonColor:'#012970', cancelButtonColor:'#6c757d',
+                confirmButtonText:'Ya, Hapus!', cancelButtonText:'Batal'
             }).then(r => {
                 if (!r.isConfirmed) return;
                 const form = document.getElementById('deleteForm');
@@ -422,18 +423,13 @@ function bindDeleteButtons() {
     });
 }
 
-// ═══════════════════════════════════
-//  Multi actions
-// ═══════════════════════════════════
 function buildMultiForm(action, target) {
     const form   = document.getElementById('multiForm');
     const inputs = document.getElementById('multiInputs');
     inputs.innerHTML = '';
     checkedIds.forEach(id => {
         const inp = document.createElement('input');
-        inp.type  = 'hidden';
-        inp.name  = 'id_aset[]';
-        inp.value = id;
+        inp.type = 'hidden'; inp.name = 'id_aset[]'; inp.value = id;
         inputs.appendChild(inp);
     });
     form.action = action;
@@ -442,53 +438,37 @@ function buildMultiForm(action, target) {
 }
 
 function generateQRCodes(url) {
-    if (checkedIds.size < 1) { Swal.fire('Pilih Data', 'Centang minimal satu aset untuk mencetak QR.', 'info'); return; }
+    if (checkedIds.size < 1) { Swal.fire('Pilih Data','Centang minimal satu aset.','info'); return; }
     buildMultiForm(url, '_blank');
 }
-
-function exportAset(url) {
-    buildMultiForm(url, '_self');
-}
-
+function exportAset(url) { buildMultiForm(url, '_self'); }
 function doMultiDelete() {
-    if (checkedIds.size < 1) { Swal.fire('Pilih Data', 'Centang data yang ingin dihapus.', 'info'); return; }
+    if (checkedIds.size < 1) { Swal.fire('Pilih Data','Centang data yang ingin dihapus.','info'); return; }
     Swal.fire({
-        title: `Hapus ${checkedIds.size} Aset?`, text: 'Data dihapus permanen.',
-        icon: 'warning', showCancelButton: true,
-        confirmButtonColor: '#012970', cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Ya, Hapus!'
-    }).then(r => {
-        if (r.isConfirmed) buildMultiForm('{{ route("asetTetap.multiDelete") }}', '_self');
-    });
+        title:`Hapus ${checkedIds.size} Aset?`, text:'Data dihapus permanen.', icon:'warning',
+        showCancelButton:true, confirmButtonColor:'#012970', cancelButtonColor:'#6c757d',
+        confirmButtonText:'Ya, Hapus!'
+    }).then(r => { if (r.isConfirmed) buildMultiForm('{{ route("asetTetap.multiDelete") }}','_self'); });
 }
 
-// ═══════════════════════════════════
-//  Init
-// ═══════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-    syncCheckboxes();
-    bindDeleteButtons();
-    bindPaginationLinks();
+    syncCheckboxes(); bindDeleteButtons(); bindPaginationLinks();
 
     document.getElementById('searchInput').addEventListener('keydown', e => {
         if (e.key === 'Enter') { curQuery = e.target.value; loadTable(1); }
     });
-
-    document.getElementById('filterButton').addEventListener('click', (e) => {
-        e.preventDefault();
-        $('#filterFields').slideToggle();
+    document.getElementById('filterButton').addEventListener('click', e => {
+        e.preventDefault(); $('#filterFields').slideToggle();
     });
-
     document.getElementById('applyFilter').addEventListener('click', () => {
         curJenis     = document.getElementById('filterJenis').value;
         curKondisi   = document.getElementById('filterKondisi').value;
         curStatusBmn = document.getElementById('filterStatusBmn').value;
         loadTable(1);
     });
-
     document.getElementById('resetFilter').addEventListener('click', () => {
-        document.getElementById('filterJenis').value     = '';
-        document.getElementById('filterKondisi').value   = '';
+        document.getElementById('filterJenis').value = '';
+        document.getElementById('filterKondisi').value = '';
         document.getElementById('filterStatusBmn').value = '';
         curJenis = ''; curKondisi = ''; curStatusBmn = '';
         loadTable(1);

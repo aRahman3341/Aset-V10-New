@@ -113,7 +113,7 @@ class BarangController extends Controller
     // ===================== EDIT =====================
     public function edit($id)
     {
-        $item = DB::table('materials')->where('id', $id)->first();
+        $item = \App\Models\Materials::findOrFail($id);
         return view('asetTetap.edit', compact('item'));
     }
 

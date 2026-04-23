@@ -13,6 +13,18 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
+/**
+ * Export Barang Habis Pakai
+ *
+ * Format header KONSISTEN dengan ItemsImport:
+ *   Baris 1 = kolom header (headingRow: 1 di import)
+ *   Baris 2+ = data
+ *
+ * Kolom yang bisa di-reimport: Kode Barang, Nama Barang,
+ *   Kategori, Satuan, Saldo, Status
+ * Kolom info tambahan (diabaikan saat import): No,
+ *   Tanggal Dibuat, Terakhir Diupdate
+ */
 class ItemsExport implements
     FromCollection,
     WithHeadings,
@@ -21,16 +33,11 @@ class ItemsExport implements
     WithTitle,
     WithColumnWidths
 {
-    protected $data;         // Collection Items
-    protected $totalBalance; // null jika export terpilih
-    protected $categories;   // label judul sheet
+    protected $data;
+    protected $totalBalance;
+    protected $categories;
     protected $no = 0;
 
-    /**
-     * Konstruktor fleksibel:
-     *   - export per kategori : new ItemsExport($collection, $totalBalance, 'ATK')
-     *   - export terpilih     : new ItemsExport($collection, null, 'Terpilih')
-     */
     public function __construct($data, $totalBalance, string $categories)
     {
         $this->data         = $data;
@@ -48,18 +55,22 @@ class ItemsExport implements
         return 'Export ' . $this->categories;
     }
 
+    /**
+     * Heading baris 1 — HARUS sama dengan yang dibaca import.
+     * Import (headingRow:1) mengonversi: "Kode Barang" → kode_barang, dst.
+     */
     public function headings(): array
     {
         return [
             'No',
-            'Kode Barang',
-            'Nama Barang',
-            'Kategori',
-            'Satuan',
-            'Saldo',
-            'Status',
-            'Tanggal Dibuat',
-            'Terakhir Diupdate',
+            'Kode Barang',     // → kode_barang  (dibaca import)
+            'Nama Barang',     // → nama_barang   (dibaca import)
+            'Kategori',        // → kategori      (dibaca import)
+            'Satuan',          // → satuan        (dibaca import)
+            'Saldo',           // → saldo         (dibaca import)
+            'Status',          // → status        (dibaca import)
+            'Tanggal Dibuat',  // informasi saja, diabaikan import
+            'Terakhir Diupdate', // informasi saja, diabaikan import
         ];
     }
 
@@ -82,15 +93,15 @@ class ItemsExport implements
     public function columnWidths(): array
     {
         return [
-            'A' => 6,
-            'B' => 22,
-            'C' => 40,
-            'D' => 18,
-            'E' => 12,
-            'F' => 10,
-            'G' => 14,
-            'H' => 18,
-            'I' => 18,
+            'A' => 6,   // No
+            'B' => 22,  // Kode Barang
+            'C' => 40,  // Nama Barang
+            'D' => 18,  // Kategori
+            'E' => 12,  // Satuan
+            'F' => 10,  // Saldo
+            'G' => 14,  // Status
+            'H' => 18,  // Tanggal Dibuat
+            'I' => 18,  // Terakhir Diupdate
         ];
     }
 
@@ -99,24 +110,43 @@ class ItemsExport implements
         $lastRow = $sheet->getHighestRow();
         $thin    = Border::BORDER_THIN;
 
-        // Header row
         $sheet->getStyle('A1:I1')->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 10],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1E3A5F']],
+            'font' => [
+                'bold'  => true,
+                'color' => ['rgb' => 'FFFFFF'],
+                'size'  => 10,
+                'name'  => 'Arial',
+            ],
+            'fill' => [
+                'fillType'   => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1E3A5F'],
+            ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
                 'vertical'   => Alignment::VERTICAL_CENTER,
+                'wrapText'   => true,
             ],
-            'borders' => ['allBorders' => ['borderStyle' => $thin, 'color' => ['rgb' => '2D5A8E']]],
+            'borders' => [
+                'allBorders' => ['borderStyle' => $thin, 'color' => ['rgb' => '2D5A8E']],
+            ],
         ]);
-        $sheet->getRowDimension(1)->setRowHeight(22);
+        $sheet->getRowDimension(1)->setRowHeight(24);
 
-        // Data rows
+        $sheet->getStyle('H1:I1')->applyFromArray([
+            'fill' => [
+                'fillType'   => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '4A5568'], 
+            ],
+            'font' => ['italic' => true],
+        ]);
+
         if ($lastRow > 1) {
             $sheet->getStyle("A2:I{$lastRow}")->applyFromArray([
-                'font'      => ['size' => 9],
+                'font'      => ['size' => 9, 'name' => 'Arial'],
                 'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
-                'borders'   => ['allBorders' => ['borderStyle' => $thin, 'color' => ['rgb' => 'DEE2E6']]],
+                'borders'   => [
+                    'allBorders' => ['borderStyle' => $thin, 'color' => ['rgb' => 'DEE2E6']],
+                ],
             ]);
 
             for ($r = 2; $r <= $lastRow; $r++) {
@@ -128,10 +158,20 @@ class ItemsExport implements
                 $sheet->getRowDimension($r)->setRowHeight(16);
             }
 
-            $sheet->getStyle("A2:A{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle("F2:F{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle("G2:G{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("A2:A{$lastRow}")->getAlignment()
+                  ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("F2:F{$lastRow}")->getAlignment()
+                  ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("G2:G{$lastRow}")->getAlignment()
+                  ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("H2:I{$lastRow}")->getAlignment()
+                  ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            $sheet->getStyle("H2:I{$lastRow}")->getFont()
+                  ->getColor()->setRGB('6B7280');
         }
+
+        $sheet->freezePane('B2');
 
         return [];
     }
