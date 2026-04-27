@@ -25,6 +25,11 @@ class BarangController extends Controller
         $statusBmn = $request->input('status_bmn');
 
         $items = DB::table('materials')
+            // ✅ Sembunyikan aset yang sudah diserahkan (masuk Aset Keluar)
+            ->where(function ($q) {
+                $q->where('status', '!=', 'Diserahkan')
+                  ->orWhereNull('status');
+            })
             ->when($query, function ($q) use ($query) {
                 $q->where(function ($sub) use ($query) {
                     $sub->where('Kode Barang', 'LIKE', '%' . $query . '%')
@@ -63,7 +68,6 @@ class BarangController extends Controller
     }
 
     // ===================== STORE =====================
-    // Mapping: nama input form (create.blade.php) → nama kolom DB (pakai spasi)
     public function store(Request $request)
     {
         $request->validate([
@@ -79,30 +83,22 @@ class BarangController extends Controller
         ]);
 
         DB::table('materials')->insert([
-            // ── Identitas ──
             'Kode Barang'              => $request->input('code'),
             'nup'                      => $request->input('nup'),
             'Nama Barang'              => $request->input('name'),
             'merk'                     => $request->input('name_fix'),
             'tipe'                     => $request->input('type'),
-
-            // ── Klasifikasi BMN ──
             'Jenis BMN'                => $request->input('jenis_bmn'),
             'kondisi'                  => $request->input('condition', 'Baik'),
             'Status BMN'               => $request->input('status_bmn', 'Aktif'),
-
-            // ── Nilai & Waktu ──
             'Nilai Perolehan Pertama'  => $request->input('nilai')             ?: null,
             'Nilai Perolehan'          => $request->input('nilai_perolehan')   ?: null,
             'Nilai Penyusutan'         => $request->input('nilai_penyusutan')  ?: null,
             'Nilai Buku'               => $request->input('nilai_buku')        ?: null,
             'Tanggal Perolehan'        => $request->input('tanggal_perolehan') ?: null,
             'Tanggal Buku Pertama'     => $request->input('tanggal_buku_pertama') ?: null,
-
-            // ── Dokumen PSP ──
             'No PSP'                   => $request->input('no_psp'),
             'Tanggal PSP'              => $request->input('tanggal_psp') ?: null,
-
             'created_at'               => now(),
             'updated_at'               => now(),
         ]);
@@ -113,7 +109,7 @@ class BarangController extends Controller
     // ===================== EDIT =====================
     public function edit($id)
     {
-        $item = \App\Models\Materials::findOrFail($id);
+        $item = DB::table('materials')->where('id', $id)->first();
         return view('asetTetap.edit', compact('item'));
     }
 
@@ -128,30 +124,22 @@ class BarangController extends Controller
         ]);
 
         DB::table('materials')->where('id', $id)->update([
-            // ── Identitas ──
             'Kode Barang'              => $request->input('code'),
             'nup'                      => $request->input('nup'),
             'Nama Barang'              => $request->input('name'),
             'merk'                     => $request->input('name_fix'),
             'tipe'                     => $request->input('type'),
-
-            // ── Klasifikasi BMN ──
             'Jenis BMN'                => $request->input('jenis_bmn'),
             'kondisi'                  => $request->input('condition', 'Baik'),
             'Status BMN'               => $request->input('status_bmn', 'Aktif'),
-
-            // ── Nilai & Waktu ──
             'Nilai Perolehan Pertama'  => $request->input('nilai')             ?: null,
             'Nilai Perolehan'          => $request->input('nilai_perolehan')   ?: null,
             'Nilai Penyusutan'         => $request->input('nilai_penyusutan')  ?: null,
             'Nilai Buku'               => $request->input('nilai_buku')        ?: null,
             'Tanggal Perolehan'        => $request->input('tanggal_perolehan') ?: null,
             'Tanggal Buku Pertama'     => $request->input('tanggal_buku_pertama') ?: null,
-
-            // ── Dokumen PSP ──
             'No PSP'                   => $request->input('no_psp'),
             'Tanggal PSP'              => $request->input('tanggal_psp') ?: null,
-
             'updated_at'               => now(),
         ]);
 
@@ -189,6 +177,11 @@ class BarangController extends Controller
         $query = $request->input('query');
 
         $items = DB::table('materials')
+            // ✅ Sembunyikan aset yang sudah diserahkan
+            ->where(function ($q) {
+                $q->where('status', '!=', 'Diserahkan')
+                  ->orWhereNull('status');
+            })
             ->where(function ($q) use ($query) {
                 $q->where('Kode Barang', 'LIKE', '%' . $query . '%')
                   ->orWhere('Nama Barang', 'LIKE', '%' . $query . '%')
@@ -212,7 +205,12 @@ class BarangController extends Controller
     // ===================== FILTER =====================
     public function filter(Request $request)
     {
-        $q = DB::table('materials');
+        $q = DB::table('materials')
+            // ✅ Sembunyikan aset yang sudah diserahkan
+            ->where(function ($sub) {
+                $sub->where('status', '!=', 'Diserahkan')
+                    ->orWhereNull('status');
+            });
 
         $jenisBmn = $request->input('jenis_bmn');
         if ($jenisBmn && $jenisBmn !== 'all') {
@@ -262,7 +260,6 @@ class BarangController extends Controller
     // ===================== CHECK NO SERI =====================
     public function checkNoSeriExists(Request $request)
     {
-        // Kolom no_seri tidak ada di schema DB baru
         return response()->json(['message' => 'No Seri valid'], 200);
     }
 

@@ -112,11 +112,6 @@
                                 <i class="bi bi-clipboard-data"></i> Peminjaman
                             </a>
                         </li>
-                        <li>
-                            <a href="{{ route('asetout.report') }}" class="{{ request()->is('asetout/report*') ? 'active' : '' }}">
-                                <i class="bi bi-file-earmark-arrow-up"></i> Aset Keluar
-                            </a>
-                        </li>
                     </ul>
                 </li>
 
