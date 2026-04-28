@@ -9,7 +9,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('materials', function (Blueprint $table) {
-            // Gunakan 'kondisi' bukan 'condition' — sesuai kolom asli di DB
             $table->string('status')->default('Tersedia')->nullable()->after('kondisi');
         });
     }

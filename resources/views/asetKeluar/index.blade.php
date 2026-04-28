@@ -204,11 +204,17 @@ function tglIndo($date) {
                         <i class="bi bi-file-earmark-excel-fill"></i> Download Excel
                     </button>
                 </form>
+ 
+                {{-- Divider --}}
+                <div class="ak-side-divider"></div>
+ 
+                <p class="ak-side-desc">Export <strong>seluruh</strong> data aset keluar tanpa filter tanggal.</p>
+                <a href="{{ route('asetkeluar.exportall') }}" class="ak-btn-export-all">
+                    <i class="bi bi-file-earmark-spreadsheet-fill"></i> Export Semua Data
+                </a>
             </div>
         </div>
     </div>
-
-</div>
 
 </main>
 
@@ -272,6 +278,36 @@ function tglIndo($date) {
 .ak-input:focus { background:#fff; border-color:var(--navy-mid); box-shadow:0 0 0 3px rgba(45,90,142,0.10); }
 .ak-btn-export { width:100%; padding:10px; background:linear-gradient(135deg,#10b981,#059669); color:#fff; border:none; border-radius:9px; font-size:0.84rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; transition:all .18s; margin-top:4px; box-shadow:0 3px 10px rgba(16,185,129,0.25); }
 .ak-btn-export:hover { background:linear-gradient(135deg,#059669,#047857); transform:translateY(-1px); }
+.ak-side-divider {
+    height: 1px;
+    background: rgba(30,58,95,0.08);
+    margin: 14px 0;
+}
+.ak-btn-export-all {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #1e3a5f, #2d5a8e);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all .18s;
+    margin-top: 4px;
+    box-shadow: 0 3px 10px rgba(30,58,95,0.20);
+}
+.ak-btn-export-all:hover {
+    background: linear-gradient(135deg, #162d49, #1e3a5f);
+    transform: translateY(-1px);
+    color: #fff;
+    text-decoration: none;
+}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

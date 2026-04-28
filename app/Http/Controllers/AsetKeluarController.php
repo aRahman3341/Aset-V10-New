@@ -262,15 +262,15 @@ class AsetKeluarController extends Controller
     // ===================== EXPORT SEMUA DATA =====================
     public function exportAll()
     {
-        $data = AsetKeluar::orderBy('created_at', 'desc')->get();
-
+        $data = AsetKeluar::all();
+ 
         if ($data->isEmpty()) {
-            return redirect()->back()->with('error', 'Belum ada data aset keluar.');
+            return redirect()->back()->with('error', 'Tidak ada data aset keluar untuk diexport');
         }
-
+ 
         return Excel::download(
-            new AsetKeluarExport(null, null),
-            'semua_aset_keluar_' . Carbon::now()->format('Ymd_His') . '.xlsx'
+            new \App\Exports\AsetKeluarExportAll(),
+            'rekap_semua_aset_keluar_' . Carbon::now()->format('Ymd_His') . '.xlsx'
         );
     }
 

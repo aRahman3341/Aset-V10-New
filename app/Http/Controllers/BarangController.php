@@ -3,15 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Exports\AsetExport;
+use App\Models\MaterialPhoto;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\AsetImport;
 use Carbon\Exceptions\InvalidFormatException as ExceptionsInvalidFormatException;
 use Exception;
 use Illuminate\Validation\ValidationException;
-use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\Exception as ReaderException;
 
 class BarangController extends Controller
@@ -25,7 +26,6 @@ class BarangController extends Controller
         $statusBmn = $request->input('status_bmn');
 
         $items = DB::table('materials')
-            // ✅ Sembunyikan aset yang sudah diserahkan (masuk Aset Keluar)
             ->where(function ($q) {
                 $q->where('status', '!=', 'Diserahkan')
                   ->orWhereNull('status');
@@ -71,37 +71,47 @@ class BarangController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'code'     => 'required',
-            'nup'      => 'required',
-            'name'     => 'required',
-            'jenis_bmn'=> 'required',
+            'code'      => 'required',
+            'nup'       => 'required',
+            'name'      => 'required',
+            'jenis_bmn' => 'required',
+            'photos.*'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ], [
             'code.required'      => 'Kode Barang wajib diisi',
             'nup.required'       => 'NUP wajib diisi',
             'name.required'      => 'Nama Barang wajib diisi',
             'jenis_bmn.required' => 'Jenis BMN wajib dipilih',
+            'photos.*.image'     => 'File harus berupa gambar',
+            'photos.*.mimes'     => 'Format foto: jpg, jpeg, png, webp',
+            'photos.*.max'       => 'Ukuran tiap foto maksimal 5MB',
         ]);
 
-        DB::table('materials')->insert([
-            'Kode Barang'              => $request->input('code'),
-            'nup'                      => $request->input('nup'),
-            'Nama Barang'              => $request->input('name'),
-            'merk'                     => $request->input('name_fix'),
-            'tipe'                     => $request->input('type'),
-            'Jenis BMN'                => $request->input('jenis_bmn'),
-            'kondisi'                  => $request->input('condition', 'Baik'),
-            'Status BMN'               => $request->input('status_bmn', 'Aktif'),
-            'Nilai Perolehan Pertama'  => $request->input('nilai')             ?: null,
-            'Nilai Perolehan'          => $request->input('nilai_perolehan')   ?: null,
-            'Nilai Penyusutan'         => $request->input('nilai_penyusutan')  ?: null,
-            'Nilai Buku'               => $request->input('nilai_buku')        ?: null,
-            'Tanggal Perolehan'        => $request->input('tanggal_perolehan') ?: null,
-            'Tanggal Buku Pertama'     => $request->input('tanggal_buku_pertama') ?: null,
-            'No PSP'                   => $request->input('no_psp'),
-            'Tanggal PSP'              => $request->input('tanggal_psp') ?: null,
-            'created_at'               => now(),
-            'updated_at'               => now(),
+        $id = DB::table('materials')->insertGetId([
+            'Kode Barang'             => $request->input('code'),
+            'nup'                     => $request->input('nup'),
+            'Nama Barang'             => $request->input('name'),
+            'merk'                    => $request->input('name_fix'),
+            'tipe'                    => $request->input('type'),
+            'Jenis BMN'               => $request->input('jenis_bmn'),
+            'kondisi'                 => $request->input('condition', 'Baik'),
+            'Status BMN'              => $request->input('status_bmn', 'Aktif'),
+            'Nilai Perolehan Pertama' => $request->input('nilai')              ?: null,
+            'Nilai Perolehan'         => $request->input('nilai_perolehan')    ?: null,
+            'Nilai Penyusutan'        => $request->input('nilai_penyusutan')   ?: null,
+            'Nilai Buku'              => $request->input('nilai_buku')         ?: null,
+            'Tanggal Perolehan'       => $request->input('tanggal_perolehan')  ?: null,
+            'Tanggal Buku Pertama'    => $request->input('tanggal_buku_pertama') ?: null,
+            'No PSP'                  => $request->input('no_psp'),
+            'Tanggal PSP'             => $request->input('tanggal_psp')        ?: null,
+            'created_at'              => now(),
+            'updated_at'              => now(),
         ]);
+
+        // Upload foto
+        $this->handlePhotoUpload($request, $id);
+
+        // Update jumlah foto
+        $this->syncJumlahFoto($id);
 
         return redirect()->route('asetTetap.index')->with('success', 'Data aset berhasil disimpan.');
     }
@@ -109,39 +119,47 @@ class BarangController extends Controller
     // ===================== EDIT =====================
     public function edit($id)
     {
-        $item = DB::table('materials')->where('id', $id)->first();
-        return view('asetTetap.edit', compact('item'));
+        $item   = DB::table('materials')->where('id', $id)->first();
+        $photos = MaterialPhoto::where('material_id', $id)->get();
+        return view('asetTetap.edit', compact('item', 'photos'));
     }
 
     // ===================== UPDATE =====================
     public function update(Request $request, $id)
     {
         $request->validate([
-            'code'     => 'required',
-            'nup'      => 'required',
-            'name'     => 'required',
-            'jenis_bmn'=> 'required',
+            'code'      => 'required',
+            'nup'       => 'required',
+            'name'      => 'required',
+            'jenis_bmn' => 'required',
+            'photos.*'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         DB::table('materials')->where('id', $id)->update([
-            'Kode Barang'              => $request->input('code'),
-            'nup'                      => $request->input('nup'),
-            'Nama Barang'              => $request->input('name'),
-            'merk'                     => $request->input('name_fix'),
-            'tipe'                     => $request->input('type'),
-            'Jenis BMN'                => $request->input('jenis_bmn'),
-            'kondisi'                  => $request->input('condition', 'Baik'),
-            'Status BMN'               => $request->input('status_bmn', 'Aktif'),
-            'Nilai Perolehan Pertama'  => $request->input('nilai')             ?: null,
-            'Nilai Perolehan'          => $request->input('nilai_perolehan')   ?: null,
-            'Nilai Penyusutan'         => $request->input('nilai_penyusutan')  ?: null,
-            'Nilai Buku'               => $request->input('nilai_buku')        ?: null,
-            'Tanggal Perolehan'        => $request->input('tanggal_perolehan') ?: null,
-            'Tanggal Buku Pertama'     => $request->input('tanggal_buku_pertama') ?: null,
-            'No PSP'                   => $request->input('no_psp'),
-            'Tanggal PSP'              => $request->input('tanggal_psp') ?: null,
-            'updated_at'               => now(),
+            'Kode Barang'             => $request->input('code'),
+            'nup'                     => $request->input('nup'),
+            'Nama Barang'             => $request->input('name'),
+            'merk'                    => $request->input('name_fix'),
+            'tipe'                    => $request->input('type'),
+            'Jenis BMN'               => $request->input('jenis_bmn'),
+            'kondisi'                 => $request->input('condition', 'Baik'),
+            'Status BMN'              => $request->input('status_bmn', 'Aktif'),
+            'Nilai Perolehan Pertama' => $request->input('nilai')              ?: null,
+            'Nilai Perolehan'         => $request->input('nilai_perolehan')    ?: null,
+            'Nilai Penyusutan'        => $request->input('nilai_penyusutan')   ?: null,
+            'Nilai Buku'              => $request->input('nilai_buku')         ?: null,
+            'Tanggal Perolehan'       => $request->input('tanggal_perolehan')  ?: null,
+            'Tanggal Buku Pertama'    => $request->input('tanggal_buku_pertama') ?: null,
+            'No PSP'                  => $request->input('no_psp'),
+            'Tanggal PSP'             => $request->input('tanggal_psp')        ?: null,
+            'updated_at'              => now(),
         ]);
+
+        // Upload foto baru
+        $this->handlePhotoUpload($request, $id);
+
+        // Update jumlah foto
+        $this->syncJumlahFoto($id);
 
         return redirect()->route('asetTetap.index')->with('success', 'Data aset berhasil diperbarui.');
     }
@@ -149,6 +167,8 @@ class BarangController extends Controller
     // ===================== DESTROY =====================
     public function destroy($id)
     {
+        // Hapus semua foto fisik
+        $this->deleteAllPhotos($id);
         DB::table('materials')->where('id', $id)->delete();
         return redirect()->route('asetTetap.index')->with('success', 'Data berhasil dihapus.');
     }
@@ -158,9 +178,44 @@ class BarangController extends Controller
     {
         $ids = $request->input('id_aset', []);
         if (!empty($ids)) {
+            foreach ($ids as $id) {
+                $this->deleteAllPhotos($id);
+            }
             DB::table('materials')->whereIn('id', $ids)->delete();
         }
         return redirect()->route('asetTetap.index')->with('success', count($ids) . ' data berhasil dihapus');
+    }
+
+    // ===================== HAPUS SATU FOTO =====================
+    public function destroyPhoto(Request $request, $photoId)
+    {
+        $photo = MaterialPhoto::findOrFail($photoId);
+        $materialId = $photo->material_id;
+
+        // Hapus file fisik
+        $filePath = public_path('assets/upload_asset_tetap/' . $photo->filename);
+        if (File::exists($filePath)) {
+            File::delete($filePath);
+        }
+
+        $photo->delete();
+        $this->syncJumlahFoto($materialId);
+
+        return response()->json(['success' => true]);
+    }
+
+    // ===================== GET FOTO (untuk modal) =====================
+    public function getPhotos($id)
+    {
+        $photos = MaterialPhoto::where('material_id', $id)->get()->map(function ($p) {
+            return [
+                'id'            => $p->id,
+                'url'           => asset('assets/upload_asset_tetap/' . $p->filename),
+                'original_name' => $p->original_name,
+            ];
+        });
+
+        return response()->json(['photos' => $photos]);
     }
 
     // ===================== EXPORT =====================
@@ -177,7 +232,6 @@ class BarangController extends Controller
         $query = $request->input('query');
 
         $items = DB::table('materials')
-            // ✅ Sembunyikan aset yang sudah diserahkan
             ->where(function ($q) {
                 $q->where('status', '!=', 'Diserahkan')
                   ->orWhereNull('status');
@@ -206,7 +260,6 @@ class BarangController extends Controller
     public function filter(Request $request)
     {
         $q = DB::table('materials')
-            // ✅ Sembunyikan aset yang sudah diserahkan
             ->where(function ($sub) {
                 $sub->where('status', '!=', 'Diserahkan')
                     ->orWhereNull('status');
@@ -284,6 +337,48 @@ class BarangController extends Controller
             return back()->withErrors(['file' => 'Invalid file format.']);
         } catch (Exception $e) {
             return back()->withErrors(['file' => 'Error: ' . $e->getMessage()]);
+        }
+    }
+
+    // ===================== PRIVATE HELPERS =====================
+
+    private function handlePhotoUpload(Request $request, int $materialId): void
+    {
+        if (!$request->hasFile('photos')) return;
+
+        $uploadDir = public_path('assets/upload_asset_tetap');
+        if (!File::isDirectory($uploadDir)) {
+            File::makeDirectory($uploadDir, 0775, true);
+        }
+
+        foreach ($request->file('photos') as $file) {
+            if (!$file || !$file->isValid()) continue;
+
+            $originalName = $file->getClientOriginalName();
+            $filename     = time() . '_' . $materialId . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move($uploadDir, $filename);
+
+            MaterialPhoto::create([
+                'material_id'   => $materialId,
+                'filename'      => $filename,
+                'original_name' => $originalName,
+            ]);
+        }
+    }
+
+    private function syncJumlahFoto(int $materialId): void
+    {
+        $count = MaterialPhoto::where('material_id', $materialId)->count();
+        DB::table('materials')->where('id', $materialId)->update(['Jumlah Foto' => $count]);
+    }
+
+    private function deleteAllPhotos(int $materialId): void
+    {
+        $photos = MaterialPhoto::where('material_id', $materialId)->get();
+        foreach ($photos as $photo) {
+            $path = public_path('assets/upload_asset_tetap/' . $photo->filename);
+            if (File::exists($path)) File::delete($path);
+            $photo->delete();
         }
     }
 }

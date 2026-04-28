@@ -106,6 +106,7 @@ Route::middleware('IsLogin')->group(function () {
         Route::post('/search',   [AsetKeluarController::class, 'search'])->name('search');
         Route::get('/export',    [AsetKeluarController::class, 'export'])->name('export');
         Route::get('/download/{id}', [AsetKeluarController::class, 'download'])->name('download');
+        Route::get('/exportall', [AsetKeluarController::class, 'exportAll'])->name('exportall');
     });
 
     /* ================= ASET OUT (BARANG KELUAR) ================= */
