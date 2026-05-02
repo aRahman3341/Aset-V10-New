@@ -13,6 +13,7 @@ use App\Imports\AsetImport;
 use Carbon\Exceptions\InvalidFormatException as ExceptionsInvalidFormatException;
 use Exception;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use PhpOffice\PhpSpreadsheet\Reader\Exception as ReaderException;
 
 class BarangController extends Controller
@@ -88,31 +89,53 @@ class BarangController extends Controller
             'photos.*.max'       => 'Ukuran tiap foto maksimal 15 MB',
         ]);
 
-        $id = DB::table('materials')->insertGetId([
-            'Kode Barang'             => $request->input('code'),
-            'nup'                     => $request->input('nup'),
-            'Nama Barang'             => $request->input('name'),
-            'merk'                    => $request->input('name_fix'),
-            'tipe'                    => $request->input('type'),
-            'Jenis BMN'               => $request->input('jenis_bmn'),
-            'kondisi'                 => $request->input('condition', 'Baik'),
-            'Status BMN'              => $request->input('status_bmn', 'Aktif'),
-            'Nilai Perolehan Pertama' => $request->input('nilai')              ?: null,
-            'Nilai Perolehan'         => $request->input('nilai_perolehan')    ?: null,
-            'Nilai Penyusutan'        => $request->input('nilai_penyusutan')   ?: null,
-            'Nilai Buku'              => $request->input('nilai_buku')         ?: null,
-            'Tanggal Perolehan'       => $request->input('tanggal_perolehan')  ?: null,
-            'Tanggal Buku Pertama'    => $request->input('tanggal_buku_pertama') ?: null,
-            'No PSP'                  => $request->input('no_psp'),
-            'Tanggal PSP'             => $request->input('tanggal_psp')        ?: null,
-            'created_at'              => now(),
-            'updated_at'              => now(),
-        ]);
+        // Cek duplikat Kode Barang + NUP sebelum insert
+        $exists = DB::table('materials')
+            ->where('Kode Barang', $request->input('code'))
+            ->where('nup', $request->input('nup'))
+            ->exists();
 
-        // Upload foto
+        if ($exists) {
+            return back()->withInput()->withErrors([
+                'nup' => 'Kombinasi Kode Barang "' . $request->input('code') . '" dengan NUP "' . $request->input('nup') . '" sudah ada. Gunakan NUP yang berbeda.',
+            ]);
+        }
+
+        try {
+            $id = DB::table('materials')->insertGetId([
+                'Kode Barang'             => $request->input('code'),
+                'nup'                     => $request->input('nup'),
+                'Nama Barang'             => $request->input('name'),
+                'merk'                    => $request->input('name_fix'),
+                'tipe'                    => $request->input('type'),
+                'Jenis BMN'               => $request->input('jenis_bmn'),
+                'kondisi'                 => $request->input('condition', 'Baik'),
+                'Status BMN'              => $request->input('status_bmn', 'Aktif'),
+                'Nilai Perolehan Pertama' => $request->input('nilai')              ?: null,
+                'Nilai Perolehan'         => $request->input('nilai_perolehan')    ?: null,
+                'Nilai Penyusutan'        => $request->input('nilai_penyusutan')   ?: null,
+                'Nilai Buku'              => $request->input('nilai_buku')         ?: null,
+                'Tanggal Perolehan'       => $request->input('tanggal_perolehan')  ?: null,
+                'Tanggal Buku Pertama'    => $request->input('tanggal_buku_pertama') ?: null,
+                'No PSP'                  => $request->input('no_psp'),
+                'Tanggal PSP'             => $request->input('tanggal_psp')        ?: null,
+                'created_at'              => now(),
+                'updated_at'              => now(),
+            ]);
+        } catch (UniqueConstraintViolationException $e) {
+            return back()->withInput()->withErrors([
+                'nup' => 'Kombinasi Kode Barang "' . $request->input('code') . '" dengan NUP "' . $request->input('nup') . '" sudah ada. Gunakan NUP yang berbeda.',
+            ]);
+        } catch (Exception $e) {
+            if (str_contains($e->getMessage(), '23000') || str_contains($e->getMessage(), 'uk_kode_nup') || str_contains($e->getMessage(), 'Duplicate entry')) {
+                return back()->withInput()->withErrors([
+                    'nup' => 'Kombinasi Kode Barang "' . $request->input('code') . '" dengan NUP "' . $request->input('nup') . '" sudah ada. Gunakan NUP yang berbeda.',
+                ]);
+            }
+            throw $e;
+        }
+
         $this->handlePhotoUpload($request, $id);
-
-        // Update jumlah foto
         $this->syncJumlahFoto($id);
 
         return redirect()->route('asetTetap.index')->with('success', 'Data aset berhasil disimpan.');
@@ -129,7 +152,6 @@ class BarangController extends Controller
     // ===================== UPDATE =====================
     public function update(Request $request, $id)
     {
-        // Hitung foto existing agar tidak melebihi total 5
         $existingCount = MaterialPhoto::where('material_id', $id)->count();
         $maxNewPhotos  = max(0, 5 - $existingCount);
 
@@ -146,30 +168,53 @@ class BarangController extends Controller
             'photos.*.mimes'=> 'Format foto: jpg, jpeg, png, webp',
         ]);
 
-        DB::table('materials')->where('id', $id)->update([
-            'Kode Barang'             => $request->input('code'),
-            'nup'                     => $request->input('nup'),
-            'Nama Barang'             => $request->input('name'),
-            'merk'                    => $request->input('name_fix'),
-            'tipe'                    => $request->input('type'),
-            'Jenis BMN'               => $request->input('jenis_bmn'),
-            'kondisi'                 => $request->input('condition', 'Baik'),
-            'Status BMN'              => $request->input('status_bmn', 'Aktif'),
-            'Nilai Perolehan Pertama' => $request->input('nilai')              ?: null,
-            'Nilai Perolehan'         => $request->input('nilai_perolehan')    ?: null,
-            'Nilai Penyusutan'        => $request->input('nilai_penyusutan')   ?: null,
-            'Nilai Buku'              => $request->input('nilai_buku')         ?: null,
-            'Tanggal Perolehan'       => $request->input('tanggal_perolehan')  ?: null,
-            'Tanggal Buku Pertama'    => $request->input('tanggal_buku_pertama') ?: null,
-            'No PSP'                  => $request->input('no_psp'),
-            'Tanggal PSP'             => $request->input('tanggal_psp')        ?: null,
-            'updated_at'              => now(),
-        ]);
+        // Cek duplikat kode+nup, kecuali record sendiri
+        $exists = DB::table('materials')
+            ->where('Kode Barang', $request->input('code'))
+            ->where('nup', $request->input('nup'))
+            ->where('id', '!=', $id)
+            ->exists();
 
-        // Upload foto baru
+        if ($exists) {
+            return back()->withInput()->withErrors([
+                'nup' => 'Kombinasi Kode Barang "' . $request->input('code') . '" dengan NUP "' . $request->input('nup') . '" sudah digunakan oleh aset lain.',
+            ]);
+        }
+
+        try {
+            DB::table('materials')->where('id', $id)->update([
+                'Kode Barang'             => $request->input('code'),
+                'nup'                     => $request->input('nup'),
+                'Nama Barang'             => $request->input('name'),
+                'merk'                    => $request->input('name_fix'),
+                'tipe'                    => $request->input('type'),
+                'Jenis BMN'               => $request->input('jenis_bmn'),
+                'kondisi'                 => $request->input('condition', 'Baik'),
+                'Status BMN'              => $request->input('status_bmn', 'Aktif'),
+                'Nilai Perolehan Pertama' => $request->input('nilai')              ?: null,
+                'Nilai Perolehan'         => $request->input('nilai_perolehan')    ?: null,
+                'Nilai Penyusutan'        => $request->input('nilai_penyusutan')   ?: null,
+                'Nilai Buku'              => $request->input('nilai_buku')         ?: null,
+                'Tanggal Perolehan'       => $request->input('tanggal_perolehan')  ?: null,
+                'Tanggal Buku Pertama'    => $request->input('tanggal_buku_pertama') ?: null,
+                'No PSP'                  => $request->input('no_psp'),
+                'Tanggal PSP'             => $request->input('tanggal_psp')        ?: null,
+                'updated_at'              => now(),
+            ]);
+        } catch (UniqueConstraintViolationException $e) {
+            return back()->withInput()->withErrors([
+                'nup' => 'Kombinasi Kode Barang "' . $request->input('code') . '" dengan NUP "' . $request->input('nup') . '" sudah digunakan oleh aset lain.',
+            ]);
+        } catch (Exception $e) {
+            if (str_contains($e->getMessage(), '23000') || str_contains($e->getMessage(), 'uk_kode_nup') || str_contains($e->getMessage(), 'Duplicate entry')) {
+                return back()->withInput()->withErrors([
+                    'nup' => 'Kombinasi Kode Barang "' . $request->input('code') . '" dengan NUP "' . $request->input('nup') . '" sudah digunakan oleh aset lain.',
+                ]);
+            }
+            throw $e;
+        }
+
         $this->handlePhotoUpload($request, $id);
-
-        // Update jumlah foto
         $this->syncJumlahFoto($id);
 
         return redirect()->route('asetTetap.index')->with('success', 'Data aset berhasil diperbarui.');
@@ -178,7 +223,6 @@ class BarangController extends Controller
     // ===================== DESTROY =====================
     public function destroy($id)
     {
-        // Hapus semua foto fisik
         $this->deleteAllPhotos($id);
         DB::table('materials')->where('id', $id)->delete();
         return redirect()->route('asetTetap.index')->with('success', 'Data berhasil dihapus.');
@@ -203,7 +247,6 @@ class BarangController extends Controller
         $photo = MaterialPhoto::findOrFail($photoId);
         $materialId = $photo->material_id;
 
-        // Hapus file fisik
         $filePath = public_path('assets/upload_asset_tetap/' . $photo->filename);
         if (File::exists($filePath)) {
             File::delete($filePath);
@@ -215,7 +258,7 @@ class BarangController extends Controller
         return response()->json(['success' => true]);
     }
 
-    // ===================== GET FOTO (untuk modal lightbox) =====================
+    // ===================== GET FOTO =====================
     public function getPhotos($id)
     {
         $photos = MaterialPhoto::where('material_id', $id)->get()->map(function ($p) {
@@ -277,19 +320,13 @@ class BarangController extends Controller
             });
 
         $jenisBmn = $request->input('jenis_bmn');
-        if ($jenisBmn && $jenisBmn !== 'all') {
-            $q->where('Jenis BMN', $jenisBmn);
-        }
+        if ($jenisBmn && $jenisBmn !== 'all') $q->where('Jenis BMN', $jenisBmn);
 
         $kondisi = $request->input('kondisi');
-        if ($kondisi && $kondisi !== 'all') {
-            $q->where('kondisi', $kondisi);
-        }
+        if ($kondisi && $kondisi !== 'all') $q->where('kondisi', $kondisi);
 
         $statusBmn = $request->input('status_bmn');
-        if ($statusBmn && $statusBmn !== 'all') {
-            $q->where('Status BMN', $statusBmn);
-        }
+        if ($statusBmn && $statusBmn !== 'all') $q->where('Status BMN', $statusBmn);
 
         $yearsDari   = $request->input('tahun_dari');
         $yearsSampai = $request->input('tahun_sampai');
@@ -362,12 +399,11 @@ class BarangController extends Controller
             File::makeDirectory($uploadDir, 0775, true);
         }
 
-        // Cek total foto tidak melebihi 5
         $currentCount = MaterialPhoto::where('material_id', $materialId)->count();
 
         foreach ($request->file('photos') as $file) {
             if (!$file || !$file->isValid()) continue;
-            if ($currentCount >= 5) break; // Batas keras: 5 foto
+            if ($currentCount >= 5) break;
 
             $originalName = $file->getClientOriginalName();
             $filename     = time() . '_' . $materialId . '_' . uniqid() . '.' . $file->getClientOriginalExtension();

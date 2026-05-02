@@ -39,17 +39,22 @@ Route::middleware('IsLogin')->group(function () {
         Route::get('/{id}/edit', [BarangController::class, 'edit'])->name('edit');
         Route::put('/{id}',      [BarangController::class, 'update'])->name('update');
         Route::delete('/{id}',   [BarangController::class, 'destroy'])->name('destroy');
+
         Route::post('/search',       [BarangController::class, 'search'])->name('search');
         Route::post('/filter',       [BarangController::class, 'filter'])->name('filter');
         Route::post('/multi-delete', [BarangController::class, 'multiDelete'])->name('multiDelete');
+
         Route::get('/import',    [BarangController::class, 'import'])->name('import');
         Route::post('/import',   [BarangController::class, 'importStore'])->name('import.store');
         Route::post('/export',   [BarangController::class, 'export'])->name('export');
-        Route::post('/asetTetap/qrcodes',  [QrCodeController::class, 'generateQRCodes'])->name('generate_qrcodes');
-        Route::post('/scanning',           [QrCodeController::class, 'scanning'])->name('scanning');
-        Route::post('/scanning-result',    [QrCodeController::class, 'scanningResult'])->name('scanningResult');       
+
+        // ── FOTO ──────────────────────────────────────────────
         Route::get('/{id}/photos',        [BarangController::class, 'getPhotos'])->name('getPhotos');
         Route::delete('/photo/{photoId}', [BarangController::class, 'destroyPhoto'])->name('destroyPhoto');
+
+        Route::post('/asetTetap/qrcodes',  [QrCodeController::class, 'generateQRCodes'])->name('generate_qrcodes');
+        Route::post('/scanning',           [QrCodeController::class, 'scanning'])->name('scanning');
+        Route::post('/scanning-result',    [QrCodeController::class, 'scanningResult'])->name('scanningResult');
     });
 
     /* ================= ITEMS (BARANG HABIS PAKAI) ================= */
@@ -169,7 +174,7 @@ Route::middleware('IsLogin')->group(function () {
         Route::delete('/{id}',        [UserController::class, 'destroy'])->name('pengguna.destroy');
         Route::post('/search',        [UserController::class, 'search'])->name('pengguna.search');
         Route::post('/filter',        [UserController::class, 'filter'])->name('pengguna.filter');
-        Route::post('/{id}/reset-password', [UserController::class, 'resetPassword'])->name('pengguna.resetPassword'); // ← tambah ini
+        Route::post('/{id}/reset-password', [UserController::class, 'resetPassword'])->name('pengguna.resetPassword');
     });
 
 });
