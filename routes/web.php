@@ -39,18 +39,17 @@ Route::middleware('IsLogin')->group(function () {
         Route::get('/{id}/edit', [BarangController::class, 'edit'])->name('edit');
         Route::put('/{id}',      [BarangController::class, 'update'])->name('update');
         Route::delete('/{id}',   [BarangController::class, 'destroy'])->name('destroy');
-
         Route::post('/search',       [BarangController::class, 'search'])->name('search');
         Route::post('/filter',       [BarangController::class, 'filter'])->name('filter');
         Route::post('/multi-delete', [BarangController::class, 'multiDelete'])->name('multiDelete');
-
         Route::get('/import',    [BarangController::class, 'import'])->name('import');
         Route::post('/import',   [BarangController::class, 'importStore'])->name('import.store');
         Route::post('/export',   [BarangController::class, 'export'])->name('export');
-
         Route::post('/asetTetap/qrcodes',  [QrCodeController::class, 'generateQRCodes'])->name('generate_qrcodes');
         Route::post('/scanning',           [QrCodeController::class, 'scanning'])->name('scanning');
-        Route::post('/scanning-result',    [QrCodeController::class, 'scanningResult'])->name('scanningResult');
+        Route::post('/scanning-result',    [QrCodeController::class, 'scanningResult'])->name('scanningResult');       
+        Route::get('/{id}/photos',        [BarangController::class, 'getPhotos'])->name('getPhotos');
+        Route::delete('/photo/{photoId}', [BarangController::class, 'destroyPhoto'])->name('destroyPhoto');
     });
 
     /* ================= ITEMS (BARANG HABIS PAKAI) ================= */

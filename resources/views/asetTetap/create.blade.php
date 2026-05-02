@@ -16,6 +16,19 @@
 .btn-simpan:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(30,58,95,.35);color:#fff}
 .btn-batal{padding:10px 36px;background:#f4f6fb;color:#5a6a7e;border:1.5px solid #dee2e6;border-radius:10px;font-weight:600;font-size:.9rem;text-decoration:none;transition:all .18s;display:inline-block}
 .btn-batal:hover{background:#e8ecf5;color:#3d5170}
+
+/* ── Photo Upload ── */
+.photo-upload-zone{border:2px dashed rgba(30,58,95,.25);border-radius:12px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:#fafbfd;position:relative}
+.photo-upload-zone:hover,.photo-upload-zone.dragover{border-color:#2d5a8e;background:#eef2f8}
+.photo-upload-zone i{font-size:2.2rem;color:#2d5a8e;display:block;margin-bottom:8px}
+.photo-upload-zone .upload-title{font-size:.85rem;font-weight:700;color:#1e3a5f}
+.photo-upload-zone .upload-sub{font-size:.72rem;color:#8a96a3;margin-top:4px}
+.photo-preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:12px}
+.photo-thumb-wrap{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;background:#f4f6fb;border:1.5px solid #dee2e6}
+.photo-thumb-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-thumb-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(220,38,38,.85);border:none;border-radius:50%;color:#fff;font-size:.7rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
+.photo-thumb-remove:hover{background:#b91c1c}
+.photo-count-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(30,58,95,.08);color:#1e3a5f;border-radius:20px;padding:3px 10px;font-size:.74rem;font-weight:700;margin-top:8px}
 </style>
 
 <div class="pagetitle">
@@ -41,7 +54,7 @@
 @endif
 
 <div class="create-card">
-<form action="{{ route('asetTetap.store') }}" method="POST" id="formCreate">
+<form action="{{ route('asetTetap.store') }}" method="POST" id="formCreate" enctype="multipart/form-data">
 @csrf
 
 {{-- ══ 1. IDENTITAS BARANG ══ --}}
@@ -231,6 +244,28 @@
     </div>
 </div>
 
+{{-- ══ 6. FOTO DOKUMENTASI ══ --}}
+<div class="section-header mb-3">
+    <div class="section-number">6</div>
+    <i class="bi bi-images"></i> Foto Dokumentasi
+</div>
+<div class="mb-4">
+    <div class="photo-upload-zone" id="uploadZone" onclick="document.getElementById('photoInput').click()">
+        <i class="bi bi-cloud-upload"></i>
+        <div class="upload-title">Klik atau seret foto ke sini</div>
+        <div class="upload-sub">Maks. <strong>5 foto</strong> · Format: JPG, JPEG, PNG, WEBP · Maks. <strong>15 MB</strong> per foto</div>
+    </div>
+    <input type="file" id="photoInput" name="photos[]" multiple accept=".jpg,.jpeg,.png,.webp" style="display:none">
+    <div id="photoError" class="text-danger mt-2" style="font-size:.8rem;display:none"></div>
+    <div id="photoPreviewGrid" class="photo-preview-grid"></div>
+    <div id="photoCountWrap" style="display:none">
+        <span class="photo-count-badge">
+            <i class="bi bi-images"></i>
+            <span id="photoCount">0</span> foto dipilih
+        </span>
+    </div>
+</div>
+
 {{-- ══ TOMBOL ══ --}}
 <div class="text-center pt-2 border-top mt-2">
     <button type="submit" class="btn-simpan me-2">
@@ -243,4 +278,109 @@
 </form>
 </div>
 </main>
+
+<script>
+(function () {
+    const MAX_FILES    = 5;
+    const MAX_SIZE_MB  = 15;
+    const MAX_SIZE_B   = MAX_SIZE_MB * 1024 * 1024;
+    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+    const input       = document.getElementById('photoInput');
+    const zone        = document.getElementById('uploadZone');
+    const grid        = document.getElementById('photoPreviewGrid');
+    const errBox      = document.getElementById('photoError');
+    const countWrap   = document.getElementById('photoCountWrap');
+    const countEl     = document.getElementById('photoCount');
+
+    // DataTransfer untuk manajemen file list
+    let dt = new DataTransfer();
+
+    function showError(msg) {
+        errBox.textContent = msg;
+        errBox.style.display = 'block';
+        setTimeout(() => errBox.style.display = 'none', 4000);
+    }
+
+    function renderPreviews() {
+        grid.innerHTML = '';
+        const files = dt.files;
+        countEl.textContent = files.length;
+        countWrap.style.display = files.length > 0 ? 'block' : 'none';
+
+        Array.from(files).forEach((file, idx) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'photo-thumb-wrap';
+
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.alt = file.name;
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'photo-thumb-remove';
+            btn.title = 'Hapus foto ini';
+            btn.innerHTML = '<i class="bi bi-x"></i>';
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                removeFile(idx);
+            });
+
+            wrap.appendChild(img);
+            wrap.appendChild(btn);
+            grid.appendChild(wrap);
+        });
+
+        // Sync ke input
+        input.files = dt.files;
+    }
+
+    function addFiles(newFiles) {
+        let added = 0;
+        Array.from(newFiles).forEach(file => {
+            if (dt.files.length >= MAX_FILES) {
+                showError('Maksimal ' + MAX_FILES + ' foto per aset.');
+                return;
+            }
+            if (!ALLOWED_TYPES.includes(file.type)) {
+                showError('Format tidak didukung: ' + file.name + '. Gunakan JPG, PNG, atau WEBP.');
+                return;
+            }
+            if (file.size > MAX_SIZE_B) {
+                showError('Ukuran foto "' + file.name + '" melebihi ' + MAX_SIZE_MB + ' MB.');
+                return;
+            }
+            dt.items.add(file);
+            added++;
+        });
+        if (added > 0) renderPreviews();
+    }
+
+    function removeFile(idx) {
+        const newDt = new DataTransfer();
+        Array.from(dt.files).forEach((f, i) => { if (i !== idx) newDt.items.add(f); });
+        dt = newDt;
+        renderPreviews();
+    }
+
+    input.addEventListener('change', function () {
+        addFiles(this.files);
+        this.value = '';
+    });
+
+    // Drag & drop
+    zone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        this.classList.add('dragover');
+    });
+    zone.addEventListener('dragleave', function () {
+        this.classList.remove('dragover');
+    });
+    zone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        addFiles(e.dataTransfer.files);
+    });
+})();
+</script>
 @endsection

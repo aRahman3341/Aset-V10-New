@@ -8,22 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('material_photos', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('material_id');
-            $table->string('filename');       // nama file di disk
-            $table->string('original_name');  // nama asli saat upload
-            $table->timestamps();
-
-            $table->foreign('material_id')
-                  ->references('id')
-                  ->on('materials')
-                  ->onDelete('cascade');
+        Schema::table('materials', function (Blueprint $table) {
+            // Kolom untuk menyimpan jumlah foto (disinkronkan otomatis oleh BarangController)
+            if (!Schema::hasColumn('materials', 'Jumlah Foto')) {
+                $table->unsignedTinyInteger('Jumlah Foto')->default(0)->after('updated_at');
+            }
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('material_photos');
+        Schema::table('materials', function (Blueprint $table) {
+            if (Schema::hasColumn('materials', 'Jumlah Foto')) {
+                $table->dropColumn('Jumlah Foto');
+            }
+        });
     }
 };

@@ -75,15 +75,17 @@ class BarangController extends Controller
             'nup'       => 'required',
             'name'      => 'required',
             'jenis_bmn' => 'required',
-            'photos.*'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'photos'    => 'nullable|array|max:5',
+            'photos.*'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:15360',
         ], [
             'code.required'      => 'Kode Barang wajib diisi',
             'nup.required'       => 'NUP wajib diisi',
             'name.required'      => 'Nama Barang wajib diisi',
             'jenis_bmn.required' => 'Jenis BMN wajib dipilih',
+            'photos.max'         => 'Maksimal 5 foto per aset',
             'photos.*.image'     => 'File harus berupa gambar',
             'photos.*.mimes'     => 'Format foto: jpg, jpeg, png, webp',
-            'photos.*.max'       => 'Ukuran tiap foto maksimal 5MB',
+            'photos.*.max'       => 'Ukuran tiap foto maksimal 15 MB',
         ]);
 
         $id = DB::table('materials')->insertGetId([
@@ -127,12 +129,21 @@ class BarangController extends Controller
     // ===================== UPDATE =====================
     public function update(Request $request, $id)
     {
+        // Hitung foto existing agar tidak melebihi total 5
+        $existingCount = MaterialPhoto::where('material_id', $id)->count();
+        $maxNewPhotos  = max(0, 5 - $existingCount);
+
         $request->validate([
             'code'      => 'required',
             'nup'       => 'required',
             'name'      => 'required',
             'jenis_bmn' => 'required',
-            'photos.*'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'photos'    => "nullable|array|max:{$maxNewPhotos}",
+            'photos.*'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:15360',
+        ], [
+            'photos.max'    => 'Kuota foto penuh. Maksimal 5 foto per aset.',
+            'photos.*.max'  => 'Ukuran tiap foto maksimal 15 MB',
+            'photos.*.mimes'=> 'Format foto: jpg, jpeg, png, webp',
         ]);
 
         DB::table('materials')->where('id', $id)->update([
@@ -204,7 +215,7 @@ class BarangController extends Controller
         return response()->json(['success' => true]);
     }
 
-    // ===================== GET FOTO (untuk modal) =====================
+    // ===================== GET FOTO (untuk modal lightbox) =====================
     public function getPhotos($id)
     {
         $photos = MaterialPhoto::where('material_id', $id)->get()->map(function ($p) {
@@ -351,8 +362,12 @@ class BarangController extends Controller
             File::makeDirectory($uploadDir, 0775, true);
         }
 
+        // Cek total foto tidak melebihi 5
+        $currentCount = MaterialPhoto::where('material_id', $materialId)->count();
+
         foreach ($request->file('photos') as $file) {
             if (!$file || !$file->isValid()) continue;
+            if ($currentCount >= 5) break; // Batas keras: 5 foto
 
             $originalName = $file->getClientOriginalName();
             $filename     = time() . '_' . $materialId . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
@@ -363,6 +378,8 @@ class BarangController extends Controller
                 'filename'      => $filename,
                 'original_name' => $originalName,
             ]);
+
+            $currentCount++;
         }
     }
 

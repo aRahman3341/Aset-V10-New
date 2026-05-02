@@ -72,7 +72,6 @@
             <a href="{{ route('asetTetap.create') }}" class="btn btn-success btn-sm me-1 shadow-sm">
                 <i class="bi bi-plus-lg"></i> Tambah
             </a>
-            {{-- Import → modal, bukan halaman baru --}}
             <button type="button" data-bs-toggle="modal" data-bs-target="#ModalImportAset"
                     class="btn btn-success btn-sm me-1">
                 <i class="bi bi-file-earmark-arrow-down"></i> Import
@@ -167,6 +166,9 @@
 
 {{-- Modal Scan QR --}}
 @include('asetTetap.scane')
+
+{{-- Modal Lightbox Foto --}}
+@include('asetTetap.photo-modal')
 
 </main>
 

@@ -23,7 +23,7 @@
                 <th style="min-width:130px">Tgl Buku Pertama</th>
                 <th style="min-width:170px">No PSP</th>
                 <th style="min-width:110px">Tgl PSP</th>
-                <th class="text-center" style="min-width:55px">Foto</th>
+                <th class="text-center" style="min-width:60px">Foto</th>
                 <th class="text-center" style="width:80px">Aksi</th>
             </tr>
         </thead>
@@ -99,11 +99,18 @@
                     <td class="small text-muted">
                         {{ $tglPsp ? \Carbon\Carbon::parse($tglPsp)->format('d/m/Y') : '-' }}
                     </td>
+                    {{-- FOTO: badge yang bisa diklik --}}
                     <td class="text-center">
                         @if($jumlahFoto > 0)
-                            <span class="badge bg-info">{{ $jumlahFoto }}</span>
+                            <button type="button"
+                                    class="foto-badge-btn"
+                                    onclick="openPhotoModal({{ $item->id }}, '{{ addslashes(Str::limit($nama, 30)) }}')"
+                                    title="Lihat {{ $jumlahFoto }} foto">
+                                <i class="bi bi-images"></i>
+                                {{ $jumlahFoto }}
+                            </button>
                         @else
-                            <span class="text-muted">-</span>
+                            <span class="text-muted" style="font-size:.78rem;">-</span>
                         @endif
                     </td>
                     <td class="text-center">
@@ -130,3 +137,27 @@
         </tbody>
     </table>
 </div>
+
+<style>
+/* ── Foto Badge Button ── */
+.foto-badge-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #0d6efd, #4154f1);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .18s;
+    box-shadow: 0 2px 6px rgba(13,110,253,.3);
+}
+.foto-badge-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13,110,253,.4);
+    background: linear-gradient(135deg, #4154f1, #0d6efd);
+}
+</style>
