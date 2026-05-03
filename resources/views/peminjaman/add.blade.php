@@ -110,57 +110,7 @@
                     @csrf
 
                     {{-- ── Pilih Aset ── --}}
-                    <div class="pm-divider">Daftar Barang yang Dipinjam</div>
-                    <div class="pm-field">
-                        <label class="pm-label">Pilih Aset <span class="req">*</span> <span style="color:#8a96a3;font-weight:400;text-transform:none;font-size:0.72rem;">(klik untuk memilih)</span></label>
-
-                        <div class="aset-picker-wrap">
-                            <div class="aset-picker-search">
-                                <i class="bi bi-search"></i>
-                                <input type="text" id="pmSearch" placeholder="Cari nama atau kode aset...">
-                            </div>
-
-                            <div class="aset-picker-list" id="pmPickerList">
-                                @forelse ($material as $item)
-                                    @php
-                                        $namaBarang = $item->nama_barang ?? ($item->{'Nama Barang'} ?? '-');
-                                        $kodeBarang = $item->kode_barang ?? ($item->{'Kode Barang'} ?? '-');
-                                        $nup        = $item->nup ?? '-';
-                                    @endphp
-                                    <label class="aset-row" data-search="{{ strtolower($namaBarang . ' ' . $kodeBarang . ' ' . $nup) }}">
-                                        <input type="checkbox" name="material_id[]" value="{{ $item->id }}"
-                                               class="pm-cb" style="display:none">
-                                        <div class="aset-checkbox"><i class="bi bi-check-lg"></i></div>
-                                        <div class="aset-info">
-                                            <div class="aset-name">{{ $namaBarang }}</div>
-                                            <div class="aset-meta">
-                                                <span class="aset-code">{{ $kodeBarang }}</span>
-                                                <span class="aset-nup">NUP {{ $nup }}</span>
-                                            </div>
-                                        </div>
-                                    </label>
-                                @empty
-                                    <div class="aset-empty">
-                                        <i class="bi bi-inbox"></i>
-                                        Tidak ada aset tersedia.
-                                    </div>
-                                @endforelse
-                            </div>
-
-                            <div class="aset-footer">
-                                <span class="aset-footer-count">
-                                    Dipilih: <strong id="pmSelectedCount">0</strong> barang
-                                </span>
-                                <button type="button" class="aset-select-all" id="pmSelectAll">
-                                    Pilih Semua
-                                </button>
-                            </div>
-                        </div>
-                        <span class="aset-warn" id="pmWarn">
-                            <i class="bi bi-exclamation-circle me-1"></i>Pilih minimal satu barang.
-                        </span>
-                        @error('material_id')<span class="pm-field-error">{{ $message }}</span>@enderror
-                    </div>
+                    
 
                     {{-- ── Periode ── --}}
                     <div class="pm-divider">Periode Peminjaman</div>
@@ -220,6 +170,57 @@
                             </select>
                         </div>
                         @error('employee_id')<span class="pm-field-error">{{ $message }}</span>@enderror
+                    </div>
+                    <div class="pm-divider">Daftar Barang yang Dipinjam</div>
+                    <div class="pm-field">
+                        <label class="pm-label">Pilih Aset <span class="req">*</span> <span style="color:#8a96a3;font-weight:400;text-transform:none;font-size:0.72rem;">(klik untuk memilih)</span></label>
+
+                        <div class="aset-picker-wrap">
+                            <div class="aset-picker-search">
+                                <i class="bi bi-search"></i>
+                                <input type="text" id="pmSearch" placeholder="Cari nama atau kode aset...">
+                            </div>
+
+                            <div class="aset-picker-list" id="pmPickerList">
+                                @forelse ($material as $item)
+                                    @php
+                                        $namaBarang = $item->nama_barang ?? ($item->{'Nama Barang'} ?? '-');
+                                        $kodeBarang = $item->kode_barang ?? ($item->{'Kode Barang'} ?? '-');
+                                        $nup        = $item->nup ?? '-';
+                                    @endphp
+                                    <label class="aset-row" data-search="{{ strtolower($namaBarang . ' ' . $kodeBarang . ' ' . $nup) }}">
+                                        <input type="checkbox" name="material_id[]" value="{{ $item->id }}"
+                                               class="pm-cb" style="display:none">
+                                        <div class="aset-checkbox"><i class="bi bi-check-lg"></i></div>
+                                        <div class="aset-info">
+                                            <div class="aset-name">{{ $namaBarang }}</div>
+                                            <div class="aset-meta">
+                                                <span class="aset-code">{{ $kodeBarang }}</span>
+                                                <span class="aset-nup">NUP {{ $nup }}</span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                @empty
+                                    <div class="aset-empty">
+                                        <i class="bi bi-inbox"></i>
+                                        Tidak ada aset tersedia.
+                                    </div>
+                                @endforelse
+                            </div>
+
+                            <div class="aset-footer">
+                                <span class="aset-footer-count">
+                                    Dipilih: <strong id="pmSelectedCount">0</strong> barang
+                                </span>
+                                <button type="button" class="aset-select-all" id="pmSelectAll">
+                                    Pilih Semua
+                                </button>
+                            </div>
+                        </div>
+                        <span class="aset-warn" id="pmWarn">
+                            <i class="bi bi-exclamation-circle me-1"></i>Pilih minimal satu barang.
+                        </span>
+                        @error('material_id')<span class="pm-field-error">{{ $message }}</span>@enderror
                     </div>
 
                     {{-- ── Submit ── --}}

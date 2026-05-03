@@ -113,15 +113,45 @@
             </thead>
             <tbody>
                 @forelse($loan as $i => $item)
-                @php $materials = $item->materials; @endphp
-                <tr>
+                @php
+                    $materials = $item->materials;
+
+                    // ── Hitung status ──
+                    $status = $item->status ?? 'Dipinjam';
+
+                    // Cek keterlambatan: hanya untuk yang belum dikembalikan
+                    $terlambat = false;
+                    if ($status !== 'Dikembalikan' && $item->tgl_kembali) {
+                        $tglKembali = \Carbon\Carbon::parse($item->tgl_kembali)->startOfDay();
+                        $today      = \Carbon\Carbon::today();
+                        if ($today->gt($tglKembali)) {
+                            $terlambat    = true;
+                            $hariTerlambat = $today->diffInDays($tglKembali);
+                        }
+                    }
+
+                    // Tentukan badge
+                    if ($status === 'Dikembalikan') {
+                        $badgeClass = 'bstatus-kembali';
+                        $badgeText  = 'Dikembalikan';
+                        $badgeIcon  = 'bi-check-circle-fill';
+                    } elseif ($terlambat) {
+                        $badgeClass = 'bstatus-terlambat';
+                        $badgeText  = 'Terlambat ' . $hariTerlambat . ' hari';
+                        $badgeIcon  = 'bi-exclamation-triangle-fill';
+                    } else {
+                        $badgeClass = 'bstatus-pinjam';
+                        $badgeText  = 'Dipinjam';
+                        $badgeIcon  = 'bi-hourglass-split';
+                    }
+                @endphp
+                <tr class="{{ $terlambat ? 'row-terlambat' : '' }}">
                     <td class="text-center text-muted small">{{ $loan->firstItem() + $i }}</td>
-                    <td><span class="fw-bold text-success">{{ $item->code }}</span></td>
+                    <td><span class="fw-bold {{ $terlambat ? 'text-danger' : 'text-success' }}">{{ $item->code }}</span></td>
                     <td>
-                        {{-- Tampilkan semua barang yang dipinjam --}}
                         @forelse($materials as $m)
                             <div class="ak-aset-item">
-                                <span class="ak-aset-dot"></span>
+                                <span class="ak-aset-dot {{ $terlambat ? 'bg-danger' : '' }}"></span>
                                 <span style="font-size:0.82rem;">{{ $m->nama_barang ?? '-' }}</span>
                                 @if($m->kode_barang)
                                     <span class="ak-aset-code">{{ $m->kode_barang }}</span>
@@ -134,13 +164,19 @@
                     </td>
                     <td>{{ $item->peminjam }}</td>
                     <td class="text-center small">{{ $item->tgl_pinjam }}</td>
-                    <td class="text-center small">{{ $item->tgl_kembali }}</td>
+                    <td class="text-center small {{ $terlambat ? 'text-danger fw-bold' : '' }}">
+                        {{ $item->tgl_kembali }}
+                        @if($terlambat)
+                            <div style="font-size:.65rem;color:#dc2626;font-weight:700;">
+                                <i class="bi bi-clock-history"></i> lewat {{ $hariTerlambat }} hari
+                            </div>
+                        @endif
+                    </td>
                     <td class="text-center">
-                        @php
-                            $status = $item->status ?? 'Dipinjam';
-                            $sClass = $status === 'Dikembalikan' ? 'bstatus-kembali' : 'bstatus-pinjam';
-                        @endphp
-                        <span class="bstatus {{ $sClass }}">{{ $status }}</span>
+                        <span class="bstatus {{ $badgeClass }}">
+                            <i class="bi {{ $badgeIcon }}"></i>
+                            {{ $badgeText }}
+                        </span>
                     </td>
                     <td class="text-center">
                         <div class="action-group">
@@ -210,18 +246,35 @@
 .table tbody tr:last-child td { border-bottom:none; }
 .table tbody tr:hover td { background:rgba(65,84,241,0.03); }
 
-/* Aset item styling */
+/* ── Row terlambat highlight ── */
+.row-terlambat td { background:rgba(220,38,38,0.03) !important; }
+.row-terlambat:hover td { background:rgba(220,38,38,0.07) !important; }
+
+/* Aset item */
 .ak-aset-item { display:flex; align-items:center; gap:5px; margin-bottom:3px; }
 .ak-aset-item:last-child { margin-bottom:0; }
 .ak-aset-dot { width:5px; height:5px; border-radius:50%; background:#2d5a8e; flex-shrink:0; }
 .ak-aset-code { font-family:'DM Mono',monospace; font-size:0.71rem; background:rgba(65,84,241,0.08); color:#4154f1; padding:1px 6px; border-radius:4px; }
 .ak-aset-nup { font-size:0.7rem; color:#8a96a3; }
 
-.bstatus { display:inline-block; font-size:0.68rem; font-weight:700; padding:2px 9px; border-radius:20px; }
-.bstatus-pinjam  { background:rgba(255,193,7,0.15); color:#b45309; }
-.bstatus-kembali { background:rgba(16,185,129,0.12); color:#047857; }
+/* ── Status badges ── */
+.bstatus { display:inline-flex; align-items:center; gap:5px; font-size:0.68rem; font-weight:700; padding:3px 10px; border-radius:20px; white-space:nowrap; }
+.bstatus-pinjam    { background:rgba(255,193,7,0.15);   color:#b45309; }
+.bstatus-kembali   { background:rgba(16,185,129,0.12);  color:#047857; }
+.bstatus-terlambat {
+    background:linear-gradient(135deg,#dc2626,#b91c1c);
+    color:#fff;
+    box-shadow:0 2px 8px rgba(220,38,38,0.35);
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+    0%, 100% { box-shadow: 0 2px 8px rgba(220,38,38,0.35); }
+    50%       { box-shadow: 0 2px 16px rgba(220,38,38,0.6); }
+}
+
 .action-group { display:flex; align-items:center; justify-content:center; gap:4px; }
-.abtn { width:28px; height:28px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:0.8rem; border:none; cursor:pointer; transition:all .15s; background:transparent; }
+.abtn { width:28px; height:28px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:0.8rem; border:none; cursor:pointer; transition:all .15s; background:transparent; text-decoration:none; }
 .abtn-edit    { color:#c49a2a; } .abtn-edit:hover    { background:rgba(232,184,75,0.15); }
 .abtn-del     { color:#dc2626; } .abtn-del:hover     { background:rgba(220,38,38,0.10); }
 .abtn-print   { color:#4154f1; } .abtn-print:hover   { background:rgba(65,84,241,0.10); }

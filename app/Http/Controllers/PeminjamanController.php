@@ -88,9 +88,11 @@ class PeminjamanController extends Controller
         $newNumber = $lastCode ? intval(substr($lastCode, 1)) + 1 : 1;
         $code      = 'P' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
 
+        $materialIds = array_values($request->material_id);
+
         DB::table('peminjamen')->insert([
             'code'        => $code,
-            'material_id' => json_encode(array_values($request->material_id)),
+            'material_id' => json_encode($materialIds),
             'tgl_pinjam'  => $request->tgl_pinjam,
             'tgl_kembali' => $request->tgl_kembali,
             'employee_id' => $request->employee_id,
@@ -99,6 +101,14 @@ class PeminjamanController extends Controller
             'created_at'  => Carbon::now(),
             'updated_at'  => Carbon::now(),
         ]);
+
+        // ── Update Status BMN aset yang dipinjam ──
+        DB::table('materials')
+            ->whereIn('id', $materialIds)
+            ->update([
+                'Status BMN' => 'Dipinjam',
+                'updated_at' => Carbon::now(),
+            ]);
 
         return redirect('/peminjaman')->with('success', 'Peminjaman berhasil disimpan.');
     }
@@ -121,12 +131,26 @@ class PeminjamanController extends Controller
             'employee_id.required' => 'Petugas gudang harus dipilih',
         ]);
 
+        // Ambil data peminjaman untuk dapatkan material_id
+        $loan = peminjaman::findOrFail($id);
+
         peminjaman::where('id', $id)->update([
             'tgl_kembali' => $validated['tgl_kembali'],
             'employee_id' => $validated['employee_id'],
             'status'      => 'Dikembalikan',
             'updated_at'  => Carbon::now(),
         ]);
+
+        // ── Kembalikan Status BMN aset ke Aktif ──
+        $materialIds = json_decode($loan->material_id, true) ?? [];
+        if (!empty($materialIds)) {
+            DB::table('materials')
+                ->whereIn('id', $materialIds)
+                ->update([
+                    'Status BMN' => 'Aktif',
+                    'updated_at' => Carbon::now(),
+                ]);
+        }
 
         return redirect('/peminjaman')->with('success', 'Pengembalian berhasil dicatat.');
     }
@@ -148,26 +172,54 @@ class PeminjamanController extends Controller
             'peminjam'      => 'required',
         ]);
 
+        // Ambil material_id lama untuk dikembalikan statusnya
+        $loanLama    = peminjaman::findOrFail($id);
+        $idsLama     = json_decode($loanLama->material_id, true) ?? [];
+        $idsBaru     = array_values($request->material_id);
+
+        // Kembalikan status aset lama ke Aktif
+        if (!empty($idsLama)) {
+            DB::table('materials')
+                ->whereIn('id', $idsLama)
+                ->update(['Status BMN' => 'Aktif', 'updated_at' => Carbon::now()]);
+        }
+
         peminjaman::where('id', $id)->update([
-            'material_id' => json_encode(array_values($request->material_id)),
+            'material_id' => json_encode($idsBaru),
             'tgl_pinjam'  => $request->tgl_pinjam,
             'tgl_kembali' => $request->tgl_kembali,
             'peminjam'    => $request->peminjam,
             'updated_at'  => Carbon::now(),
         ]);
 
+        // Set status aset baru ke Dipinjam
+        DB::table('materials')
+            ->whereIn('id', $idsBaru)
+            ->update(['Status BMN' => 'Dipinjam', 'updated_at' => Carbon::now()]);
+
         return redirect('/peminjaman')->with('success', 'Data peminjaman berhasil diubah.');
     }
 
     public function destroy($id)
     {
+        // Ambil data sebelum dihapus agar bisa kembalikan status aset
+        $loan        = peminjaman::find($id);
+        $materialIds = $loan ? (json_decode($loan->material_id, true) ?? []) : [];
+
         peminjaman::destroy($id);
+
+        // Kembalikan Status BMN ke Aktif jika ada
+        if (!empty($materialIds)) {
+            DB::table('materials')
+                ->whereIn('id', $materialIds)
+                ->update(['Status BMN' => 'Aktif', 'updated_at' => Carbon::now()]);
+        }
+
         return redirect('/peminjaman')->with('success', 'Data berhasil dihapus.');
     }
 
     public function cetakSurat($id)
     {
-        // Gunakan with('user') saja, materials diakses via accessor
         $loan = peminjaman::with(['user'])->findOrFail($id);
 
         $templatePath = public_path('assets/templates/surat_peminjaman.docx');
@@ -188,7 +240,7 @@ class PeminjamanController extends Controller
         $template->setValue('tgl_kembali', $loan->tgl_kembali ? Carbon::parse($loan->tgl_kembali)->locale('id')->isoFormat('D MMMM Y') : '-');
         $template->setValue('peminjam',    $loan->peminjam ?? '-');
 
-        $materials = $loan->materials; // accessor dari model
+        $materials = $loan->materials;
         $rowCount  = max($materials->count(), 1);
         $template->cloneRow('jenis_bmn', $rowCount);
 

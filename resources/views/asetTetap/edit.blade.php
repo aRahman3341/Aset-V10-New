@@ -17,6 +17,7 @@
 .create-card{background:#fff;border-radius:14px;border:1px solid rgba(30,58,95,.08);box-shadow:0 2px 14px rgba(30,58,95,.06);padding:24px}
 .btn-simpan{padding:10px 36px;background:linear-gradient(135deg,#1e3a5f,#2d5a8e);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:.9rem;box-shadow:0 4px 12px rgba(30,58,95,.25);transition:all .18s;cursor:pointer}
 .btn-simpan:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(30,58,95,.35);color:#fff}
+.btn-simpan:disabled{opacity:.6;cursor:not-allowed;transform:none !important}
 .btn-batal{padding:10px 36px;background:#f4f6fb;color:#5a6a7e;border:1.5px solid #dee2e6;border-radius:10px;font-weight:600;font-size:.9rem;text-decoration:none;transition:all .18s;display:inline-block}
 .btn-batal:hover{background:#e8ecf5;color:#3d5170}
 
@@ -40,30 +41,34 @@
 .photo-actions{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
 .btn-delete-selected{padding:6px 16px;background:#dc3545;color:#fff;border:none;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;display:none;align-items:center;gap:5px;transition:background .15s}
 .btn-delete-selected:hover{background:#b91c1c}
-.btn-delete-selected i{font-size:.8rem}
 .photo-select-hint{font-size:.74rem;color:#8a96a3}
 .photo-count-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(30,58,95,.08);color:#1e3a5f;border-radius:20px;padding:3px 10px;font-size:.74rem;font-weight:700}
-.new-photo-thumb{border-color:#4154f1 !important}
-.new-photo-thumb .thumb-badge{background:rgba(65,84,241,.7) !important}
+
+/* Foto baru preview */
+.new-photo-wrap{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;background:#f4f6fb;border:2px solid #4154f1}
+.new-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.new-photo-wrap .thumb-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(220,38,38,.85);border:none;border-radius:50%;color:#fff;font-size:.7rem;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.new-photo-wrap .thumb-remove:hover{background:#b91c1c}
+.new-photo-wrap .thumb-badge{position:absolute;bottom:0;left:0;right:0;background:rgba(65,84,241,.7);color:#fff;font-size:.6rem;text-align:center;padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 
 @php
-    $kodeBarang       = old('code',                $item->code                ?? $item->{'Kode Barang'}             ?? '');
-    $nup              = old('nup',                 $item->nup                 ?? '');
-    $namaBarang       = old('name',                $item->name                ?? $item->{'Nama Barang'}             ?? '');
-    $merk             = old('name_fix',            $item->merk                ?? $item->name_fix                    ?? '');
-    $noSeri           = old('no_seri',             $item->no_seri             ?? '');
-    $jenisBmn         = old('jenis_bmn',           $item->jenis_bmn           ?? $item->{'Jenis BMN'}               ?? '');
-    $tipeAset         = old('type',                $item->tipe                ?? $item->type                        ?? 'Tetap');
-    $kondisi          = old('condition',           $item->kondisi             ?? $item->condition                   ?? 'Baik');
-    $statusPenggunaan = old('status',              $item->status              ?? 'Tidak Dipakai');
-    $statusBmn        = old('status_bmn',          $item->status_bmn          ?? $item->{'Status BMN'}              ?? 'Aktif');
-    $satuan           = old('satuan',              $item->satuan              ?? '');
-    $nilaiAwal        = old('nilai',               $item->nilai               ?? $item->{'Nilai Perolehan Pertama'} ?? '');
-    $nilaiPerolehan   = old('nilai_perolehan',     $item->nilai_perolehan     ?? $item->{'Nilai Perolehan'}         ?? '');
-    $nilaiPenyusutan  = old('nilai_penyusutan',    $item->nilai_penyusutan    ?? $item->{'Nilai Penyusutan'}        ?? '');
-    $nilaiBuku        = old('nilai_buku',          $item->nilai_buku          ?? $item->{'Nilai Buku'}              ?? '');
-    $years            = old('years',               $item->years               ?? '');
+    $kodeBarang       = old('code',             $item->code                ?? $item->{'Kode Barang'}             ?? '');
+    $nup              = old('nup',              $item->nup                 ?? '');
+    $namaBarang       = old('name',             $item->name                ?? $item->{'Nama Barang'}             ?? '');
+    $merk             = old('name_fix',         $item->merk                ?? $item->name_fix                    ?? '');
+    $noSeri           = old('no_seri',          $item->no_seri             ?? '');
+    $jenisBmn         = old('jenis_bmn',        $item->jenis_bmn           ?? $item->{'Jenis BMN'}               ?? '');
+    $tipeAset         = old('type',             $item->tipe                ?? $item->type                        ?? 'Tetap');
+    $kondisi          = old('condition',        $item->kondisi             ?? $item->condition                   ?? 'Baik');
+    $statusPenggunaan = old('status',           $item->status              ?? 'Tidak Dipakai');
+    $statusBmn        = old('status_bmn',       $item->status_bmn          ?? $item->{'Status BMN'}              ?? 'Aktif');
+    $satuan           = old('satuan',           $item->satuan              ?? '');
+    $nilaiAwal        = old('nilai',            $item->nilai               ?? $item->{'Nilai Perolehan Pertama'} ?? '');
+    $nilaiPerolehan   = old('nilai_perolehan',  $item->nilai_perolehan     ?? $item->{'Nilai Perolehan'}         ?? '');
+    $nilaiPenyusutan  = old('nilai_penyusutan', $item->nilai_penyusutan    ?? $item->{'Nilai Penyusutan'}        ?? '');
+    $nilaiBuku        = old('nilai_buku',       $item->nilai_buku          ?? $item->{'Nilai Buku'}              ?? '');
+    $years            = old('years',            $item->years               ?? '');
 
     $tglPerolehan = '';
     $rawTglP = $item->tanggal_perolehan ?? $item->{'Tanggal Perolehan'} ?? null;
@@ -75,8 +80,8 @@
     if ($rawTglB) { try { $tglBukuPertama = \Carbon\Carbon::parse($rawTglB)->format('Y-m-d'); } catch(\Exception $e){} }
     $tglBukuPertama = old('tanggal_buku_pertama', $tglBukuPertama);
 
-    $lifeTime   = old('life_time',       $item->life_time   ?? $item->umur_aset ?? '');
-    $noPsp      = old('no_psp',          $item->no_psp      ?? $item->{'No PSP'} ?? '');
+    $lifeTime = old('life_time', $item->life_time ?? $item->umur_aset ?? '');
+    $noPsp    = old('no_psp',    $item->no_psp    ?? $item->{'No PSP'} ?? '');
 
     $tglPsp = '';
     $rawTglPsp = $item->tanggal_psp ?? $item->{'Tanggal PSP'} ?? null;
@@ -90,7 +95,7 @@
     $provinsi   = old('provinsi',    $item->provinsi    ?? '');
 
     $existingPhotoCount = $photos->count();
-    $slotsRemaining = max(0, 5 - $existingPhotoCount);
+    $slotsRemaining     = max(0, 5 - $existingPhotoCount);
 @endphp
 
 <div class="pagetitle">
@@ -116,9 +121,10 @@
 @endif
 
 <div class="create-card">
-<form action="{{ route('asetTetap.update', $item->id) }}" method="POST" id="formEdit" enctype="multipart/form-data">
+{{-- Form TANPA enctype — kita handle via JS FormData + fetch --}}
+<form action="{{ route('asetTetap.update', $item->id) }}" method="POST" id="formEdit">
 @csrf
-@method('PUT')
+{{-- _method PUT dikirim manual lewat FormData --}}
 
 {{-- ══ 1. IDENTITAS BARANG ══ --}}
 <div class="section-header mb-3">
@@ -128,34 +134,29 @@
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <label class="form-label-custom">Kode Barang <span class="req">*</span></label>
-        <input type="text" name="code"
-               class="form-control @error('code') is-invalid @enderror"
+        <input type="text" name="code" class="form-control @error('code') is-invalid @enderror"
                value="{{ $kodeBarang }}" required>
         @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-2">
         <label class="form-label-custom">NUP <span class="req">*</span></label>
-        <input type="text" name="nup"
-               class="form-control @error('nup') is-invalid @enderror"
+        <input type="text" name="nup" class="form-control @error('nup') is-invalid @enderror"
                value="{{ $nup }}" required>
         @error('nup')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-7">
         <label class="form-label-custom">Nama Barang <span class="req">*</span></label>
-        <input type="text" name="name"
-               class="form-control @error('name') is-invalid @enderror"
+        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
                value="{{ $namaBarang }}" required>
         @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">Merk / Uraian</label>
-        <input type="text" name="name_fix" class="form-control"
-               value="{{ $merk }}" placeholder="Contoh: Honda, Asus">
+        <input type="text" name="name_fix" class="form-control" value="{{ $merk }}">
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">No. Seri</label>
-        <input type="text" name="no_seri" class="form-control"
-               value="{{ $noSeri }}" placeholder="Nomor seri barang">
+        <input type="text" name="no_seri" class="form-control" value="{{ $noSeri }}">
     </div>
 </div>
 
@@ -167,46 +168,43 @@
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <label class="form-label-custom">Jenis BMN <span class="req">*</span></label>
-        <input type="text" name="jenis_bmn"
-               class="form-control @error('jenis_bmn') is-invalid @enderror"
-               value="{{ $jenisBmn }}"
-               placeholder="Contoh: ALAT BESAR" required>
+        <input type="text" name="jenis_bmn" class="form-control @error('jenis_bmn') is-invalid @enderror"
+               value="{{ $jenisBmn }}" required>
         @error('jenis_bmn')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">Tipe Aset</label>
         <select name="type" class="form-select">
-            <option value="Tetap"      {{ $tipeAset == 'Tetap'      ? 'selected':'' }}>Tetap</option>
-            <option value="Alat besar" {{ $tipeAset == 'Alat besar' ? 'selected':'' }}>Alat Besar</option>
+            <option value="Tetap"      {{ $tipeAset=='Tetap'      ?'selected':'' }}>Tetap</option>
+            <option value="Alat besar" {{ $tipeAset=='Alat besar' ?'selected':'' }}>Alat Besar</option>
         </select>
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">Kondisi</label>
         <select name="condition" class="form-select">
-            <option value="Baik"         {{ $kondisi == 'Baik'         ? 'selected':'' }}>Baik</option>
-            <option value="Rusak Ringan" {{ $kondisi == 'Rusak Ringan' ? 'selected':'' }}>Rusak Ringan</option>
-            <option value="Rusak Berat"  {{ $kondisi == 'Rusak Berat'  ? 'selected':'' }}>Rusak Berat</option>
+            <option value="Baik"         {{ $kondisi=='Baik'         ?'selected':'' }}>Baik</option>
+            <option value="Rusak Ringan" {{ $kondisi=='Rusak Ringan' ?'selected':'' }}>Rusak Ringan</option>
+            <option value="Rusak Berat"  {{ $kondisi=='Rusak Berat'  ?'selected':'' }}>Rusak Berat</option>
         </select>
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">Status Penggunaan</label>
         <select name="status" class="form-select">
-            <option value="Tidak Dipakai" {{ $statusPenggunaan == 'Tidak Dipakai' ? 'selected':'' }}>Tidak Dipakai</option>
-            <option value="Dipakai"       {{ $statusPenggunaan == 'Dipakai'       ? 'selected':'' }}>Dipakai</option>
-            <option value="Maintenance"   {{ $statusPenggunaan == 'Maintenance'   ? 'selected':'' }}>Maintenance</option>
+            <option value="Tidak Dipakai" {{ $statusPenggunaan=='Tidak Dipakai' ?'selected':'' }}>Tidak Dipakai</option>
+            <option value="Dipakai"       {{ $statusPenggunaan=='Dipakai'       ?'selected':'' }}>Dipakai</option>
+            <option value="Maintenance"   {{ $statusPenggunaan=='Maintenance'   ?'selected':'' }}>Maintenance</option>
         </select>
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">Status BMN</label>
         <select name="status_bmn" class="form-select">
-            <option value="Aktif"       {{ $statusBmn == 'Aktif'       ? 'selected':'' }}>Aktif</option>
-            <option value="Tidak Aktif" {{ $statusBmn == 'Tidak Aktif' ? 'selected':'' }}>Tidak Aktif</option>
+            <option value="Aktif"       {{ $statusBmn=='Aktif'       ?'selected':'' }}>Aktif</option>
+            <option value="Tidak Aktif" {{ $statusBmn=='Tidak Aktif' ?'selected':'' }}>Tidak Aktif</option>
         </select>
     </div>
     <div class="col-md-4">
         <label class="form-label-custom">Satuan</label>
-        <input type="text" name="satuan" class="form-control"
-               value="{{ $satuan }}" placeholder="Contoh: Unit, Buah">
+        <input type="text" name="satuan" class="form-control" value="{{ $satuan }}">
     </div>
 </div>
 
@@ -218,43 +216,35 @@
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <label class="form-label-custom">Nilai Perolehan Pertama (Rp)</label>
-        <input type="number" name="nilai" class="form-control" min="0"
-               value="{{ $nilaiAwal }}">
+        <input type="number" name="nilai" class="form-control" min="0" value="{{ $nilaiAwal }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Nilai Perolehan (Rp)</label>
-        <input type="number" name="nilai_perolehan" class="form-control" min="0"
-               value="{{ $nilaiPerolehan }}">
+        <input type="number" name="nilai_perolehan" class="form-control" min="0" value="{{ $nilaiPerolehan }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Nilai Penyusutan (Rp)</label>
-        <input type="number" name="nilai_penyusutan" class="form-control" min="0"
-               value="{{ $nilaiPenyusutan }}">
+        <input type="number" name="nilai_penyusutan" class="form-control" min="0" value="{{ $nilaiPenyusutan }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Nilai Buku (Rp)</label>
-        <input type="number" name="nilai_buku" class="form-control" min="0"
-               value="{{ $nilaiBuku }}">
+        <input type="number" name="nilai_buku" class="form-control" min="0" value="{{ $nilaiBuku }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Tahun Perolehan</label>
-        <input type="number" name="years" class="form-control"
-               min="1900" max="{{ date('Y') }}" value="{{ $years }}">
+        <input type="number" name="years" class="form-control" min="1900" max="{{ date('Y') }}" value="{{ $years }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Tanggal Perolehan</label>
-        <input type="date" name="tanggal_perolehan" class="form-control"
-               value="{{ $tglPerolehan }}">
+        <input type="date" name="tanggal_perolehan" class="form-control" value="{{ $tglPerolehan }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Tanggal Buku Pertama</label>
-        <input type="date" name="tanggal_buku_pertama" class="form-control"
-               value="{{ $tglBukuPertama }}">
+        <input type="date" name="tanggal_buku_pertama" class="form-control" value="{{ $tglBukuPertama }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Umur Aset (Tahun)</label>
-        <input type="number" name="life_time" class="form-control" min="0"
-               value="{{ $lifeTime }}">
+        <input type="number" name="life_time" class="form-control" min="0" value="{{ $lifeTime }}">
     </div>
 </div>
 
@@ -266,13 +256,11 @@
 <div class="row g-3 mb-4">
     <div class="col-md-6">
         <label class="form-label-custom">No PSP</label>
-        <input type="text" name="no_psp" class="form-control"
-               value="{{ $noPsp }}" placeholder="Nomor PSP">
+        <input type="text" name="no_psp" class="form-control" value="{{ $noPsp }}">
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">Tanggal PSP</label>
-        <input type="date" name="tanggal_psp" class="form-control"
-               value="{{ $tglPsp }}">
+        <input type="date" name="tanggal_psp" class="form-control" value="{{ $tglPsp }}">
     </div>
 </div>
 
@@ -284,28 +272,23 @@
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <label class="form-label-custom">Kode Satker</label>
-        <input type="text" name="kode_satker" class="form-control"
-               value="{{ $kodeSatker }}" placeholder="Kode Satuan Kerja">
+        <input type="text" name="kode_satker" class="form-control" value="{{ $kodeSatker }}">
     </div>
     <div class="col-md-9">
         <label class="form-label-custom">Nama Satker</label>
-        <input type="text" name="nama_satker" class="form-control"
-               value="{{ $namaSatker }}" placeholder="Nama Satuan Kerja">
+        <input type="text" name="nama_satker" class="form-control" value="{{ $namaSatker }}">
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">Alamat</label>
-        <textarea name="alamat" class="form-control" rows="2"
-                  placeholder="Alamat lengkap aset">{{ $alamat }}</textarea>
+        <textarea name="alamat" class="form-control" rows="2">{{ $alamat }}</textarea>
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Kab / Kota</label>
-        <input type="text" name="kab_kota" class="form-control"
-               value="{{ $kabKota }}" placeholder="Contoh: Kota Bandung">
+        <input type="text" name="kab_kota" class="form-control" value="{{ $kabKota }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Provinsi</label>
-        <input type="text" name="provinsi" class="form-control"
-               value="{{ $provinsi }}" placeholder="Contoh: Jawa Barat">
+        <input type="text" name="provinsi" class="form-control" value="{{ $provinsi }}">
     </div>
 </div>
 
@@ -326,7 +309,7 @@
         @endif
     </div>
 
-    {{-- Grid foto yang sudah ada --}}
+    {{-- Foto existing --}}
     @if($photos->count() > 0)
     <div style="margin-bottom:14px;">
         <div class="form-label-custom mb-2">Foto Tersimpan</div>
@@ -337,19 +320,15 @@
                  onclick="toggleSelectPhoto(this)"
                  title="{{ $photo->original_name }}">
                 <img src="{{ asset('assets/upload_asset_tetap/' . $photo->filename) }}"
-                     alt="{{ $photo->original_name }}"
-                     loading="lazy">
+                     alt="{{ $photo->original_name }}" loading="lazy">
                 <div class="thumb-check"><i class="bi bi-x-lg"></i></div>
                 <div class="thumb-overlay"></div>
                 <div class="thumb-badge">{{ \Illuminate\Support\Str::limit($photo->original_name, 18) }}</div>
             </div>
             @endforeach
         </div>
-
         <div class="photo-actions">
-            <button type="button" id="btnDeleteSelected"
-                    class="btn-delete-selected"
-                    onclick="deleteSelectedPhotos()">
+            <button type="button" id="btnDeleteSelected" class="btn-delete-selected" onclick="deleteSelectedPhotos()">
                 <i class="bi bi-trash"></i>
                 Hapus Foto Terpilih (<span id="selectedCount">0</span>)
             </button>
@@ -363,7 +342,7 @@
     {{-- Upload foto baru --}}
     @if($slotsRemaining > 0)
     <div class="form-label-custom mb-2">Tambah Foto Baru</div>
-    <div class="photo-upload-zone" id="uploadZone" onclick="document.getElementById('photoInput').click()">
+    <div class="photo-upload-zone" id="uploadZone">
         <i class="bi bi-cloud-upload"></i>
         <div class="upload-title">Klik atau seret foto ke sini</div>
         <div class="upload-sub">
@@ -371,8 +350,6 @@
             Format: JPG, JPEG, PNG, WEBP · Maks. <strong>15 MB</strong> per foto
         </div>
     </div>
-    <input type="file" id="photoInput" name="photos[]" multiple
-           accept=".jpg,.jpeg,.png,.webp" style="display:none">
     <div id="photoError" class="text-danger mt-2" style="font-size:.8rem;display:none"></div>
     <div id="newPhotoGrid" class="photo-grid" style="margin-top:10px;"></div>
     <div id="photoCountWrap" style="display:none;margin-top:6px;">
@@ -392,7 +369,7 @@
 
 {{-- ══ TOMBOL ══ --}}
 <div class="text-center pt-2 border-top mt-2">
-    <button type="submit" class="btn-simpan me-2">
+    <button type="submit" class="btn-simpan me-2" id="btnSimpan">
         <i class="bi bi-check-circle-fill me-1"></i> Simpan Perubahan
     </button>
     <a href="{{ route('asetTetap.index') }}" class="btn-batal">
@@ -403,11 +380,9 @@
 </div>
 </main>
 
-{{-- SweetAlert untuk konfirmasi hapus foto --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script>
-// ══ FOTO YANG SUDAH ADA: pilih & hapus ══
+// ══ HAPUS FOTO EXISTING ══
 const selectedPhotoIds = new Set();
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 
@@ -448,60 +423,43 @@ function deleteSelectedPhotos() {
         cancelButtonText: 'Batal'
     }).then(r => {
         if (!r.isConfirmed) return;
-
-        // Hapus satu per satu via fetch
-        const deletePromises = ids.map(photoId =>
+        const promises = ids.map(photoId =>
             fetch(`/asetTetap/photo/${photoId}`, {
                 method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': CSRF,
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                }
+                headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
             }).then(res => res.json())
         );
-
-        Promise.all(deletePromises).then(results => {
-            const allOk = results.every(r => r.success);
+        Promise.all(promises).then(() => {
             ids.forEach(photoId => {
                 const el = document.querySelector(`[data-photo-id="${photoId}"]`);
                 if (el) el.remove();
                 selectedPhotoIds.delete(photoId);
             });
             updateDeleteBtn();
-
-            // Update kuota info
-            const remaining = document.querySelectorAll('#existingGrid .photo-thumb').length;
-            if (remaining === 0) {
-                const existingSection = document.querySelector('#existingGrid')?.parentElement;
-                if (existingSection) existingSection.style.display = 'none';
-            }
-
-            if (allOk) {
-                Swal.fire({ icon:'success', title:'Berhasil', text:'Foto berhasil dihapus.', timer:1800, showConfirmButton:false });
-            } else {
-                Swal.fire({ icon:'warning', title:'Sebagian Gagal', text:'Beberapa foto gagal dihapus.' });
-            }
+            Swal.fire({ icon:'success', title:'Berhasil', text:'Foto berhasil dihapus.', timer:1800, showConfirmButton:false });
         }).catch(() => {
-            Swal.fire({ icon:'error', title:'Error', text:'Gagal menghapus foto. Coba lagi.' });
+            Swal.fire({ icon:'error', title:'Error', text:'Gagal menghapus foto.' });
         });
     });
 }
 
-// ══ FOTO BARU: upload preview ══
+// ══ UPLOAD FOTO BARU ══
 @if($slotsRemaining > 0)
 (function () {
-    const MAX_SLOTS   = {{ $slotsRemaining }};
-    const MAX_SIZE_B  = 15 * 1024 * 1024;
-    const ALLOWED     = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    const input       = document.getElementById('photoInput');
-    const zone        = document.getElementById('uploadZone');
-    const grid        = document.getElementById('newPhotoGrid');
-    const errBox      = document.getElementById('photoError');
-    const countWrap   = document.getElementById('photoCountWrap');
-    const countEl     = document.getElementById('photoCount');
+    const MAX_SLOTS     = {{ $slotsRemaining }};
+    const MAX_SIZE_B    = 15 * 1024 * 1024;
+    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
-    let dt = new DataTransfer();
+    const zone      = document.getElementById('uploadZone');
+    const grid      = document.getElementById('newPhotoGrid');
+    const errBox    = document.getElementById('photoError');
+    const countWrap = document.getElementById('photoCountWrap');
+    const countEl   = document.getElementById('photoCount');
+    const form      = document.getElementById('formEdit');
+    const btnSimpan = document.getElementById('btnSimpan');
+
+    // Array biasa — BUKAN DataTransfer
+    let selectedFiles = [];
 
     function showError(msg) {
         errBox.textContent = msg;
@@ -511,13 +469,12 @@ function deleteSelectedPhotos() {
 
     function renderPreviews() {
         grid.innerHTML = '';
-        const files = dt.files;
-        countEl.textContent = files.length;
-        countWrap.style.display = files.length > 0 ? 'block' : 'none';
+        countEl.textContent = selectedFiles.length;
+        countWrap.style.display = selectedFiles.length > 0 ? 'block' : 'none';
 
-        Array.from(files).forEach((file, idx) => {
+        selectedFiles.forEach((file, idx) => {
             const wrap = document.createElement('div');
-            wrap.className = 'photo-thumb new-photo-thumb';
+            wrap.className = 'new-photo-wrap';
 
             const img = document.createElement('img');
             img.src = URL.createObjectURL(file);
@@ -525,19 +482,15 @@ function deleteSelectedPhotos() {
 
             const badge = document.createElement('div');
             badge.className = 'thumb-badge';
-            badge.textContent = file.name.length > 18 ? file.name.substring(0, 15) + '...' : file.name;
+            badge.textContent = file.name.length > 18 ? file.name.substring(0,15)+'...' : file.name;
 
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'thumb-check';
-            btn.style.cssText = 'position:absolute;top:5px;right:5px;width:22px;height:22px;background:rgba(220,38,38,.85);border:none;border-radius:50%;color:#fff;font-size:.65rem;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+            btn.className = 'thumb-remove';
             btn.innerHTML = '<i class="bi bi-x"></i>';
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                const newDt = new DataTransfer();
-                Array.from(dt.files).forEach((f, i) => { if (i !== idx) newDt.items.add(f); });
-                dt = newDt;
-                input.files = dt.files;
+                selectedFiles.splice(idx, 1);
                 renderPreviews();
             });
 
@@ -546,17 +499,15 @@ function deleteSelectedPhotos() {
             wrap.appendChild(badge);
             grid.appendChild(wrap);
         });
-
-        input.files = dt.files;
     }
 
     function addFiles(newFiles) {
         Array.from(newFiles).forEach(file => {
-            if (dt.files.length >= MAX_SLOTS) {
-                showError('Slot foto tersisa hanya ' + MAX_SLOTS + '.');
+            if (selectedFiles.length >= MAX_SLOTS) {
+                showError('Slot tersisa hanya ' + MAX_SLOTS + ' foto.');
                 return;
             }
-            if (!ALLOWED.includes(file.type)) {
+            if (!ALLOWED_TYPES.includes(file.type)) {
                 showError('Format tidak didukung: ' + file.name);
                 return;
             }
@@ -564,14 +515,19 @@ function deleteSelectedPhotos() {
                 showError('Foto "' + file.name + '" melebihi 15 MB.');
                 return;
             }
-            dt.items.add(file);
+            selectedFiles.push(file);
         });
         renderPreviews();
     }
 
-    input.addEventListener('change', function () {
-        addFiles(this.files);
-        this.value = '';
+    // Klik zona — buat input sementara
+    zone.addEventListener('click', function () {
+        const tmp = document.createElement('input');
+        tmp.type     = 'file';
+        tmp.multiple = true;
+        tmp.accept   = '.jpg,.jpeg,.png,.webp';
+        tmp.addEventListener('change', function () { addFiles(this.files); });
+        tmp.click();
     });
 
     zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
@@ -581,21 +537,93 @@ function deleteSelectedPhotos() {
         zone.classList.remove('dragover');
         addFiles(e.dataTransfer.files);
     });
+
+    // Submit via FormData fetch
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        // Validasi required
+        let valid = true;
+        this.querySelectorAll('[required]').forEach(el => {
+            if (!el.value.trim()) { el.classList.add('is-invalid'); valid = false; }
+            else el.classList.remove('is-invalid');
+        });
+        if (!valid) return;
+
+        btnSimpan.disabled = true;
+        btnSimpan.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Menyimpan...';
+
+        const formData = new FormData(this);
+        // Tambahkan _method PUT untuk Laravel
+        formData.append('_method', 'PUT');
+
+        // Tambahkan foto baru
+        selectedFiles.forEach(file => {
+            formData.append('photos[]', file, file.name);
+        });
+
+        fetch(this.action, {
+            method: 'POST', // POST dengan _method=PUT
+            body: formData,
+        })
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+            return response.text().then(html => {
+                document.open();
+                document.write(html);
+                document.close();
+            });
+        })
+        .catch(err => {
+            console.error('Upload error:', err);
+            btnSimpan.disabled = false;
+            btnSimpan.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Simpan Perubahan';
+            alert('Terjadi kesalahan. Coba lagi.');
+        });
+    });
+
+    form.querySelectorAll('[required]').forEach(el => {
+        el.addEventListener('input', () => el.classList.remove('is-invalid'));
+        el.addEventListener('change', () => el.classList.remove('is-invalid'));
+    });
+})();
+@else
+// Tidak ada slot — submit biasa dengan FormData (tanpa foto)
+(function() {
+    const form      = document.getElementById('formEdit');
+    const btnSimpan = document.getElementById('btnSimpan');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        let valid = true;
+        this.querySelectorAll('[required]').forEach(el => {
+            if (!el.value.trim()) { el.classList.add('is-invalid'); valid = false; }
+            else el.classList.remove('is-invalid');
+        });
+        if (!valid) return;
+
+        btnSimpan.disabled = true;
+        btnSimpan.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Menyimpan...';
+
+        const formData = new FormData(this);
+        formData.append('_method', 'PUT');
+
+        fetch(this.action, { method: 'POST', body: formData })
+        .then(response => {
+            if (response.redirected) { window.location.href = response.url; return; }
+            return response.text().then(html => { document.open(); document.write(html); document.close(); });
+        })
+        .catch(() => {
+            btnSimpan.disabled = false;
+            btnSimpan.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Simpan Perubahan';
+            alert('Terjadi kesalahan. Coba lagi.');
+        });
+    });
 })();
 @endif
-
-// ══ Validasi form ══
-document.getElementById('formEdit').addEventListener('submit', function (e) {
-    var valid = true;
-    this.querySelectorAll('[required]').forEach(function (el) {
-        if (!el.value || !el.value.trim()) { el.classList.add('is-invalid'); valid = false; }
-        else { el.classList.remove('is-invalid'); }
-    });
-    if (!valid) e.preventDefault();
-});
-document.getElementById('formEdit').querySelectorAll('[required]').forEach(function (el) {
-    el.addEventListener('input',  function () { this.classList.remove('is-invalid'); });
-    el.addEventListener('change', function () { this.classList.remove('is-invalid'); });
-});
 </script>
 @endsection

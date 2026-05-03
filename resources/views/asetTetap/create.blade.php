@@ -29,6 +29,7 @@
 .photo-thumb-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(220,38,38,.85);border:none;border-radius:50%;color:#fff;font-size:.7rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
 .photo-thumb-remove:hover{background:#b91c1c}
 .photo-count-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(30,58,95,.08);color:#1e3a5f;border-radius:20px;padding:3px 10px;font-size:.74rem;font-weight:700;margin-top:8px}
+.btn-simpan:disabled{opacity:.6;cursor:not-allowed;transform:none !important;}
 </style>
 
 <div class="pagetitle">
@@ -54,7 +55,8 @@
 @endif
 
 <div class="create-card">
-<form action="{{ route('asetTetap.store') }}" method="POST" id="formCreate" enctype="multipart/form-data">
+{{-- Form TANPA enctype — kita handle via JS FormData --}}
+<form action="{{ route('asetTetap.store') }}" method="POST" id="formCreate">
 @csrf
 
 {{-- ══ 1. IDENTITAS BARANG ══ --}}
@@ -158,38 +160,31 @@
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <label class="form-label-custom">Nilai Perolehan Pertama (Rp)</label>
-        <input type="number" name="nilai" class="form-control" placeholder="0" min="0"
-               value="{{ old('nilai') }}">
+        <input type="number" name="nilai" class="form-control" placeholder="0" min="0" value="{{ old('nilai') }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Nilai Perolehan (Rp)</label>
-        <input type="number" name="nilai_perolehan" class="form-control" placeholder="0" min="0"
-               value="{{ old('nilai_perolehan') }}">
+        <input type="number" name="nilai_perolehan" class="form-control" placeholder="0" min="0" value="{{ old('nilai_perolehan') }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Nilai Penyusutan (Rp)</label>
-        <input type="number" name="nilai_penyusutan" class="form-control" placeholder="0" min="0"
-               value="{{ old('nilai_penyusutan') }}">
+        <input type="number" name="nilai_penyusutan" class="form-control" placeholder="0" min="0" value="{{ old('nilai_penyusutan') }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Nilai Buku (Rp)</label>
-        <input type="number" name="nilai_buku" class="form-control" placeholder="0" min="0"
-               value="{{ old('nilai_buku') }}">
+        <input type="number" name="nilai_buku" class="form-control" placeholder="0" min="0" value="{{ old('nilai_buku') }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Tanggal Perolehan</label>
-        <input type="date" name="tanggal_perolehan" class="form-control"
-               value="{{ old('tanggal_perolehan') }}">
+        <input type="date" name="tanggal_perolehan" class="form-control" value="{{ old('tanggal_perolehan') }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Tanggal Buku Pertama</label>
-        <input type="date" name="tanggal_buku_pertama" class="form-control"
-               value="{{ old('tanggal_buku_pertama') }}">
+        <input type="date" name="tanggal_buku_pertama" class="form-control" value="{{ old('tanggal_buku_pertama') }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Umur Aset (Tahun)</label>
-        <input type="number" name="life_time" class="form-control" placeholder="0" min="0"
-               value="{{ old('life_time') }}">
+        <input type="number" name="life_time" class="form-control" placeholder="0" min="0" value="{{ old('life_time') }}">
     </div>
 </div>
 
@@ -201,13 +196,11 @@
 <div class="row g-3 mb-4">
     <div class="col-md-6">
         <label class="form-label-custom">No PSP</label>
-        <input type="text" name="no_psp" class="form-control" placeholder="Nomor PSP"
-               value="{{ old('no_psp') }}">
+        <input type="text" name="no_psp" class="form-control" placeholder="Nomor PSP" value="{{ old('no_psp') }}">
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">Tanggal PSP</label>
-        <input type="date" name="tanggal_psp" class="form-control"
-               value="{{ old('tanggal_psp') }}">
+        <input type="date" name="tanggal_psp" class="form-control" value="{{ old('tanggal_psp') }}">
     </div>
 </div>
 
@@ -219,28 +212,23 @@
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <label class="form-label-custom">Kode Satker</label>
-        <input type="text" name="kode_satker" class="form-control"
-               placeholder="Kode Satuan Kerja" value="{{ old('kode_satker') }}">
+        <input type="text" name="kode_satker" class="form-control" placeholder="Kode Satuan Kerja" value="{{ old('kode_satker') }}">
     </div>
     <div class="col-md-9">
         <label class="form-label-custom">Nama Satker</label>
-        <input type="text" name="nama_satker" class="form-control"
-               placeholder="Nama Satuan Kerja" value="{{ old('nama_satker') }}">
+        <input type="text" name="nama_satker" class="form-control" placeholder="Nama Satuan Kerja" value="{{ old('nama_satker') }}">
     </div>
     <div class="col-md-6">
         <label class="form-label-custom">Alamat</label>
-        <textarea name="alamat" class="form-control" rows="2"
-                  placeholder="Alamat lengkap aset">{{ old('alamat') }}</textarea>
+        <textarea name="alamat" class="form-control" rows="2" placeholder="Alamat lengkap aset">{{ old('alamat') }}</textarea>
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Kab / Kota</label>
-        <input type="text" name="kab_kota" class="form-control"
-               placeholder="Contoh: Kota Bandung" value="{{ old('kab_kota') }}">
+        <input type="text" name="kab_kota" class="form-control" placeholder="Contoh: Kota Bandung" value="{{ old('kab_kota') }}">
     </div>
     <div class="col-md-3">
         <label class="form-label-custom">Provinsi</label>
-        <input type="text" name="provinsi" class="form-control"
-               placeholder="Contoh: Jawa Barat" value="{{ old('provinsi') }}">
+        <input type="text" name="provinsi" class="form-control" placeholder="Contoh: Jawa Barat" value="{{ old('provinsi') }}">
     </div>
 </div>
 
@@ -250,12 +238,11 @@
     <i class="bi bi-images"></i> Foto Dokumentasi
 </div>
 <div class="mb-4">
-    <div class="photo-upload-zone" id="uploadZone" onclick="document.getElementById('photoInput').click()">
+    <div class="photo-upload-zone" id="uploadZone">
         <i class="bi bi-cloud-upload"></i>
         <div class="upload-title">Klik atau seret foto ke sini</div>
         <div class="upload-sub">Maks. <strong>5 foto</strong> · Format: JPG, JPEG, PNG, WEBP · Maks. <strong>15 MB</strong> per foto</div>
     </div>
-    <input type="file" id="photoInput" name="photos[]" multiple accept=".jpg,.jpeg,.png,.webp" style="display:none">
     <div id="photoError" class="text-danger mt-2" style="font-size:.8rem;display:none"></div>
     <div id="photoPreviewGrid" class="photo-preview-grid"></div>
     <div id="photoCountWrap" style="display:none">
@@ -268,7 +255,7 @@
 
 {{-- ══ TOMBOL ══ --}}
 <div class="text-center pt-2 border-top mt-2">
-    <button type="submit" class="btn-simpan me-2">
+    <button type="submit" class="btn-simpan me-2" id="btnSimpan">
         <i class="bi bi-check-circle-fill me-1"></i> Simpan Aset
     </button>
     <a href="{{ route('asetTetap.index') }}" class="btn-batal">
@@ -281,20 +268,21 @@
 
 <script>
 (function () {
-    const MAX_FILES    = 5;
-    const MAX_SIZE_MB  = 15;
-    const MAX_SIZE_B   = MAX_SIZE_MB * 1024 * 1024;
+    const MAX_FILES     = 5;
+    const MAX_SIZE_MB   = 15;
+    const MAX_SIZE_B    = MAX_SIZE_MB * 1024 * 1024;
     const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
-    const input       = document.getElementById('photoInput');
-    const zone        = document.getElementById('uploadZone');
-    const grid        = document.getElementById('photoPreviewGrid');
-    const errBox      = document.getElementById('photoError');
-    const countWrap   = document.getElementById('photoCountWrap');
-    const countEl     = document.getElementById('photoCount');
+    const zone      = document.getElementById('uploadZone');
+    const grid      = document.getElementById('photoPreviewGrid');
+    const errBox    = document.getElementById('photoError');
+    const countWrap = document.getElementById('photoCountWrap');
+    const countEl   = document.getElementById('photoCount');
+    const form      = document.getElementById('formCreate');
+    const btnSimpan = document.getElementById('btnSimpan');
 
-    // DataTransfer untuk manajemen file list
-    let dt = new DataTransfer();
+    // Simpan file dalam array biasa
+    let selectedFiles = [];
 
     function showError(msg) {
         errBox.textContent = msg;
@@ -304,11 +292,10 @@
 
     function renderPreviews() {
         grid.innerHTML = '';
-        const files = dt.files;
-        countEl.textContent = files.length;
-        countWrap.style.display = files.length > 0 ? 'block' : 'none';
+        countEl.textContent = selectedFiles.length;
+        countWrap.style.display = selectedFiles.length > 0 ? 'block' : 'none';
 
-        Array.from(files).forEach((file, idx) => {
+        selectedFiles.forEach((file, idx) => {
             const wrap = document.createElement('div');
             wrap.className = 'photo-thumb-wrap';
 
@@ -323,22 +310,19 @@
             btn.innerHTML = '<i class="bi bi-x"></i>';
             btn.addEventListener('click', function (e) {
                 e.stopPropagation();
-                removeFile(idx);
+                selectedFiles.splice(idx, 1);
+                renderPreviews();
             });
 
             wrap.appendChild(img);
             wrap.appendChild(btn);
             grid.appendChild(wrap);
         });
-
-        // Sync ke input
-        input.files = dt.files;
     }
 
     function addFiles(newFiles) {
-        let added = 0;
         Array.from(newFiles).forEach(file => {
-            if (dt.files.length >= MAX_FILES) {
+            if (selectedFiles.length >= MAX_FILES) {
                 showError('Maksimal ' + MAX_FILES + ' foto per aset.');
                 return;
             }
@@ -347,25 +331,24 @@
                 return;
             }
             if (file.size > MAX_SIZE_B) {
-                showError('Ukuran foto "' + file.name + '" melebihi ' + MAX_SIZE_MB + ' MB.');
+                showError('Foto "' + file.name + '" melebihi ' + MAX_SIZE_MB + ' MB.');
                 return;
             }
-            dt.items.add(file);
-            added++;
+            selectedFiles.push(file);
         });
-        if (added > 0) renderPreviews();
-    }
-
-    function removeFile(idx) {
-        const newDt = new DataTransfer();
-        Array.from(dt.files).forEach((f, i) => { if (i !== idx) newDt.items.add(f); });
-        dt = newDt;
         renderPreviews();
     }
 
-    input.addEventListener('change', function () {
-        addFiles(this.files);
-        this.value = '';
+    // Klik zona upload — buat input sementara
+    zone.addEventListener('click', function () {
+        const tmp = document.createElement('input');
+        tmp.type     = 'file';
+        tmp.multiple = true;
+        tmp.accept   = '.jpg,.jpeg,.png,.webp';
+        tmp.addEventListener('change', function () {
+            addFiles(this.files);
+        });
+        tmp.click();
     });
 
     // Drag & drop
@@ -380,6 +363,64 @@
         e.preventDefault();
         this.classList.remove('dragover');
         addFiles(e.dataTransfer.files);
+    });
+
+    // Submit via FormData — cara yang benar untuk kirim file
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        // Validasi required fields
+        let valid = true;
+        this.querySelectorAll('[required]').forEach(el => {
+            if (!el.value.trim()) {
+                el.classList.add('is-invalid');
+                valid = false;
+            } else {
+                el.classList.remove('is-invalid');
+            }
+        });
+        if (!valid) return;
+
+        // Loading state
+        btnSimpan.disabled = true;
+        btnSimpan.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Menyimpan...';
+
+        // Buat FormData dari form
+        const formData = new FormData(this);
+
+        // Tambahkan foto dari array
+        selectedFiles.forEach(file => {
+            formData.append('photos[]', file, file.name);
+        });
+
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+            return response.text().then(html => {
+                // Ada error validasi — tampilkan halaman response
+                document.open();
+                document.write(html);
+                document.close();
+            });
+        })
+        .catch(err => {
+            console.error('Upload error:', err);
+            btnSimpan.disabled = false;
+            btnSimpan.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Simpan Aset';
+            alert('Terjadi kesalahan koneksi. Coba lagi.');
+        });
+    });
+
+    // Hapus is-invalid saat input berubah
+    form.querySelectorAll('[required]').forEach(el => {
+        el.addEventListener('input', () => el.classList.remove('is-invalid'));
+        el.addEventListener('change', () => el.classList.remove('is-invalid'));
     });
 })();
 </script>
