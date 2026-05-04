@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Items;
 use App\Models\AsetKeluar;
 use App\Models\Materials;
+use App\Models\MaterialPhoto;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class QrCodeController extends Controller
@@ -22,9 +24,7 @@ class QrCodeController extends Controller
             return back()->with('error', 'Pilih minimal satu aset untuk cetak QR.');
         }
 
-        $dataproduk = DB::table('materials')
-            ->whereIn('id', $ids)
-            ->get();
+        $dataproduk = DB::table('materials')->whereIn('id', $ids)->get();
 
         if ($dataproduk->isEmpty()) {
             return back()->with('error', 'Tidak ada data aset yang valid.');
@@ -35,7 +35,6 @@ class QrCodeController extends Controller
 
     /**
      * API scanning aset tetap — dipanggil scane.blade.php via fetch()
-     * Route: POST /scanning → name: scanning
      */
     public function scanning(Request $request)
     {
@@ -64,17 +63,17 @@ class QrCodeController extends Controller
 
         $result = $items->map(function ($item) {
             return [
-                'id'           => $item->id,
-                'code'         => $item->{'Kode Barang'}  ?? '-',
-                'nup'          => $item->nup               ?? '-',
-                'name'         => $item->{'Nama Barang'}  ?? '-',
-                'name_fix'     => $item->merk              ?? '-',
-                'condition'    => $item->kondisi           ?? '-',
-                'status'       => $item->{'Status BMN'}   ?? '-',
-                'status_bmn'   => $item->{'Status BMN'}   ?? '-',
-                'jenis_bmn'    => $item->{'Jenis BMN'}    ?? '-',
-                'nilai_perolehan' => $item->{'Nilai Perolehan'} ?? 0,
-                'edit_url'     => url('/asetTetap/' . $item->id . '/edit'),
+                'id'             => $item->id,
+                'code'           => $item->{'Kode Barang'}    ?? '-',
+                'nup'            => $item->nup                ?? '-',
+                'name'           => $item->{'Nama Barang'}    ?? '-',
+                'name_fix'       => $item->merk               ?? '-',
+                'condition'      => $item->kondisi            ?? '-',
+                'status'         => $item->{'Status BMN'}     ?? '-',
+                'status_bmn'     => $item->{'Status BMN'}     ?? '-',
+                'jenis_bmn'      => $item->{'Jenis BMN'}      ?? '-',
+                'nilai_perolehan'=> $item->{'Nilai Perolehan'} ?? 0,
+                'edit_url'       => url('/asetTetap/' . $item->id . '/edit'),
             ];
         });
 
@@ -87,6 +86,28 @@ class QrCodeController extends Controller
         return view('asetTetap.index', compact('items'));
     }
 
+    // ══════════════════════════════════════════════════════════
+    //  HALAMAN PUBLIK QR — ASET TETAP
+    // ══════════════════════════════════════════════════════════
+
+    /**
+     * Halaman publik saat QR Code Aset Tetap di-scan.
+     * Tidak perlu login. Login → tampil tombol Edit.
+     */
+    public function showAset($id)
+    {
+        $item = DB::table('materials')->where('id', $id)->first();
+
+        if (!$item) {
+            abort(404, 'Aset tidak ditemukan.');
+        }
+
+        // Ambil hanya foto pertama
+        $photo      = MaterialPhoto::where('material_id', $id)->orderBy('id')->first();
+        $isLoggedIn = Auth::check();
+
+        return view('qr.aset', compact('item', 'photo', 'isLoggedIn'));
+    }
 
     // ══════════════════════════════════════════════════════════
     //  BARANG HABIS PAKAI
@@ -106,6 +127,26 @@ class QrCodeController extends Controller
         return view('asetHabisPakai.qrcode', compact('dataproduk'));
     }
 
+    // ══════════════════════════════════════════════════════════
+    //  HALAMAN PUBLIK QR — BARANG HABIS PAKAI
+    // ══════════════════════════════════════════════════════════
+
+    /**
+     * Halaman publik saat QR Code Barang Habis Pakai di-scan.
+     * Tidak ada foto. Login → tampil tombol Edit.
+     */
+    public function showItem($id)
+    {
+        $item = Items::find($id);
+
+        if (!$item) {
+            abort(404, 'Barang tidak ditemukan.');
+        }
+
+        $isLoggedIn = Auth::check();
+
+        return view('qr.item', compact('item', 'isLoggedIn'));
+    }
 
     // ══════════════════════════════════════════════════════════
     //  ASET KELUAR

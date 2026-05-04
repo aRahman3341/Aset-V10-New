@@ -8,7 +8,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; font-size: 11px; background: #fff; }
 
-        /* ── Toolbar ── */
         .toolbar {
             display: flex; align-items: center; justify-content: space-between;
             padding: 10px 16px; background: #f5f5f5; border-bottom: 1px solid #ddd;
@@ -27,26 +26,21 @@
             border: 1px solid #ccc; border-radius: 5px; font-size: 12px; cursor: pointer;
         }
 
-        /* ── Grid 2 kolom ── */
         .page-wrapper { width: 100%; padding: 10px; }
         table.grid { width: 100%; border-collapse: collapse; }
         table.grid > tbody > tr > td { width: 50%; padding: 5px; vertical-align: top; }
 
-        /* ── Label Card ── */
         .label-card { border: 1.5px solid #333; width: 100%; border-collapse: collapse; }
         .label-card td { border: 1px solid #aaa; padding: 5px 7px; vertical-align: middle; }
 
-        /* Header biru instansi */
         .label-card .row-header td {
             background-color: #003087; color: #fff; text-align: center;
             font-size: 9px; font-weight: bold; letter-spacing: 0.3px; padding: 4px 6px;
         }
 
-        /* Logo */
         .cell-logo { width: 90px; text-align: center; background-color: #f0f4ff; padding: 4px !important; }
         .cell-logo img { width: 80px; height: 80px; object-fit: contain; display: block; margin: auto; }
 
-        /* Info */
         .cell-info { line-height: 1.7; padding: 6px 8px !important; }
         .cell-info .code-label {
             font-size: 11px; font-weight: bold; color: #003087;
@@ -59,7 +53,6 @@
             border-top: 1px dashed #ddd; padding-top: 4px;
         }
 
-        /* QR */
         .cell-qr { width: 90px; text-align: center; background: #fff; padding: 4px !important; }
         .cell-qr .qr-target canvas,
         .cell-qr .qr-target img { width: 80px !important; height: 80px !important; display: block; margin: auto; }
@@ -69,7 +62,6 @@
             background: #f9f9f9; margin: auto;
         }
 
-        /* Print */
         @media print {
             .toolbar { display: none !important; }
             .page-wrapper { padding: 4px; }
@@ -79,13 +71,12 @@
 </head>
 <body>
 
-{{-- Toolbar --}}
 <div class="toolbar">
     <div>
         <div class="toolbar-title">&#9641; Cetak QR Code Aset Tetap</div>
         <div class="toolbar-meta">
             {{ count($dataproduk) }} aset dipilih
-            &middot; Scan QR → langsung buka halaman Edit aset
+            &middot; Scan QR → halaman info publik aset
         </div>
     </div>
     <div class="toolbar-right">
@@ -94,7 +85,6 @@
     </div>
 </div>
 
-{{-- Grid Label --}}
 <div class="page-wrapper">
     <table class="grid">
         <tbody>
@@ -102,23 +92,18 @@
             @foreach ($dataproduk as $index => $produk)
                 @php
                     $colIndex = $index % 2;
-
-                    // Baca kolom DB dengan nama spasi
-                    $kode = $produk->{'Kode Barang'} ?? '-';
-                    $nama = $produk->{'Nama Barang'} ?? '-';
-                    $nup  = $produk->nup             ?? '-';
-                    $merk = $produk->merk             ?? null;
-                    $jenis= $produk->{'Jenis BMN'}   ?? null;
-
-                    // URL edit — ini yang di-encode ke QR
-                    // Saat di-scan, langsung buka halaman edit aset ini
-                    $editUrl = url('/asetTetap/' . $produk->id . '/edit');
+                    $kode     = $produk->{'Kode Barang'} ?? '-';
+                    $nama     = $produk->{'Nama Barang'} ?? '-';
+                    $nup      = $produk->nup             ?? '-';
+                    $merk     = $produk->merk            ?? null;
+                    $jenis    = $produk->{'Jenis BMN'}   ?? null;
+                    // URL menuju halaman info publik (bukan halaman edit)
+                    $qrUrl    = url('/qr/aset/' . $produk->id);
                 @endphp
 
                 <td>
                     <table class="label-card">
 
-                        {{-- Header instansi --}}
                         <tr class="row-header">
                             <td colspan="3">
                                 KEMENTERIAN PEKERJAAN UMUM DAN PERUMAHAN RAKYAT<br>
@@ -126,20 +111,16 @@
                             </td>
                         </tr>
 
-                        {{-- Logo | Info | QR --}}
                         <tr>
-                            {{-- Logo --}}
                             <td class="cell-logo">
                                 <img src="{{ asset('assets/img/PUPR.png') }}"
                                      alt="Logo PUPR"
                                      onerror="this.style.display='none'">
                             </td>
 
-                            {{-- Info Aset --}}
                             <td class="cell-info">
                                 <div class="code-label">
-                                    Kode: {{ $kode }}
-                                    &nbsp;|&nbsp; NUP: {{ $nup }}
+                                    Kode: {{ $kode }} &nbsp;|&nbsp; NUP: {{ $nup }}
                                 </div>
                                 <div class="name-label">
                                     {{ mb_strimwidth($nama, 0, 40, '...') }}
@@ -151,17 +132,16 @@
                                     <div class="sub-label">{{ $jenis }}</div>
                                 @endif
                                 <div class="scan-note">
-                                    &#x1F4F1; Scan QR untuk edit aset
+                                    &#x1F4F1; Scan QR untuk info &amp; edit aset
                                 </div>
                             </td>
 
-                            {{-- QR Code — isi URL edit --}}
                             <td class="cell-qr">
                                 <div class="qr-loading" id="loading-{{ $index }}">...</div>
                                 <div class="qr-target"
                                      id="qr-{{ $index }}"
                                      style="display:none"
-                                     data-url="{{ $editUrl }}">
+                                     data-url="{{ $qrUrl }}">
                                 </div>
                             </td>
                         </tr>
@@ -184,16 +164,16 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.qr-target').forEach(function (target) {
-        const url   = target.getAttribute('data-url');
-        const idx   = target.id.replace('qr-', '');
-        const loadEl = document.getElementById('loading-' + idx);
+        var url    = target.getAttribute('data-url');
+        var idx    = target.id.replace('qr-', '');
+        var loadEl = document.getElementById('loading-' + idx);
 
         target.style.display = 'block';
         if (loadEl) loadEl.style.display = 'none';
 
         try {
             new QRCode(target, {
-                text:         url,           // URL edit aset — scan = langsung buka edit
+                text:         url,
                 width:        80,
                 height:       80,
                 colorDark:    '#000000',

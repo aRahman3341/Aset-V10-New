@@ -295,6 +295,12 @@
                     <button type="submit" class="login-btn">
                         <i class="bi bi-box-arrow-in-right"></i>&nbsp; Masuk
                     </button>
+                    <div style="text-align:center; margin-top:14px;">
+                        <a href="{{ route('password.forgot') }}"
+                        style="font-size:0.78rem;color:#1a56c4;text-decoration:none;">
+                            <i class="bi bi-question-circle"></i> Lupa kata sandi?
+                        </a>
+                    </div>
                 </form>
             </div>
 
