@@ -32,19 +32,6 @@ Route::get('/qr/item/{id}', [QrCodeController::class, 'showItem'])->name('qr.ite
 */
 Route::middleware('IsLogin')->group(function () {
 
-    // ═══════════════════════════════════════════════
-    //  LUPA PASSWORD / OTP
-    // ═══════════════════════════════════════════════
-    Route::prefix('password')->name('password.')->group(function () {
-        Route::get('/forgot',       [ForgotPasswordController::class, 'showForm'])->name('forgot');
-        Route::post('/send-otp',    [ForgotPasswordController::class, 'sendOtp'])->name('sendOtp');
-        Route::get('/verify-otp',   [ForgotPasswordController::class, 'showVerifyOtp'])->name('verify-otp');
-        Route::post('/verify-otp',  [ForgotPasswordController::class, 'verifyOtp'])->name('verifyOtp');
-        Route::get('/reset',        [ForgotPasswordController::class, 'showResetForm'])->name('reset-form');
-        Route::post('/reset',       [ForgotPasswordController::class, 'resetPassword'])->name('resetPassword');
-        Route::post('/resend-otp',  [ForgotPasswordController::class, 'resendOtp'])->name('resendOtp');
-    });
-
     /* ================= DASHBOARD ================= */
     Route::get('/', [ChartController::class, 'index'])->name('dashboard');
 
@@ -213,3 +200,16 @@ Route::prefix('session')->group(function () {
 });
 
 Route::get('/autoLogin', [SessionController::class, 'autoLogin']);
+
+// ═══════════════════════════════════════════════
+//  LUPA PASSWORD / OTP
+// ═══════════════════════════════════════════════
+Route::prefix('password')->name('password.')->group(function () {
+    Route::get('/forgot',       [ForgotPasswordController::class, 'showForm'])->name('forgot');
+    Route::post('/send-otp',    [ForgotPasswordController::class, 'sendOtp'])->name('sendOtp');
+    Route::get('/verify-otp',   [ForgotPasswordController::class, 'showVerifyOtp'])->name('verify-otp');
+    Route::post('/verify-otp',  [ForgotPasswordController::class, 'verifyOtp'])->name('verifyOtp');
+    Route::get('/reset',        [ForgotPasswordController::class, 'showResetForm'])->name('reset-form');
+    Route::post('/reset',       [ForgotPasswordController::class, 'resetPassword'])->name('resetPassword');
+    Route::post('/resend-otp',  [ForgotPasswordController::class, 'resendOtp'])->name('resendOtp');
+});
