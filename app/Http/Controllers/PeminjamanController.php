@@ -17,8 +17,52 @@ use PhpOffice\PhpWord\TemplateProcessor;
 
 class PeminjamanController extends Controller
 {
+    // ===================== SYNC LOAN STATUSES =====================
+    /**
+     * Sinkronisasi Status BMN berdasarkan status pinjaman aktif:
+     *  - Terlambat : masih Dipinjam & tgl_kembali < hari ini
+     *  - Dipinjam  : masih Dipinjam & tgl_kembali >= hari ini
+     */
+    private function syncLoanStatuses(): void
+    {
+        $today = Carbon::today();
+
+        // ── Terlambat ─────────────────────────────────────────
+        $overdueLoans = DB::table('peminjamen')
+            ->where('status', 'Dipinjam')
+            ->whereDate('tgl_kembali', '<', $today)
+            ->get();
+
+        foreach ($overdueLoans as $loan) {
+            $ids = json_decode($loan->material_id, true);
+            if (is_array($ids) && !empty($ids)) {
+                DB::table('materials')
+                    ->whereIn('id', $ids)
+                    ->update(['Status BMN' => 'Terlambat', 'updated_at' => Carbon::now()]);
+            }
+        }
+
+        // ── Dipinjam (masih tepat waktu) ───────────────────────
+        $activeLoans = DB::table('peminjamen')
+            ->where('status', 'Dipinjam')
+            ->whereDate('tgl_kembali', '>=', $today)
+            ->get();
+
+        foreach ($activeLoans as $loan) {
+            $ids = json_decode($loan->material_id, true);
+            if (is_array($ids) && !empty($ids)) {
+                DB::table('materials')
+                    ->whereIn('id', $ids)
+                    ->update(['Status BMN' => 'Dipinjam', 'updated_at' => Carbon::now()]);
+            }
+        }
+    }
+
+    // ===================== INDEX =====================
     public function index(Request $request)
     {
+        $this->syncLoanStatuses();   // ← sinkronisasi setiap kali halaman dimuat
+
         $sess   = Session::all();
         $paging = 10;
         $query  = $request->input('query', '');
@@ -36,6 +80,7 @@ class PeminjamanController extends Controller
         return view('peminjaman.getData', compact('loan', 'codes', 'sess'));
     }
 
+    // ===================== SEARCH =====================
     public function search(Request $request)
     {
         $paging = 10;
@@ -52,6 +97,7 @@ class PeminjamanController extends Controller
         return view('peminjaman.report', ['loan' => $loan]);
     }
 
+    // ===================== CREATE =====================
     public function create()
     {
         $users    = User::whereIn('jabatan', ['Admin', 'Manager', 'Operator', 'admin', 'manager', 'operator'])
@@ -60,6 +106,7 @@ class PeminjamanController extends Controller
         return view('peminjaman.add', compact('material', 'users'));
     }
 
+    // ===================== STORE =====================
     public function store(Request $request)
     {
         return $this->dataStore($request);
@@ -102,17 +149,22 @@ class PeminjamanController extends Controller
             'updated_at'  => Carbon::now(),
         ]);
 
-        // ── Update Status BMN aset yang dipinjam ──
+        // ── Tentukan Status BMN: langsung cek apakah sudah terlambat ──
+        $today       = Carbon::today();
+        $tglKembali  = Carbon::parse($request->tgl_kembali)->startOfDay();
+        $statusBmn   = $tglKembali->lt($today) ? 'Terlambat' : 'Dipinjam';
+
         DB::table('materials')
             ->whereIn('id', $materialIds)
             ->update([
-                'Status BMN' => 'Dipinjam',
+                'Status BMN' => $statusBmn,
                 'updated_at' => Carbon::now(),
             ]);
 
         return redirect('/peminjaman')->with('success', 'Peminjaman berhasil disimpan.');
     }
 
+    // ===================== KEMBALI (form) =====================
     public function kembali(Request $request, $id)
     {
         $loan  = peminjaman::with('user')->findOrFail($id);
@@ -121,6 +173,7 @@ class PeminjamanController extends Controller
         return view('peminjaman.update', compact('loan', 'users'));
     }
 
+    // ===================== PENGEMBALIAN =====================
     public function pengembalian(Request $request, $id)
     {
         $validated = $request->validate([
@@ -131,7 +184,6 @@ class PeminjamanController extends Controller
             'employee_id.required' => 'Petugas gudang harus dipilih',
         ]);
 
-        // Ambil data peminjaman untuk dapatkan material_id
         $loan = peminjaman::findOrFail($id);
 
         peminjaman::where('id', $id)->update([
@@ -141,7 +193,7 @@ class PeminjamanController extends Controller
             'updated_at'  => Carbon::now(),
         ]);
 
-        // ── Kembalikan Status BMN aset ke Aktif ──
+        // ── Kembalikan Status BMN ke Aktif ──
         $materialIds = json_decode($loan->material_id, true) ?? [];
         if (!empty($materialIds)) {
             DB::table('materials')
@@ -155,6 +207,7 @@ class PeminjamanController extends Controller
         return redirect('/peminjaman')->with('success', 'Pengembalian berhasil dicatat.');
     }
 
+    // ===================== EDIT =====================
     public function edit(Request $request, $id)
     {
         $loan     = peminjaman::findOrFail($id);
@@ -162,6 +215,7 @@ class PeminjamanController extends Controller
         return view('peminjaman.edit', compact('loan', 'material'));
     }
 
+    // ===================== UPDATE =====================
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -172,10 +226,9 @@ class PeminjamanController extends Controller
             'peminjam'      => 'required',
         ]);
 
-        // Ambil material_id lama untuk dikembalikan statusnya
-        $loanLama    = peminjaman::findOrFail($id);
-        $idsLama     = json_decode($loanLama->material_id, true) ?? [];
-        $idsBaru     = array_values($request->material_id);
+        $loanLama = peminjaman::findOrFail($id);
+        $idsLama  = json_decode($loanLama->material_id, true) ?? [];
+        $idsBaru  = array_values($request->material_id);
 
         // Kembalikan status aset lama ke Aktif
         if (!empty($idsLama)) {
@@ -192,23 +245,26 @@ class PeminjamanController extends Controller
             'updated_at'  => Carbon::now(),
         ]);
 
-        // Set status aset baru ke Dipinjam
+        // Set Status BMN aset baru (cek apakah terlambat)
+        $today      = Carbon::today();
+        $tglKembali = Carbon::parse($request->tgl_kembali)->startOfDay();
+        $statusBmn  = $tglKembali->lt($today) ? 'Terlambat' : 'Dipinjam';
+
         DB::table('materials')
             ->whereIn('id', $idsBaru)
-            ->update(['Status BMN' => 'Dipinjam', 'updated_at' => Carbon::now()]);
+            ->update(['Status BMN' => $statusBmn, 'updated_at' => Carbon::now()]);
 
         return redirect('/peminjaman')->with('success', 'Data peminjaman berhasil diubah.');
     }
 
+    // ===================== DESTROY =====================
     public function destroy($id)
     {
-        // Ambil data sebelum dihapus agar bisa kembalikan status aset
         $loan        = peminjaman::find($id);
         $materialIds = $loan ? (json_decode($loan->material_id, true) ?? []) : [];
 
         peminjaman::destroy($id);
 
-        // Kembalikan Status BMN ke Aktif jika ada
         if (!empty($materialIds)) {
             DB::table('materials')
                 ->whereIn('id', $materialIds)
@@ -218,6 +274,7 @@ class PeminjamanController extends Controller
         return redirect('/peminjaman')->with('success', 'Data berhasil dihapus.');
     }
 
+    // ===================== CETAK SURAT =====================
     public function cetakSurat($id)
     {
         $loan = peminjaman::with(['user'])->findOrFail($id);
@@ -265,12 +322,14 @@ class PeminjamanController extends Controller
         return response()->download($tempPath, $filename)->deleteFileAfterSend(true);
     }
 
+    // ===================== REPORT =====================
     public function report()
     {
         $loan = peminjaman::paginate(10);
         return view('peminjaman.report', ['loan' => $loan]);
     }
 
+    // ===================== EXPORT =====================
     public function export(Request $request)
     {
         $from_date = $request->from_date;
@@ -288,6 +347,7 @@ class PeminjamanController extends Controller
             'report_peminjaman_' . Carbon::now()->timestamp . '.xlsx');
     }
 
+    // ===================== FILTER =====================
     public function filter(Request $request)
     {
         $query   = peminjaman::query();

@@ -18,9 +18,52 @@ use PhpOffice\PhpSpreadsheet\Reader\Exception as ReaderException;
 
 class BarangController extends Controller
 {
+    // ===================== SYNC LOAN STATUSES =====================
+    /**
+     * Sinkronisasi Status BMN berdasarkan status pinjaman aktif.
+     * Dipanggil setiap kali halaman index Aset Tetap dimuat agar
+     * kolom Status BMN selalu mencerminkan kondisi terkini.
+     */
+    private function syncLoanStatuses(): void
+    {
+        $today = Carbon::today();
+
+        // ── Terlambat: masih Dipinjam & tgl_kembali sudah lewat ──
+        $overdueLoans = DB::table('peminjamen')
+            ->where('status', 'Dipinjam')
+            ->whereDate('tgl_kembali', '<', $today)
+            ->get();
+
+        foreach ($overdueLoans as $loan) {
+            $ids = json_decode($loan->material_id, true);
+            if (is_array($ids) && !empty($ids)) {
+                DB::table('materials')
+                    ->whereIn('id', $ids)
+                    ->update(['Status BMN' => 'Terlambat', 'updated_at' => Carbon::now()]);
+            }
+        }
+
+        // ── Dipinjam: masih Dipinjam & tgl_kembali belum lewat ──
+        $activeLoans = DB::table('peminjamen')
+            ->where('status', 'Dipinjam')
+            ->whereDate('tgl_kembali', '>=', $today)
+            ->get();
+
+        foreach ($activeLoans as $loan) {
+            $ids = json_decode($loan->material_id, true);
+            if (is_array($ids) && !empty($ids)) {
+                DB::table('materials')
+                    ->whereIn('id', $ids)
+                    ->update(['Status BMN' => 'Dipinjam', 'updated_at' => Carbon::now()]);
+            }
+        }
+    }
+
     // ===================== INDEX =====================
     public function index(Request $request)
     {
+        $this->syncLoanStatuses();   // ← sinkronisasi setiap kali halaman dimuat
+
         $query     = $request->input('query');
         $jenisBmn  = $request->input('jenis_bmn');
         $kondisi   = $request->input('kondisi');
@@ -89,7 +132,6 @@ class BarangController extends Controller
             'photos.*.max'       => 'Ukuran tiap foto maksimal 15 MB',
         ]);
 
-        // Cek duplikat Kode Barang + NUP sebelum insert
         $exists = DB::table('materials')
             ->where('Kode Barang', $request->input('code'))
             ->where('nup', $request->input('nup'))
@@ -168,7 +210,6 @@ class BarangController extends Controller
             'photos.*.mimes'=> 'Format foto: jpg, jpeg, png, webp',
         ]);
 
-        // Cek duplikat kode+nup, kecuali record sendiri
         $exists = DB::table('materials')
             ->where('Kode Barang', $request->input('code'))
             ->where('nup', $request->input('nup'))
@@ -386,9 +427,7 @@ class BarangController extends Controller
         } catch (Exception $e) {
             return back()->withErrors(['file' => 'Error: ' . $e->getMessage()]);
         }
-
     }
-    
 
     // ===================== PRIVATE HELPERS =====================
 

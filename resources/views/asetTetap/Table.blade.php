@@ -14,7 +14,7 @@
                 <th style="min-width:130px">Tipe</th>
                 <th style="min-width:200px">Jenis BMN</th>
                 <th class="text-center" style="min-width:90px">Kondisi</th>
-                <th class="text-center" style="min-width:90px">Status BMN</th>
+                <th class="text-center" style="min-width:105px">Status BMN</th>
                 <th class="text-end" style="min-width:175px">Nilai Perolehan Pertama (Rp)</th>
                 <th class="text-end" style="min-width:155px">Nilai Perolehan (Rp)</th>
                 <th class="text-end" style="min-width:155px">Nilai Penyusutan (Rp)</th>
@@ -54,9 +54,24 @@
                         'Rusak Ringan' => 'warning',
                         default        => 'danger',
                     };
-                    $bmnColor = $statusBmn === 'Aktif' ? 'success' : 'secondary';
+
+                    // ── Status BMN badge ──────────────────────────────────
+                    $bmnColor = match($statusBmn) {
+                        'Aktif'      => 'success',
+                        'Dipinjam'   => 'warning',
+                        'Terlambat'  => 'danger',
+                        default      => 'secondary',
+                    };
+
+                    // Ikon tambahan untuk status Terlambat
+                    $bmnIcon = match($statusBmn) {
+                        'Terlambat' => '<i class="bi bi-exclamation-triangle-fill me-1"></i>',
+                        'Dipinjam'  => '<i class="bi bi-hourglass-split me-1"></i>',
+                        'Aktif'     => '<i class="bi bi-check-circle-fill me-1"></i>',
+                        default     => '',
+                    };
                 @endphp
-                <tr>
+                <tr class="{{ $statusBmn === 'Terlambat' ? 'row-terlambat' : '' }}">
                     <td class="text-center">
                         <input class="form-check-input" type="checkbox" name="id_aset[]" value="{{ $item->id }}">
                     </td>
@@ -75,7 +90,14 @@
                         <span class="badge bg-{{ $condColor }}">{{ $kondisi }}</span>
                     </td>
                     <td class="text-center">
-                        <span class="badge bg-{{ $bmnColor }}">{{ $statusBmn }}</span>
+                        @if($statusBmn === 'Terlambat')
+                            {{-- Badge animasi untuk Terlambat --}}
+                            <span class="badge bmn-terlambat" title="Aset ini melewati batas waktu pengembalian">
+                                {!! $bmnIcon !!}{{ $statusBmn }}
+                            </span>
+                        @else
+                            <span class="badge bg-{{ $bmnColor }}">{!! $bmnIcon !!}{{ $statusBmn }}</span>
+                        @endif
                     </td>
                     <td class="text-end">
                         {{ $nilaiPertama !== null ? number_format($nilaiPertama, 0, ',', '.') : '-' }}
@@ -99,7 +121,7 @@
                     <td class="small text-muted">
                         {{ $tglPsp ? \Carbon\Carbon::parse($tglPsp)->format('d/m/Y') : '-' }}
                     </td>
-                    {{-- FOTO: badge yang bisa diklik --}}
+                    {{-- FOTO --}}
                     <td class="text-center">
                         @if($jumlahFoto > 0)
                             <button type="button"
@@ -139,6 +161,30 @@
 </div>
 
 <style>
+/* ── Row highlight untuk Terlambat ── */
+.row-terlambat td { background: rgba(220,38,38,0.04) !important; }
+.row-terlambat:hover td { background: rgba(220,38,38,0.08) !important; }
+
+/* ── Badge Terlambat (animasi pulse) ── */
+.bmn-terlambat {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    animation: pulse-red 2s infinite;
+    box-shadow: 0 2px 8px rgba(220,38,38,.35);
+}
+@keyframes pulse-red {
+    0%, 100% { box-shadow: 0 2px 8px rgba(220,38,38,.35); }
+    50%       { box-shadow: 0 2px 16px rgba(220,38,38,.6); }
+}
+
+/* ── Badge Dipinjam (kuning) ── */
+.badge.bg-warning { color: #7b5800 !important; }
+
 /* ── Foto Badge Button ── */
 .foto-badge-btn {
     display: inline-flex;
