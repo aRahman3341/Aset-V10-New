@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Exports\PeminjamanExport;
 use App\Exports\PeminjamanExportAll;
-use App\Models\employee;
 use App\Models\Materials;
 use App\Models\peminjaman;
 use App\Models\User;
@@ -13,7 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Maatwebsite\Excel\Facades\Excel;
-use PhpOffice\PhpWord\TemplateProcessor;
 
 class PeminjamanController extends Controller
 {
@@ -22,16 +20,6 @@ class PeminjamanController extends Controller
         'BTSB'   => 'Balai Teknik Sains Bangunan (BTSB)',
         'SATKER' => 'Satuan Kerja Balai Teknik Sains Bangunan',
     ];
-
-    // ─── Path template per kop ──────────────────────────────────────────────────
-    private function templatePath(string $kop): string
-    {
-        $map = [
-            'BTSB'   => public_path('assets/templates/surat_peminjaman_btsb.docx'),
-            'SATKER' => public_path('assets/templates/surat_peminjaman_satker.docx'),
-        ];
-        return $map[$kop] ?? $map['BTSB'];
-    }
 
     // ===================== SYNC LOAN STATUSES =====================
     private function syncLoanStatuses(): void
@@ -111,8 +99,8 @@ class PeminjamanController extends Controller
     {
         $users    = User::whereIn('jabatan', ['Admin', 'Manager', 'Operator', 'admin', 'manager', 'operator'])
                         ->orderBy('name')->get();
-        $material = Materials::where('kondisi', '!=', 'Rusak Berat')->orderBy('Nama Barang')->get();
-        $kopOptions = self::KOP_OPTIONS;          // ← kirim ke view
+        $material   = Materials::where('kondisi', '!=', 'Rusak Berat')->orderBy('Nama Barang')->get();
+        $kopOptions = self::KOP_OPTIONS;
 
         return view('peminjaman.add', compact('material', 'users', 'kopOptions'));
     }
@@ -132,7 +120,7 @@ class PeminjamanController extends Controller
             'tgl_kembali'   => 'required',
             'peminjam'      => 'required',
             'employee_id'   => 'required|exists:users,id',
-            'kop_surat'     => 'required|in:BTSB,SATKER',   // ← validasi
+            'kop_surat'     => 'required|in:BTSB,SATKER',
         ], [
             'material_id.required'   => 'Pilih minimal 1 barang',
             'material_id.*.required' => 'Barang tidak boleh kosong',
@@ -159,7 +147,7 @@ class PeminjamanController extends Controller
             'employee_id' => $request->employee_id,
             'peminjam'    => $request->peminjam,
             'status'      => 'Dipinjam',
-            'kop_surat'   => $request->kop_surat,    // ← simpan pilihan kop
+            'kop_surat'   => $request->kop_surat,
             'created_at'  => Carbon::now(),
             'updated_at'  => Carbon::now(),
         ]);
@@ -225,7 +213,7 @@ class PeminjamanController extends Controller
     {
         $loan       = peminjaman::findOrFail($id);
         $material   = Materials::where('kondisi', '!=', 'Rusak Berat')->get();
-        $kopOptions = self::KOP_OPTIONS;           // ← kirim ke view
+        $kopOptions = self::KOP_OPTIONS;
 
         return view('peminjaman.edit', compact('loan', 'material', 'kopOptions'));
     }
@@ -239,7 +227,7 @@ class PeminjamanController extends Controller
             'tgl_pinjam'    => 'required',
             'tgl_kembali'   => 'required',
             'peminjam'      => 'required',
-            'kop_surat'     => 'required|in:BTSB,SATKER',   // ← validasi
+            'kop_surat'     => 'required|in:BTSB,SATKER',
         ]);
 
         $loanLama = peminjaman::findOrFail($id);
@@ -257,7 +245,7 @@ class PeminjamanController extends Controller
             'tgl_pinjam'  => $request->tgl_pinjam,
             'tgl_kembali' => $request->tgl_kembali,
             'peminjam'    => $request->peminjam,
-            'kop_surat'   => $request->kop_surat,    // ← simpan pilihan kop
+            'kop_surat'   => $request->kop_surat,
             'updated_at'  => Carbon::now(),
         ]);
 
@@ -291,222 +279,289 @@ class PeminjamanController extends Controller
 
     // ===================== CETAK SURAT =====================
     public function cetakSurat($id)
-{
-    $loan      = Peminjaman::with('materials', 'employee')->findOrFail($id);
-    $materials = $loan->materials;           // Collection
-    $count     = $materials->count();
- 
-    // ── Tentukan tier ─────────────────────────────────────
-    if ($count <= 8) {
-        $tier         = 'normal';
-        $fontSize     = 9;          // pt
-        $rowHeight    = 0.7;        // cm
-        $pageBreakTTD = false;
-    } elseif ($count <= 15) {
-        $tier         = 'compact';
-        $fontSize     = 7.5;
-        $rowHeight    = 0.5;
-        $pageBreakTTD = false;
-    } else {
-        $tier         = 'multipage';
-        $fontSize     = 7.5;
-        $rowHeight    = 0.5;
-        $pageBreakTTD = true;
-    }
- 
-    // ── Bootstrap PhpWord ─────────────────────────────────
-    $phpWord = new \PhpOffice\PhpWord\PhpWord();
-    $phpWord->setDefaultFontName('Times New Roman');
-    $phpWord->setDefaultFontSize(11);
- 
-    $section = $phpWord->addSection([
-        'marginTop'    => \PhpOffice\PhpWord\Shared\Converter::cmToTwip(2),
-        'marginBottom' => \PhpOffice\PhpWord\Shared\Converter::cmToTwip(2),
-        'marginLeft'   => \PhpOffice\PhpWord\Shared\Converter::cmToTwip(2.5),
-        'marginRight'  => \PhpOffice\PhpWord\Shared\Converter::cmToTwip(2.5),
-    ]);
- 
-    // ── Helper closure: buat cell tabel ───────────────────
-    $cell = fn(array $texts, array $opt = []) => $texts; // lihat penggunaan di bawah
- 
-    // ────────────────────────────────────────────────────────
-    //  A. KOP SURAT  (sesuaikan dengan logika kop_surat Anda)
-    // ────────────────────────────────────────────────────────
-    // ... (kop surat Anda yang sudah ada) ...
- 
-    // ────────────────────────────────────────────────────────
-    //  B. NOMOR SURAT
-    // ────────────────────────────────────────────────────────
-    $section->addParagraph(); // spasi
-    $run = $section->addTextRun(['alignment' => 'left']);
-    $run->addText('NOMOR: ', ['bold' => true, 'size' => 11]);
-    $run->addText($loan->code,  ['size' => 11]);
- 
-    // ────────────────────────────────────────────────────────
-    //  C. DATA PEMINJAM  (tabel 3 kolom)
-    // ────────────────────────────────────────────────────────
-    $section->addParagraph();
-    $section->addText('Yang bertanda tangan di bawah ini:', ['size' => 11]);
-    $section->addParagraph();
- 
-    $tblPeminjam = $section->addTable(['unit' => \PhpOffice\PhpWord\Style\Table::WIDTH_AUTO]);
-    $rowsPeminjam = [
-        ['Nama',    ':', $loan->peminjam],
-        ['NIP/ID',  ':', $loan->employee->nip ?? '-'],
-        ['Jabatan', ':', $loan->employee->jabatan ?? '-'],
-        ['Bagian',  ':', $loan->employee->bagian ?? '-'],
-    ];
-    foreach ($rowsPeminjam as $r) {
-        $tr = $tblPeminjam->addRow();
-        $tr->addCell(2000)->addText($r[0], ['size' => 11]);
-        $tr->addCell(300) ->addText($r[1], ['size' => 11]);
-        $tr->addCell(5000)->addText($r[2], ['size' => 11]);
-    }
- 
-    // ────────────────────────────────────────────────────────
-    //  D. TABEL BARANG — ukuran menyesuaikan $tier
-    // ────────────────────────────────────────────────────────
-    $section->addParagraph();
-    $section->addText(
-        'Mengajukan peminjaman alat sebagai berikut:',
-        ['size' => 11]
-    );
-    $section->addParagraph();
- 
-    // Lebar kolom (twip)  No | Jenis BMN | Nama Barang | Kode | NUP | Kondisi
-    $colWidths = [500, 2000, 2500, 1500, 700, 1000];
- 
-    $tblBarang = $section->addTable([
-        'unit'        => \PhpOffice\PhpWord\Style\Table::WIDTH_AUTO,
-        'borderSize'  => 6,
-        'borderColor' => '000000',
-    ]);
- 
-    // Header
-    $headerRow  = $tblBarang->addRow(
-        \PhpOffice\PhpWord\Shared\Converter::cmToTwip(0.8)
-    );
-    $headerCols = ['No', 'Jenis BMN', 'Nama Barang', 'Kode Barang', 'NUP', 'Kondisi'];
-    foreach (array_map(null, $colWidths, $headerCols) as [$w, $label]) {
-        $headerRow->addCell($w, ['bgColor' => 'D9E1F2'])
-                  ->addText($label, ['bold' => true, 'size' => $fontSize, 'alignment' => 'center']);
-    }
- 
-    // Baris data
-    foreach ($materials as $i => $item) {
-        $dataRow = $tblBarang->addRow(
-            \PhpOffice\PhpWord\Shared\Converter::cmToTwip($rowHeight)
-        );
-        $cols = [
-            $i + 1,
-            $item->jenis_bmn    ?? '-',
-            $item->nama_barang  ?? '-',
-            $item->kode_barang  ?? '-',
-            $item->nup          ?? '-',
-            $item->kondisi      ?? 'Baik',
-        ];
-        foreach (array_map(null, $colWidths, $cols) as [$w, $val]) {
-            $dataRow->addCell($w)->addText((string)$val, ['size' => $fontSize]);
+    {
+        // ── 1. Ambil data ──────────────────────────────────────────────────────
+        $loan        = peminjaman::with('user')->findOrFail($id);   // 'user' = relasi ke petugas
+        $materialIds = json_decode($loan->material_id, true) ?? [];
+        $materials   = Materials::whereIn('id', $materialIds)->get();
+        $petugas     = $loan->user;                                   // objek User petugas
+        $count       = $materials->count();
+
+        // ── 2. Tentukan tier layout ────────────────────────────────────────────
+        // Tier 1 (≤8)  : normal — font 9pt, baris 0.7cm → 1 halaman
+        // Tier 2 (9-15): kompak — font 7.5pt, baris 0.45cm → tetap 1 halaman
+        // Tier 3 (>15) : multipage — page break sebelum TTD
+        if ($count <= 8) {
+            $fontSize     = 9;
+            $rowHeight    = 0.7;
+            $pageBreakTTD = false;
+        } elseif ($count <= 15) {
+            $fontSize     = 7.5;
+            $rowHeight    = 0.45;
+            $pageBreakTTD = false;
+        } else {
+            $fontSize     = 7.5;
+            $rowHeight    = 0.45;
+            $pageBreakTTD = true;
         }
+
+        // ── 3. Bootstrap PhpWord ──────────────────────────────────────────────
+        $phpWord = new \PhpOffice\PhpWord\PhpWord();
+        $phpWord->setDefaultFontName('Times New Roman');
+        $phpWord->setDefaultFontSize(11);
+
+        $twip = fn(float $cm) => \PhpOffice\PhpWord\Shared\Converter::cmToTwip($cm);
+
+        $section = $phpWord->addSection([
+            'marginTop'    => $twip(2),
+            'marginBottom' => $twip(2),
+            'marginLeft'   => $twip(2.5),
+            'marginRight'  => $twip(2.5),
+        ]);
+
+        // Lebar konten (twip): A4 lebar 21cm - margin 2.5+2.5 = 16cm = 9072 twip
+        $contentWidth = 9072;
+
+        // ── 4. KOP SURAT ──────────────────────────────────────────────────────
+        // Garis atas kop
+        $section->addText('', [], [
+            'borderBottomSize'  => 12,
+            'borderBottomColor' => '000000',
+            'spacing'           => ['before' => 0, 'after' => 40],
+        ]);
+
+        // Tabel kop: [logo | teks kementerian]
+        $tblKop = $section->addTable(['unit' => \PhpOffice\PhpWord\Style\Table::WIDTH_AUTO]);
+        $kopRow = $tblKop->addRow($twip(2.8));
+
+        // Kolom logo (ganti dengan ImageRun jika ada file logo)
+        $kopRow->addCell($twip(2.5), ['valign' => 'center'])
+               ->addText('[LOGO]', ['size' => 9, 'bold' => true]);
+
+        // Kolom teks kop
+        $kopCell = $kopRow->addCell($twip(13.5), ['valign' => 'center']);
+
+        $kopCell->addText(
+            'KEMENTERIAN PEKERJAAN UMUM',
+            ['bold' => true, 'size' => 11, 'alignment' => 'center'],
+            ['alignment' => 'center', 'spacing' => ['after' => 0]]
+        );
+        $kopCell->addText(
+            'DIREKTORAT JENDERAL CIPTA KARYA',
+            ['bold' => true, 'size' => 11, 'alignment' => 'center'],
+            ['alignment' => 'center', 'spacing' => ['after' => 0]]
+        );
+        $kopCell->addText(
+            'DIREKTORAT BINA TEKNIK BANGUNAN GEDUNG DAN PENYEHATAN LINGKUNGAN',
+            ['size' => 9, 'alignment' => 'center'],
+            ['alignment' => 'center', 'spacing' => ['after' => 0]]
+        );
+
+        // Baris terakhir kop berbeda antara BTSB dan SATKER
+        if ($loan->kop_surat === 'SATKER') {
+            $kopCell->addText(
+                'SATUAN KERJA BALAI TEKNIK SAINS BANGUNAN',
+                ['bold' => true, 'size' => 11, 'alignment' => 'center'],
+                ['alignment' => 'center', 'spacing' => ['after' => 0]]
+            );
+        } else {
+            // Default: BTSB
+            $kopCell->addText(
+                'BALAI TEKNIK SAINS BANGUNAN',
+                ['bold' => true, 'size' => 12, 'alignment' => 'center'],
+                ['alignment' => 'center', 'spacing' => ['after' => 0]]
+            );
+        }
+
+        $kopCell->addText(
+            'Jalan Panyaungan, Cileunyi Wetan – Kab. Bandung  |  ditbtpp.bsb@pu.go.id',
+            ['size' => 8],
+            ['alignment' => 'center', 'spacing' => ['after' => 0]]
+        );
+
+        // Garis bawah kop (double)
+        $section->addText('', [], [
+            'borderTopSize'    => 12,
+            'borderTopColor'   => '000000',
+            'borderBottomSize' => 4,
+            'borderBottomColor'=> '000000',
+            'spacing'          => ['before' => 40, 'after' => 120],
+        ]);
+
+        // ── 5. JUDUL SURAT ────────────────────────────────────────────────────
+        $section->addText(
+            'SURAT PEMINJAMAN BARANG MILIK NEGARA',
+            ['bold' => true, 'size' => 12],
+            ['alignment' => 'center', 'spacing' => ['after' => 80]]
+        );
+
+        // ── 6. NOMOR ──────────────────────────────────────────────────────────
+        $run = $section->addTextRun(['spacing' => ['after' => 120]]);
+        $run->addText('NOMOR: ', ['bold' => true, 'size' => 11]);
+        $run->addText($loan->code, ['size' => 11]);
+
+        // ── 7. DATA PEMINJAM ──────────────────────────────────────────────────
+        $section->addText(
+            'Yang bertanda tangan di bawah ini:',
+            ['size' => 11],
+            ['spacing' => ['after' => 80]]
+        );
+
+        $tblPeminjam = $section->addTable(['unit' => \PhpOffice\PhpWord\Style\Table::WIDTH_AUTO]);
+        $rowsData = [
+            ['Nama',    $loan->peminjam],
+            ['NIP/ID',  $petugas->nip      ?? '-'],
+            ['Jabatan', $petugas->jabatan  ?? '-'],
+            ['Bagian',  $petugas->bagian   ?? '-'],
+        ];
+        foreach ($rowsData as $r) {
+            $tr = $tblPeminjam->addRow($twip(0.6));
+            $tr->addCell($twip(3))->addText($r[0], ['size' => 11]);
+            $tr->addCell($twip(0.4))->addText(':', ['size' => 11]);
+            $tr->addCell($twip(12))->addText($r[1], ['size' => 11]);
+        }
+
+        // ── 8. INTRO TABEL BARANG ─────────────────────────────────────────────
+        $section->addText(
+            'Mengajukan peminjaman alat sebagai berikut:',
+            ['size' => 11],
+            ['spacing' => ['before' => 120, 'after' => 80]]
+        );
+
+        // ── 9. TABEL BARANG (tier-aware) ──────────────────────────────────────
+        // Lebar kolom: No | Jenis BMN | Nama Barang | Kode Barang | NUP | Kondisi
+        // Total harus = $contentWidth = 9072
+        $colWidths = [500, 1800, 2772, 1800, 800, 1400];   // total = 9072
+
+        $tblBarang = $section->addTable([
+            'unit'        => \PhpOffice\PhpWord\Style\Table::WIDTH_AUTO,
+            'borderSize'  => 6,
+            'borderColor' => '000000',
+        ]);
+
+        // Header baris
+        $hRow = $tblBarang->addRow($twip(0.7));
+        $headers = ['No', 'Jenis BMN', 'Nama Barang', 'Kode Barang', 'NUP', 'Kondisi'];
+        foreach (array_map(null, $colWidths, $headers) as [$w, $lbl]) {
+            $hRow->addCell($w, ['bgColor' => 'D9E1F2', 'valign' => 'center'])
+                 ->addText($lbl, ['bold' => true, 'size' => $fontSize], ['alignment' => 'center']);
+        }
+
+        // Baris data barang
+        foreach ($materials as $i => $item) {
+            $dRow = $tblBarang->addRow($twip($rowHeight));
+            $values = [
+                $i + 1,
+                $item->{'Jenis BMN'}   ?? ($item->jenis_bmn   ?? 'MESIN PERALATAN NON TIK'),
+                $item->{'Nama Barang'} ?? ($item->nama_barang ?? '-'),
+                $item->{'Kode Barang'} ?? ($item->kode_barang ?? '-'),
+                $item->nup             ?? '-',
+                $item->kondisi         ?? 'Baik',
+            ];
+            foreach (array_map(null, $colWidths, $values) as [$w, $val]) {
+                $dRow->addCell($w, ['valign' => 'center'])
+                     ->addText((string) $val, ['size' => $fontSize]);
+            }
+        }
+
+        // ── 10. TANGGAL PINJAM / KEMBALI ──────────────────────────────────────
+        $section->addText('', [], ['spacing' => ['before' => 80, 'after' => 0]]);
+
+        $tblTgl = $section->addTable([
+            'unit'       => \PhpOffice\PhpWord\Style\Table::WIDTH_AUTO,
+            'borderSize' => 6,
+            'borderColor'=> '000000',
+        ]);
+        $tglH = $tblTgl->addRow($twip(0.7));
+        $tglH->addCell($twip(8), ['bgColor' => 'D9E1F2'])
+             ->addText('Tanggal Pinjam',  ['bold' => true, 'size' => 10], ['alignment' => 'center']);
+        $tglH->addCell($twip(8), ['bgColor' => 'D9E1F2'])
+             ->addText('Tanggal Kembali', ['bold' => true, 'size' => 10], ['alignment' => 'center']);
+        $tglD = $tblTgl->addRow($twip(0.7));
+        $tglD->addCell($twip(8))
+             ->addText(
+                 Carbon::parse($loan->tgl_pinjam)->isoFormat('D MMMM YYYY'),
+                 ['size' => 10],
+                 ['alignment' => 'center']
+             );
+        $tglD->addCell($twip(8))
+             ->addText(
+                 Carbon::parse($loan->tgl_kembali)->isoFormat('D MMMM YYYY'),
+                 ['size' => 10],
+                 ['alignment' => 'center']
+             );
+
+        // ── 11. PERNYATAAN ────────────────────────────────────────────────────
+        $section->addText(
+            'Saya menyatakan bahwa:',
+            ['size' => 11],
+            ['spacing' => ['before' => 120, 'after' => 60]]
+        );
+
+        $pernyataan = [
+            'Benar mengajukan peminjaman alat sebagaimana tercantum pada tabel di atas.',
+            'Bersedia menjaga dan mengembalikan alat dalam kondisi baik atau sesuai kondisi awal.',
+            'Bertanggung jawab apabila terjadi kerusakan atau kehilangan selama masa pinjam.',
+            'Siap mengikuti ketentuan yang berlaku dalam peminjaman alat.',
+        ];
+        foreach ($pernyataan as $no => $txt) {
+            $pr = $section->addTextRun([
+                'indentation' => ['left' => 360, 'hanging' => 360],
+                'spacing'     => ['before' => 0, 'after' => 40],
+            ]);
+            $pr->addText(($no + 1) . '.  ', ['size' => 11]);
+            $pr->addText($txt,              ['size' => 11]);
+        }
+
+        // ── 12. TANDA TANGAN ──────────────────────────────────────────────────
+        if ($pageBreakTTD) {
+            // Tier 3: TTD di halaman baru → selalu rapi
+            $section->addPageBreak();
+            $section->addParagraph();
+        } else {
+            // Tier 1 & 2: spasi biasa
+            $section->addText('', [], ['spacing' => ['before' => 160, 'after' => 0]]);
+        }
+
+        $tblTTD = $section->addTable(['unit' => \PhpOffice\PhpWord\Style\Table::WIDTH_AUTO]);
+
+        // Baris label
+        $r1 = $tblTTD->addRow($twip(0.6));
+        $r1->addCell($twip(6))->addText('Peminjam,',       ['size' => 11]);
+        $r1->addCell($twip(3))->addText('',                ['size' => 11]);
+        $r1->addCell($twip(6))->addText('Petugas Gudang,', ['size' => 11]);
+
+        // Ruang tanda tangan (4 baris kosong)
+        for ($x = 0; $x < 4; $x++) {
+            $rx = $tblTTD->addRow($twip(0.8));
+            $rx->addCell($twip(6))->addText('', ['size' => 11]);
+            $rx->addCell($twip(3))->addText('', ['size' => 11]);
+            $rx->addCell($twip(6))->addText('', ['size' => 11]);
+        }
+
+        // Nama
+        $r2 = $tblTTD->addRow($twip(0.6));
+        $r2->addCell($twip(6))
+           ->addText('( ' . $loan->peminjam . ' )', ['size' => 11], ['alignment' => 'center']);
+        $r2->addCell($twip(3))->addText('', ['size' => 11]);
+        $r2->addCell($twip(6))
+           ->addText('( ' . ($petugas->name ?? '-') . ' )', ['size' => 11], ['alignment' => 'center']);
+
+        // ── 13. SIMPAN & DOWNLOAD ─────────────────────────────────────────────
+        $filename = 'Surat_Peminjaman_' . $loan->code . '.docx';
+        $tempDir  = storage_path('app/temp');
+
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $tmpPath = $tempDir . '/' . $filename;
+
+        $writer = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
+        $writer->save($tmpPath);
+
+        return response()->download($tmpPath, $filename)->deleteFileAfterSend(true);
     }
- 
-    // ────────────────────────────────────────────────────────
-    //  E. TANGGAL PINJAM / KEMBALI
-    // ────────────────────────────────────────────────────────
-    $section->addParagraph();
- 
-    $tblTgl = $section->addTable([
-        'unit'       => \PhpOffice\PhpWord\Style\Table::WIDTH_AUTO,
-        'borderSize' => 6, 'borderColor' => '000000',
-    ]);
-    $thRow = $tblTgl->addRow();
-    $thRow->addCell(3500, ['bgColor' => 'D9E1F2'])
-          ->addText('Tanggal Pinjam',  ['bold' => true, 'size' => 10, 'alignment' => 'center']);
-    $thRow->addCell(3500, ['bgColor' => 'D9E1F2'])
-          ->addText('Tanggal Kembali', ['bold' => true, 'size' => 10, 'alignment' => 'center']);
-    $tdRow = $tblTgl->addRow();
-    $tdRow->addCell(3500)->addText(
-        \Carbon\Carbon::parse($loan->tgl_pinjam)->isoFormat('D MMMM YYYY'),
-        ['size' => 10, 'alignment' => 'center']
-    );
-    $tdRow->addCell(3500)->addText(
-        \Carbon\Carbon::parse($loan->tgl_kembali)->isoFormat('D MMMM YYYY'),
-        ['size' => 10, 'alignment' => 'center']
-    );
- 
-    // ────────────────────────────────────────────────────────
-    //  F. PERNYATAAN
-    // ────────────────────────────────────────────────────────
-    $section->addParagraph();
-    $section->addText('Saya menyatakan bahwa:', ['size' => 11]);
- 
-    $pernyataan = [
-        'Benar mengajukan peminjaman alat sebagaimana tercantum pada tabel di atas.',
-        'Bersedia menjaga dan mengembalikan alat dalam kondisi baik atau sesuai kondisi awal.',
-        'Bertanggung jawab apabila terjadi kerusakan atau kehilangan selama masa pinjam.',
-        'Siap mengikuti ketentuan yang berlaku dalam peminjaman alat.',
-    ];
-    foreach ($pernyataan as $no => $txt) {
-        $pr = $section->addTextRun(['indentation' => ['left' => 360]]);
-        $pr->addText(($no + 1) . '.  ', ['size' => 11]);
-        $pr->addText($txt,             ['size' => 11]);
-    }
- 
-    // ────────────────────────────────────────────────────────
-    //  G. TTD — page break jika TIER 3
-    // ────────────────────────────────────────────────────────
-    if ($pageBreakTTD) {
-        // Tier 3: TTD selalu mulai di halaman baru → rapi & profesional
-        $section->addPageBreak();
-    } else {
-        $section->addParagraph(); // spasi normal
-    }
- 
-    $section->addParagraph();
- 
-    // Tabel TTD (Peminjam kiri | kosong tengah | Petugas Gudang kanan)
-    $tblTTD = $section->addTable(['unit' => \PhpOffice\PhpWord\Style\Table::WIDTH_AUTO]);
-    $ttdRow = $tblTTD->addRow();
- 
-    $ttdRow->addCell(3000)->addText('Peminjam,',       ['size' => 11]);
-    $ttdRow->addCell(1200)->addText('',                ['size' => 11]);   // spacer
-    $ttdRow->addCell(3000)->addText('Petugas Gudang,', ['size' => 11]);
- 
-    // Baris kosong (ruang tanda tangan) × 4
-    foreach (range(1, 4) as $_) {
-        $tr = $tblTTD->addRow(\PhpOffice\PhpWord\Shared\Converter::cmToTwip(0.8));
-        $tr->addCell(3000)->addText('', ['size' => 11]);
-        $tr->addCell(1200)->addText('', ['size' => 11]);
-        $tr->addCell(3000)->addText('', ['size' => 11]);
-    }
- 
-    // Nama di bawah TTD
-    $nameRow = $tblTTD->addRow();
-    $nameRow->addCell(3000)->addText(
-        '( ' . $loan->peminjam . ' )',
-        ['size' => 11, 'alignment' => 'center']
-    );
-    $nameRow->addCell(1200)->addText('', ['size' => 11]);
-    $nameRow->addCell(3000)->addText(
-        '( ' . ($loan->employee->name ?? '-') . ' )',
-        ['size' => 11, 'alignment' => 'center']
-    );
- 
-    // ────────────────────────────────────────────────────────
-    //  H. SIMPAN & DOWNLOAD
-    // ────────────────────────────────────────────────────────
-    $filename = 'Surat_Peminjaman_' . $loan->code . '.docx';
-    $tmpPath  = storage_path('app/temp/' . $filename);
- 
-    if (!file_exists(storage_path('app/temp'))) {
-        mkdir(storage_path('app/temp'), 0755, true);
-    }
- 
-    $writer = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
-    $writer->save($tmpPath);
- 
-    return response()->download($tmpPath, $filename)->deleteFileAfterSend(true);
-}
 
     // ===================== REPORT =====================
     public function report()
@@ -523,21 +578,25 @@ class PeminjamanController extends Controller
         if (!$from_date || !$to_date) {
             return redirect()->back()->with('error', 'Tolong isi range tanggal');
         }
-        return Excel::download(new PeminjamanExport($from_date, $to_date),
-            'report_peminjaman_' . Carbon::now()->timestamp . '.xlsx');
+        return Excel::download(
+            new PeminjamanExport($from_date, $to_date),
+            'report_peminjaman_' . Carbon::now()->timestamp . '.xlsx'
+        );
     }
 
     public function exportAll()
     {
-        return Excel::download(new PeminjamanExportAll,
-            'report_peminjaman_' . Carbon::now()->timestamp . '.xlsx');
+        return Excel::download(
+            new PeminjamanExportAll,
+            'report_peminjaman_' . Carbon::now()->timestamp . '.xlsx'
+        );
     }
 
     // ===================== FILTER =====================
     public function filter(Request $request)
     {
-        $query   = peminjaman::query()->with(['user']);
-        $today   = \Carbon\Carbon::today();
+        $query = peminjaman::query()->with(['user']);
+        $today = Carbon::today();
 
         $employe = $request->input('code');
         if ($employe && $employe !== 'all') {
@@ -548,8 +607,8 @@ class PeminjamanController extends Controller
         $end   = $request->input('end_date');
         if ($start && $end) {
             $query->whereBetween('created_at', [
-                \Carbon\Carbon::parse($start)->startOfDay(),
-                \Carbon\Carbon::parse($end)->endOfDay(),
+                Carbon::parse($start)->startOfDay(),
+                Carbon::parse($end)->endOfDay(),
             ]);
         }
 
@@ -557,10 +616,10 @@ class PeminjamanController extends Controller
         if ($status && $status !== 'all') {
             if ($status === 'Terlambat') {
                 $query->where('status', '!=', 'Dikembalikan')
-                    ->whereDate('tgl_kembali', '<', $today);
+                      ->whereDate('tgl_kembali', '<', $today);
             } elseif ($status === 'Dipinjam') {
                 $query->where('status', 'Dipinjam')
-                    ->whereDate('tgl_kembali', '>=', $today);
+                      ->whereDate('tgl_kembali', '>=', $today);
             } else {
                 $query->where('status', $status);
             }

@@ -59,6 +59,22 @@
 .aset-warn { display:none; font-size:0.75rem; color:#dc3545; margin-top:6px; }
 .aset-warn.show { display:block; }
 
+/* ── Layout warning ── */
+.layout-warn {
+    display:none;
+    margin-top:8px;
+    padding:10px 14px;
+    border-radius:10px;
+    font-size:0.78rem;
+    gap:8px;
+    align-items:flex-start;
+    line-height:1.5;
+}
+.layout-warn.show { display:flex; }
+.layout-warn i { flex-shrink:0; margin-top:2px; }
+.layout-warn.tier-compact { background:rgba(186,117,23,0.08); border:1.5px solid rgba(186,117,23,0.25); color:#854F0B; }
+.layout-warn.tier-multipage { background:rgba(45,90,142,0.07); border:1.5px solid rgba(45,90,142,0.22); color:#1e3a5f; }
+
 .pm-btn-submit { width:100%; padding:12px; background:linear-gradient(135deg,#c49a2a,#e8b84b); color:#fff; border:none; border-radius:10px; font-size:0.9rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(196,154,42,0.3); transition:all .18s; }
 .pm-btn-submit:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(196,154,42,0.4); }
 .pm-btn-back { width:100%; padding:11px; background:#f4f6fb; color:#5a6a7e; border:1.5px solid #dee2e6; border-radius:10px; font-size:0.88rem; font-weight:600; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:7px; transition:all .15s; }
@@ -66,10 +82,13 @@
 .icon-input { position:relative; }
 .icon-input i { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#8a96a3; pointer-events:none; }
 .icon-input input { padding-left:34px; }
+.pm-select { width:100%; padding:10px 14px; font-size:0.85rem; color:#1e3a5f; background:#f8fafd; border:1.5px solid #dee2e6; border-radius:10px; outline:none; appearance:none; cursor:pointer; }
+.pm-select:focus { background:#fff; border-color:#c49a2a; box-shadow:0 0 0 3px rgba(196,154,42,0.12); }
+.pm-select-wrap { position:relative; }
+.pm-select-wrap::after { content:'\F282'; font-family:'bootstrap-icons'; position:absolute; right:14px; top:50%; transform:translateY(-50%); color:#8a96a3; pointer-events:none; font-size:0.75rem; }
 </style>
 
 @php
-    // Decode material_id yang tersimpan sebagai JSON
     $selectedIds = [];
     if ($loan->material_id) {
         $decoded = json_decode($loan->material_id, true);
@@ -113,7 +132,7 @@
                     @csrf
                     @method('PUT')
 
-                    {{-- ── 1. PERIODE ── --}}
+                    {{-- ── Periode ── --}}
                     <div class="pm-divider">Periode Peminjaman</div>
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -142,7 +161,7 @@
                         </div>
                     </div>
 
-                    {{-- ── 2. PEMINJAM ── --}}
+                    {{-- ── Peminjam ── --}}
                     <div class="pm-divider">Data Peminjam</div>
                     <div class="pm-field">
                         <label class="pm-label">Nama Peminjam <span class="req">*</span></label>
@@ -155,36 +174,31 @@
                         @error('peminjam')<span class="pm-field-error">{{ $message }}</span>@enderror
                     </div>
 
+                    {{-- ── Kop Surat ── --}}
                     <div class="pm-divider">Kop Surat</div>
-                        <div class="pm-field">
-                            <label class="pm-label">Kop Surat yang Digunakan <span class="req">*</span></label>
-                            <div class="pm-select-wrap">
-                                <select name="kop_surat" class="pm-select" required>
-                                    <option value="">-- Pilih Kop Surat --</option>
-                                    @foreach ($kopOptions as $val => $label)
-                                        {{--
-                                            Untuk add.blade.php   : gunakan baris di bawah ini apa adanya
-                                            Untuk edit.blade.php  : ganti old('kop_surat') dengan old('kop_surat', $loan->kop_surat)
-                                        --}}
-                                        <option value="{{ $val }}"
-                                            {{ old('kop_surat', $loan->kop_surat ?? '') == $val ? 'selected' : '' }}>
-                                            {{ $label }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            @error('kop_surat')<span class="pm-field-error">{{ $message }}</span>@enderror
-                        
-                            {{-- Preview kop surat (opsional tapi bagus) --}}
-                            <div id="kopPreview" style="margin-top:10px; padding:10px 14px; background:#f0f5ff;
-                                border:1.5px solid #c5cfe0; border-radius:10px; font-size:0.8rem; color:#1e3a5f;
-                                display:none;">
-                                <i class="bi bi-file-earmark-text me-2"></i>
-                                <span id="kopPreviewText"></span>
-                            </div>
+                    <div class="pm-field">
+                        <label class="pm-label">Kop Surat yang Digunakan <span class="req">*</span></label>
+                        <div class="pm-select-wrap">
+                            <select name="kop_surat" class="pm-select" required>
+                                <option value="">-- Pilih Kop Surat --</option>
+                                @foreach ($kopOptions as $val => $label)
+                                    <option value="{{ $val }}"
+                                        {{ old('kop_surat', $loan->kop_surat ?? '') == $val ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
+                        @error('kop_surat')<span class="pm-field-error">{{ $message }}</span>@enderror
 
-                    {{-- ── 3. PILIH ASET (di bawah) ── --}}
+                        <div id="kopPreview" style="margin-top:10px; padding:10px 14px; background:#f0f5ff;
+                            border:1.5px solid #c5cfe0; border-radius:10px; font-size:0.8rem; color:#1e3a5f; display:none;">
+                            <i class="bi bi-file-earmark-text me-2"></i>
+                            <span id="kopPreviewText"></span>
+                        </div>
+                    </div>
+
+                    {{-- ── Daftar Barang ── --}}
                     <div class="pm-divider">Daftar Barang yang Dipinjam</div>
                     <div class="pm-field">
                         <label class="pm-label">
@@ -199,7 +213,6 @@
                                 <i class="bi bi-search"></i>
                                 <input type="text" id="pmSearch" placeholder="Cari nama atau kode aset...">
                             </div>
-
                             <div class="aset-picker-list" id="pmPickerList">
                                 @forelse ($material as $item)
                                     @php
@@ -232,7 +245,6 @@
                                     </div>
                                 @endforelse
                             </div>
-
                             <div class="aset-footer">
                                 <span class="aset-footer-count">
                                     Dipilih: <strong id="pmSelectedCount">{{ count($selectedIds) }}</strong> barang
@@ -243,13 +255,21 @@
                             </div>
                         </div>
 
+                        {{-- Peringatan belum pilih --}}
                         <span class="aset-warn" id="pmWarn">
                             <i class="bi bi-exclamation-circle me-1"></i>Pilih minimal satu barang.
                         </span>
+
+                        {{-- ── Peringatan layout surat (muncul otomatis) ── --}}
+                        <div class="layout-warn" id="pmLayoutWarn">
+                            <i class="bi bi-info-circle-fill"></i>
+                            <span id="pmLayoutWarnText"></span>
+                        </div>
+
                         @error('material_id')<span class="pm-field-error">{{ $message }}</span>@enderror
                     </div>
 
-                    {{-- ── TOMBOL ── --}}
+                    {{-- ── Tombol ── --}}
                     <div class="row g-3 mt-2 pm-divider">
                         <div class="col-md-8">
                             <button type="submit" class="pm-btn-submit">
@@ -272,16 +292,15 @@
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 <script>
-    (function () {
+/* ── Kop Surat Preview ── */
+(function () {
     var kopSelect  = document.querySelector('select[name="kop_surat"]');
     var kopPreview = document.getElementById('kopPreview');
     var kopText    = document.getElementById('kopPreviewText');
- 
     var descriptions = {
         'BTSB':   'Kop: KEMENTERIAN PEKERJAAN UMUM — DIREKTORAT JENDERAL CIPTA KARYA — BALAI TEKNIK SAINS BANGUNAN',
         'SATKER': 'Kop: KEMENTERIAN PEKERJAAN UMUM — DIREKTORAT JENDERAL CIPTA KARYA — SATUAN KERJA BALAI TEKNIK SAINS BANGUNAN',
     };
- 
     function updatePreview() {
         var val = kopSelect.value;
         if (val && descriptions[val]) {
@@ -291,57 +310,88 @@
             kopPreview.style.display = 'none';
         }
     }
- 
     kopSelect.addEventListener('change', updatePreview);
-    updatePreview(); // tampilkan preview saat halaman dimuat (untuk edit)
+    updatePreview();
 })();
+
+/* ── Datepicker ── */
 $(function () {
     $("#datepicker").datepicker({ dateFormat: "yy-mm-dd" });
     $("#datepicker1").datepicker({ dateFormat: "yy-mm-dd" });
 });
 
+/* ── Aset Picker ── */
 (function () {
     'use strict';
 
-    // ── Toggle baris aset ──
+    var LIMIT_NORMAL  = 8;
+    var LIMIT_COMPACT = 15;
+
+    /* Toggle baris */
     document.querySelectorAll('#pmPickerList .aset-row').forEach(function (row) {
         row.addEventListener('click', function () {
-            const cb = this.querySelector('.pm-cb');
+            var cb = this.querySelector('.pm-cb');
             cb.checked = !cb.checked;
             this.classList.toggle('selected', cb.checked);
             updateCount();
         });
     });
 
+    /* Hitung & tampilkan warning layout */
     function updateCount() {
-        const n = document.querySelectorAll('.pm-cb:checked').length;
+        var n      = document.querySelectorAll('.pm-cb:checked').length;
+        var warnEl = document.getElementById('pmWarn');
+        var lwDiv  = document.getElementById('pmLayoutWarn');
+        var lwText = document.getElementById('pmLayoutWarnText');
+
         document.getElementById('pmSelectedCount').textContent = n;
-        if (n > 0) document.getElementById('pmWarn').classList.remove('show');
+
+        if (n > 0) warnEl.classList.remove('show');
+
+        /* Reset class */
+        lwDiv.classList.remove('show', 'tier-compact', 'tier-multipage');
+
+        if (n > LIMIT_COMPACT) {
+            lwDiv.classList.add('show', 'tier-multipage');
+            lwText.innerHTML =
+                '<strong>' + n + ' barang dipilih.</strong> ' +
+                'Surat akan dicetak <strong>2 halaman</strong> — ' +
+                'tanda tangan otomatis pindah ke halaman baru.';
+        } else if (n > LIMIT_NORMAL) {
+            lwDiv.classList.add('show', 'tier-compact');
+            lwText.innerHTML =
+                '<strong>' + n + ' barang dipilih.</strong> ' +
+                'Surat akan dicetak <strong>mode kompak</strong> ' +
+                '(font lebih kecil) agar tetap 1 halaman.';
+        }
     }
 
-    // Scroll ke aset yang sudah dipilih
-    const firstSelected = document.querySelector('#pmPickerList .aset-row.selected');
+    /* Jalankan saat halaman load (untuk edit — sudah ada item tercentang) */
+    updateCount();
+
+    /* Scroll ke item pertama yang tercentang */
+    var firstSelected = document.querySelector('#pmPickerList .aset-row.selected');
     if (firstSelected) {
         setTimeout(function () {
             firstSelected.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }, 200);
     }
 
-    // ── Search ──
+    /* Search */
     document.getElementById('pmSearch').addEventListener('input', function () {
-        const q = this.value.toLowerCase().trim();
+        var q = this.value.toLowerCase().trim();
         document.querySelectorAll('#pmPickerList .aset-row').forEach(function (row) {
             row.style.display = !q || row.dataset.search.includes(q) ? '' : 'none';
         });
     });
 
-    // ── Pilih / Batal Semua ──
+    /* Pilih / Batal Semua */
     var allSelected = false;
     document.getElementById('pmSelectAll').addEventListener('click', function () {
         allSelected = !allSelected;
         document.querySelectorAll('#pmPickerList .aset-row').forEach(function (row) {
             if (row.style.display === 'none') return;
-            const cb = row.querySelector('.pm-cb');
+            var cb = row.querySelector('.pm-cb');
             cb.checked = allSelected;
             row.classList.toggle('selected', allSelected);
         });
@@ -349,7 +399,7 @@ $(function () {
         updateCount();
     });
 
-    // ── Validasi submit ──
+    /* Validasi submit */
     document.getElementById('formEditPeminjaman').addEventListener('submit', function (e) {
         if (document.querySelectorAll('.pm-cb:checked').length === 0) {
             e.preventDefault();
