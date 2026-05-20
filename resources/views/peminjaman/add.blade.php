@@ -154,6 +154,35 @@
                         @error('peminjam')<span class="pm-field-error">{{ $message }}</span>@enderror
                     </div>
 
+                    <div class="pm-divider">Kop Surat</div>
+                        <div class="pm-field">
+                            <label class="pm-label">Kop Surat yang Digunakan <span class="req">*</span></label>
+                            <div class="pm-select-wrap">
+                                <select name="kop_surat" class="pm-select" required>
+                                    <option value="">-- Pilih Kop Surat --</option>
+                                    @foreach ($kopOptions as $val => $label)
+                                        {{--
+                                            Untuk add.blade.php   : gunakan baris di bawah ini apa adanya
+                                            Untuk edit.blade.php  : ganti old('kop_surat') dengan old('kop_surat', $loan->kop_surat)
+                                        --}}
+                                        <option value="{{ $val }}"
+                                            {{ old('kop_surat', $loan->kop_surat ?? '') == $val ? 'selected' : '' }}>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @error('kop_surat')<span class="pm-field-error">{{ $message }}</span>@enderror
+                        
+                            {{-- Preview kop surat (opsional tapi bagus) --}}
+                            <div id="kopPreview" style="margin-top:10px; padding:10px 14px; background:#f0f5ff;
+                                border:1.5px solid #c5cfe0; border-radius:10px; font-size:0.8rem; color:#1e3a5f;
+                                display:none;">
+                                <i class="bi bi-file-earmark-text me-2"></i>
+                                <span id="kopPreviewText"></span>
+                            </div>
+                        </div>
+
                     {{-- ── Petugas ── --}}
                     <div class="pm-divider">Petugas Gudang</div>
                     <div class="pm-field">
@@ -224,7 +253,7 @@
                     </div>
 
                     {{-- ── Submit ── --}}
-                    <div class="row g-3 mt-2">
+                    <div class="row g-3 mt-2 pm-divider">
                         <div class="col-md-8">
                             <button type="submit" class="pm-btn-submit">
                                 <i class="bi bi-check-circle-fill"></i> Simpan Peminjaman
@@ -246,6 +275,29 @@
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 <script>
+(function () {
+    var kopSelect  = document.querySelector('select[name="kop_surat"]');
+    var kopPreview = document.getElementById('kopPreview');
+    var kopText    = document.getElementById('kopPreviewText');
+ 
+    var descriptions = {
+        'BTSB':   'Kop: KEMENTERIAN PEKERJAAN UMUM — DIREKTORAT JENDERAL CIPTA KARYA — BALAI TEKNIK SAINS BANGUNAN',
+        'SATKER': 'Kop: KEMENTERIAN PEKERJAAN UMUM — DIREKTORAT JENDERAL CIPTA KARYA — SATUAN KERJA BALAI TEKNIK SAINS BANGUNAN',
+    };
+ 
+    function updatePreview() {
+        var val = kopSelect.value;
+        if (val && descriptions[val]) {
+            kopText.textContent = descriptions[val];
+            kopPreview.style.display = 'block';
+        } else {
+            kopPreview.style.display = 'none';
+        }
+    }
+ 
+    kopSelect.addEventListener('change', updatePreview);
+    updatePreview(); // tampilkan preview saat halaman dimuat (untuk edit)
+})();
 $(function () {
     $("#datepicker").datepicker({ dateFormat: "yy-mm-dd" });
     $("#datepicker1").datepicker({ dateFormat: "yy-mm-dd" });

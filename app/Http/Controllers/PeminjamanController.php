@@ -17,17 +17,27 @@ use PhpOffice\PhpWord\TemplateProcessor;
 
 class PeminjamanController extends Controller
 {
+    // ─── Daftar pilihan Kop Surat ───────────────────────────────────────────────
+    private const KOP_OPTIONS = [
+        'BTSB'   => 'Balai Teknik Sains Bangunan (BTSB)',
+        'SATKER' => 'Satuan Kerja Balai Teknik Sains Bangunan',
+    ];
+
+    // ─── Path template per kop ──────────────────────────────────────────────────
+    private function templatePath(string $kop): string
+    {
+        $map = [
+            'BTSB'   => public_path('assets/templates/surat_peminjaman_btsb.docx'),
+            'SATKER' => public_path('assets/templates/surat_peminjaman_satker.docx'),
+        ];
+        return $map[$kop] ?? $map['BTSB'];
+    }
+
     // ===================== SYNC LOAN STATUSES =====================
-    /**
-     * Sinkronisasi Status BMN berdasarkan status pinjaman aktif:
-     *  - Terlambat : masih Dipinjam & tgl_kembali < hari ini
-     *  - Dipinjam  : masih Dipinjam & tgl_kembali >= hari ini
-     */
     private function syncLoanStatuses(): void
     {
         $today = Carbon::today();
 
-        // ── Terlambat ─────────────────────────────────────────
         $overdueLoans = DB::table('peminjamen')
             ->where('status', 'Dipinjam')
             ->whereDate('tgl_kembali', '<', $today)
@@ -42,7 +52,6 @@ class PeminjamanController extends Controller
             }
         }
 
-        // ── Dipinjam (masih tepat waktu) ───────────────────────
         $activeLoans = DB::table('peminjamen')
             ->where('status', 'Dipinjam')
             ->whereDate('tgl_kembali', '>=', $today)
@@ -61,7 +70,7 @@ class PeminjamanController extends Controller
     // ===================== INDEX =====================
     public function index(Request $request)
     {
-        $this->syncLoanStatuses();   // ← sinkronisasi setiap kali halaman dimuat
+        $this->syncLoanStatuses();
 
         $sess   = Session::all();
         $paging = 10;
@@ -103,7 +112,9 @@ class PeminjamanController extends Controller
         $users    = User::whereIn('jabatan', ['Admin', 'Manager', 'Operator', 'admin', 'manager', 'operator'])
                         ->orderBy('name')->get();
         $material = Materials::where('kondisi', '!=', 'Rusak Berat')->orderBy('Nama Barang')->get();
-        return view('peminjaman.add', compact('material', 'users'));
+        $kopOptions = self::KOP_OPTIONS;          // ← kirim ke view
+
+        return view('peminjaman.add', compact('material', 'users', 'kopOptions'));
     }
 
     // ===================== STORE =====================
@@ -121,6 +132,7 @@ class PeminjamanController extends Controller
             'tgl_kembali'   => 'required',
             'peminjam'      => 'required',
             'employee_id'   => 'required|exists:users,id',
+            'kop_surat'     => 'required|in:BTSB,SATKER',   // ← validasi
         ], [
             'material_id.required'   => 'Pilih minimal 1 barang',
             'material_id.*.required' => 'Barang tidak boleh kosong',
@@ -129,6 +141,8 @@ class PeminjamanController extends Controller
             'peminjam.required'      => 'Peminjam harus diisi',
             'employee_id.required'   => 'Petugas gudang harus dipilih',
             'employee_id.exists'     => 'Petugas tidak valid',
+            'kop_surat.required'     => 'Pilih kop surat',
+            'kop_surat.in'           => 'Kop surat tidak valid',
         ]);
 
         $lastCode  = DB::table('peminjamen')->max('code');
@@ -145,14 +159,14 @@ class PeminjamanController extends Controller
             'employee_id' => $request->employee_id,
             'peminjam'    => $request->peminjam,
             'status'      => 'Dipinjam',
+            'kop_surat'   => $request->kop_surat,    // ← simpan pilihan kop
             'created_at'  => Carbon::now(),
             'updated_at'  => Carbon::now(),
         ]);
 
-        // ── Tentukan Status BMN: langsung cek apakah sudah terlambat ──
-        $today       = Carbon::today();
-        $tglKembali  = Carbon::parse($request->tgl_kembali)->startOfDay();
-        $statusBmn   = $tglKembali->lt($today) ? 'Terlambat' : 'Dipinjam';
+        $today      = Carbon::today();
+        $tglKembali = Carbon::parse($request->tgl_kembali)->startOfDay();
+        $statusBmn  = $tglKembali->lt($today) ? 'Terlambat' : 'Dipinjam';
 
         DB::table('materials')
             ->whereIn('id', $materialIds)
@@ -193,7 +207,6 @@ class PeminjamanController extends Controller
             'updated_at'  => Carbon::now(),
         ]);
 
-        // ── Kembalikan Status BMN ke Aktif ──
         $materialIds = json_decode($loan->material_id, true) ?? [];
         if (!empty($materialIds)) {
             DB::table('materials')
@@ -210,9 +223,11 @@ class PeminjamanController extends Controller
     // ===================== EDIT =====================
     public function edit(Request $request, $id)
     {
-        $loan     = peminjaman::findOrFail($id);
-        $material = Materials::where('kondisi', '!=', 'Rusak Berat')->get();
-        return view('peminjaman.edit', compact('loan', 'material'));
+        $loan       = peminjaman::findOrFail($id);
+        $material   = Materials::where('kondisi', '!=', 'Rusak Berat')->get();
+        $kopOptions = self::KOP_OPTIONS;           // ← kirim ke view
+
+        return view('peminjaman.edit', compact('loan', 'material', 'kopOptions'));
     }
 
     // ===================== UPDATE =====================
@@ -224,13 +239,13 @@ class PeminjamanController extends Controller
             'tgl_pinjam'    => 'required',
             'tgl_kembali'   => 'required',
             'peminjam'      => 'required',
+            'kop_surat'     => 'required|in:BTSB,SATKER',   // ← validasi
         ]);
 
         $loanLama = peminjaman::findOrFail($id);
         $idsLama  = json_decode($loanLama->material_id, true) ?? [];
         $idsBaru  = array_values($request->material_id);
 
-        // Kembalikan status aset lama ke Aktif
         if (!empty($idsLama)) {
             DB::table('materials')
                 ->whereIn('id', $idsLama)
@@ -242,10 +257,10 @@ class PeminjamanController extends Controller
             'tgl_pinjam'  => $request->tgl_pinjam,
             'tgl_kembali' => $request->tgl_kembali,
             'peminjam'    => $request->peminjam,
+            'kop_surat'   => $request->kop_surat,    // ← simpan pilihan kop
             'updated_at'  => Carbon::now(),
         ]);
 
-        // Set Status BMN aset baru (cek apakah terlambat)
         $today      = Carbon::today();
         $tglKembali = Carbon::parse($request->tgl_kembali)->startOfDay();
         $statusBmn  = $tglKembali->lt($today) ? 'Terlambat' : 'Dipinjam';
@@ -279,9 +294,12 @@ class PeminjamanController extends Controller
     {
         $loan = peminjaman::with(['user'])->findOrFail($id);
 
-        $templatePath = public_path('assets/templates/surat_peminjaman.docx');
+        // ── Pilih template berdasarkan kop_surat yang tersimpan ──────────────
+        $kop          = $loan->kop_surat ?? 'BTSB';
+        $templatePath = $this->templatePath($kop);
+
         if (!file_exists($templatePath)) {
-            return back()->with('error', 'Template surat tidak ditemukan.');
+            return back()->with('error', 'Template surat tidak ditemukan: ' . basename($templatePath));
         }
 
         $template = new TemplateProcessor($templatePath);
@@ -350,22 +368,40 @@ class PeminjamanController extends Controller
     // ===================== FILTER =====================
     public function filter(Request $request)
     {
-        $query   = peminjaman::query();
+        $query   = peminjaman::query()->with(['user']);
+        $today   = \Carbon\Carbon::today();
+
         $employe = $request->input('code');
         if ($employe && $employe !== 'all') {
             $query->where('employee_id', $employe);
         }
+
         $start = $request->input('start_date');
         $end   = $request->input('end_date');
         if ($start && $end) {
             $query->whereBetween('created_at', [
-                Carbon::parse($start)->startOfDay(),
-                Carbon::parse($end)->endOfDay(),
+                \Carbon\Carbon::parse($start)->startOfDay(),
+                \Carbon\Carbon::parse($end)->endOfDay(),
             ]);
         }
-        $loan  = $query->with(['user'])->paginate(20);
+
+        $status = $request->input('status');
+        if ($status && $status !== 'all') {
+            if ($status === 'Terlambat') {
+                $query->where('status', '!=', 'Dikembalikan')
+                    ->whereDate('tgl_kembali', '<', $today);
+            } elseif ($status === 'Dipinjam') {
+                $query->where('status', 'Dipinjam')
+                    ->whereDate('tgl_kembali', '>=', $today);
+            } else {
+                $query->where('status', $status);
+            }
+        }
+
+        $loan  = $query->orderBy('created_at', 'desc')->paginate(10);
         $codes = peminjaman::select('employee_id')->distinct()->get();
         $sess  = Session::all();
+
         return view('peminjaman.getData', compact('loan', 'codes', 'sess'));
     }
 }

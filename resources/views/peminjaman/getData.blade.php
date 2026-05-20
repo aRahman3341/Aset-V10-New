@@ -63,39 +63,62 @@
     </div>
 
     <div id="filterPanel" style="display:none;" class="filter-panel">
-        <div class="filter-panel-header">
-            <span><i class="bi bi-funnel-fill"></i> Filter Data</span>
-        </div>
-        <form action="{{ route('peminjaman.filter') }}" method="POST">
-            @csrf
-            <div class="row g-2 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold">Petugas</label>
-                    <select name="code" class="form-select form-select-sm">
-                        <option value="all">Semua Petugas</option>
-                        @foreach($codes as $c)
-                            <option value="{{ $c->employee_id }}" {{ request()->input('code') == $c->employee_id ? 'selected' : '' }}>
-                                {{ $c->employee_id }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold">Dari Tanggal</label>
-                    <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request()->input('start_date') }}">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold">Sampai Tanggal</label>
-                    <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request()->input('end_date') }}">
-                </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary btn-sm w-100">
-                        <i class="bi bi-funnel"></i> Terapkan Filter
+    <div class="filter-panel-header">
+        <span><i class="bi bi-funnel-fill"></i> Filter Data</span>
+    </div>
+    <form action="{{ route('peminjaman.filter') }}" method="POST">
+        @csrf
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Petugas</label>
+                <select name="code" class="form-select form-select-sm">
+                    <option value="all">Semua Petugas</option>
+                    @foreach($codes as $c)
+                        <option value="{{ $c->employee_id }}"
+                            {{ request()->input('code') == $c->employee_id ? 'selected' : '' }}>
+                            {{ $c->employee_id }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="all">Semua Status</option>
+                    <option value="Dipinjam"    {{ request()->input('status') == 'Dipinjam'    ? 'selected' : '' }}>
+                        🟡 Sedang Dipinjam
+                    </option>
+                    <option value="Dikembalikan" {{ request()->input('status') == 'Dikembalikan' ? 'selected' : '' }}>
+                        🟢 Dikembalikan
+                    </option>
+                    <option value="Terlambat"   {{ request()->input('status') == 'Terlambat'   ? 'selected' : '' }}>
+                        🔴 Terlambat
+                    </option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Dari Tanggal</label>
+                <input type="date" name="start_date" class="form-control form-control-sm"
+                       value="{{ request()->input('start_date') }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Sampai Tanggal</label>
+                <input type="date" name="end_date" class="form-control form-control-sm"
+                       value="{{ request()->input('end_date') }}">
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm flex-fill">
+                        <i class="bi bi-funnel"></i> Terapkan
                     </button>
+                    <a href="{{ route('peminjaman.index') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x"></i> Reset
+                    </a>
                 </div>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
+</div>
 
     <div class="table-responsive">
         <table class="table table-hover mb-0">
