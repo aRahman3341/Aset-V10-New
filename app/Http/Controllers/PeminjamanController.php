@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Exports\PeminjamanExport;
 use App\Exports\PeminjamanExportAll;
-use App\Models\employee;
 use App\Models\Materials;
 use App\Models\peminjaman;
 use App\Models\User;
@@ -31,6 +30,29 @@ class PeminjamanController extends Controller
             'SATKER' => public_path('assets/templates/surat_peminjaman_satker.docx'),
         ];
         return $map[$kop] ?? $map['BTSB'];
+    }
+
+    // ===================== HELPER: ID BARANG SEDANG DIPINJAM/TERLAMBAT =====================
+    /**
+     * Kembalikan array ID material yang sedang dipinjam atau terlambat.
+     * $excludeLoanId: abaikan 1 peminjaman (dipakai saat edit agar item milik sendiri bisa dipilih).
+     */
+    private function getUnavailableIds(int $excludeLoanId = 0): array
+    {
+        $activeLoans = DB::table('peminjamen')
+            ->whereIn('status', ['Dipinjam', 'Terlambat'])
+            ->when($excludeLoanId, fn($q) => $q->where('id', '!=', $excludeLoanId))
+            ->pluck('material_id');
+
+        $ids = [];
+        foreach ($activeLoans as $json) {
+            $decoded = json_decode($json, true);
+            if (is_array($decoded)) {
+                $ids = array_merge($ids, $decoded);
+            }
+        }
+
+        return array_unique(array_map('intval', $ids));
     }
 
     // ===================== SYNC LOAN STATUSES =====================
@@ -109,12 +131,13 @@ class PeminjamanController extends Controller
     // ===================== CREATE =====================
     public function create()
     {
-        $users    = User::whereIn('jabatan', ['Admin', 'Manager', 'Operator', 'admin', 'manager', 'operator'])
-                        ->orderBy('name')->get();
-        $material = Materials::where('kondisi', '!=', 'Rusak Berat')->orderBy('Nama Barang')->get();
-        $kopOptions = self::KOP_OPTIONS;          // ← kirim ke view
+        $users          = User::whereIn('jabatan', ['Admin', 'Manager', 'Operator', 'admin', 'manager', 'operator'])
+                              ->orderBy('name')->get();
+        $material       = Materials::where('kondisi', '!=', 'Rusak Berat')->orderBy('Nama Barang')->get();
+        $kopOptions     = self::KOP_OPTIONS;
+        $unavailableIds = $this->getUnavailableIds();   // ← ID yang sedang dipinjam
 
-        return view('peminjaman.add', compact('material', 'users', 'kopOptions'));
+        return view('peminjaman.add', compact('material', 'users', 'kopOptions', 'unavailableIds'));
     }
 
     // ===================== STORE =====================
@@ -132,7 +155,7 @@ class PeminjamanController extends Controller
             'tgl_kembali'   => 'required',
             'peminjam'      => 'required',
             'employee_id'   => 'required|exists:users,id',
-            'kop_surat'     => 'required|in:BTSB,SATKER',   // ← validasi
+            'kop_surat'     => 'required|in:BTSB,SATKER',
         ], [
             'material_id.required'   => 'Pilih minimal 1 barang',
             'material_id.*.required' => 'Barang tidak boleh kosong',
@@ -144,6 +167,20 @@ class PeminjamanController extends Controller
             'kop_surat.required'     => 'Pilih kop surat',
             'kop_surat.in'           => 'Kop surat tidak valid',
         ]);
+
+        // ── Cek barang yang sedang dipinjam / terlambat ──────────────────────
+        $selectedIds    = array_map('intval', $request->material_id);
+        $unavailableIds = $this->getUnavailableIds();
+        $konflik        = array_intersect($selectedIds, $unavailableIds);
+
+        if (!empty($konflik)) {
+            $namaKonflik = Materials::whereIn('id', $konflik)
+                ->pluck('Nama Barang')
+                ->implode(', ');
+            return back()
+                ->withInput()
+                ->with('error', 'Barang berikut sedang dipinjam/terlambat dan tidak bisa dipilih: ' . $namaKonflik);
+        }
 
         $lastCode  = DB::table('peminjamen')->max('code');
         $newNumber = $lastCode ? intval(substr($lastCode, 1)) + 1 : 1;
@@ -159,7 +196,7 @@ class PeminjamanController extends Controller
             'employee_id' => $request->employee_id,
             'peminjam'    => $request->peminjam,
             'status'      => 'Dipinjam',
-            'kop_surat'   => $request->kop_surat,    // ← simpan pilihan kop
+            'kop_surat'   => $request->kop_surat,
             'created_at'  => Carbon::now(),
             'updated_at'  => Carbon::now(),
         ]);
@@ -223,11 +260,13 @@ class PeminjamanController extends Controller
     // ===================== EDIT =====================
     public function edit(Request $request, $id)
     {
-        $loan       = peminjaman::findOrFail($id);
-        $material   = Materials::where('kondisi', '!=', 'Rusak Berat')->get();
-        $kopOptions = self::KOP_OPTIONS;           // ← kirim ke view
+        $loan           = peminjaman::findOrFail($id);
+        $material       = Materials::where('kondisi', '!=', 'Rusak Berat')->get();
+        $kopOptions     = self::KOP_OPTIONS;
+        // Kecualikan peminjaman ini sendiri agar item milik loan ini tetap bisa dipilih ulang
+        $unavailableIds = $this->getUnavailableIds((int) $id);
 
-        return view('peminjaman.edit', compact('loan', 'material', 'kopOptions'));
+        return view('peminjaman.edit', compact('loan', 'material', 'kopOptions', 'unavailableIds'));
     }
 
     // ===================== UPDATE =====================
@@ -239,8 +278,22 @@ class PeminjamanController extends Controller
             'tgl_pinjam'    => 'required',
             'tgl_kembali'   => 'required',
             'peminjam'      => 'required',
-            'kop_surat'     => 'required|in:BTSB,SATKER',   // ← validasi
+            'kop_surat'     => 'required|in:BTSB,SATKER',
         ]);
+
+        // ── Cek konflik (exclude loan ini sendiri) ────────────────────────────
+        $selectedIds    = array_map('intval', $request->material_id);
+        $unavailableIds = $this->getUnavailableIds((int) $id);
+        $konflik        = array_intersect($selectedIds, $unavailableIds);
+
+        if (!empty($konflik)) {
+            $namaKonflik = Materials::whereIn('id', $konflik)
+                ->pluck('Nama Barang')
+                ->implode(', ');
+            return back()
+                ->withInput()
+                ->with('error', 'Barang berikut sedang dipinjam/terlambat dan tidak bisa dipilih: ' . $namaKonflik);
+        }
 
         $loanLama = peminjaman::findOrFail($id);
         $idsLama  = json_decode($loanLama->material_id, true) ?? [];
@@ -257,7 +310,7 @@ class PeminjamanController extends Controller
             'tgl_pinjam'  => $request->tgl_pinjam,
             'tgl_kembali' => $request->tgl_kembali,
             'peminjam'    => $request->peminjam,
-            'kop_surat'   => $request->kop_surat,    // ← simpan pilihan kop
+            'kop_surat'   => $request->kop_surat,
             'updated_at'  => Carbon::now(),
         ]);
 
@@ -292,49 +345,106 @@ class PeminjamanController extends Controller
     // ===================== CETAK SURAT =====================
     public function cetakSurat($id)
     {
-        $loan = peminjaman::with(['user'])->findOrFail($id);
+        // ── 1. Ambil data ──────────────────────────────────────────────────────
+        $loan        = peminjaman::with('user')->findOrFail($id);
+        $materialIds = json_decode($loan->material_id, true) ?? [];
+        $materials   = Materials::whereIn('id', $materialIds)->get();
+        $petugas     = $loan->user;
 
-        // ── Pilih template berdasarkan kop_surat yang tersimpan ──────────────
+        // ── 2. Pilih template berdasarkan kop_surat ────────────────────────────
         $kop          = $loan->kop_surat ?? 'BTSB';
         $templatePath = $this->templatePath($kop);
 
         if (!file_exists($templatePath)) {
-            return back()->with('error', 'Template surat tidak ditemukan: ' . basename($templatePath));
+            return back()->with('error',
+                'Template surat tidak ditemukan: ' . basename($templatePath) .
+                ' — pastikan file ada di public/assets/templates/'
+            );
         }
+
+        // ── 3. Isi placeholder header ──────────────────────────────────────────
+        Carbon::setLocale('id');
 
         $template = new TemplateProcessor($templatePath);
 
-        $user = $loan->user;
-        $template->setValue('nama_petugas', $user->name    ?? '-');
-        $template->setValue('nip_petugas',  $user->nip     ?? '-');
-        $template->setValue('jabatan',      $user->jabatan ?? 'Petugas Gudang');
-        $template->setValue('bagian',       $user->bagian  ?? '-');
-
         $template->setValue('nomor',       $loan->code ?? '-');
-        $template->setValue('tgl_pinjam',  $loan->tgl_pinjam  ? Carbon::parse($loan->tgl_pinjam)->locale('id')->isoFormat('D MMMM Y')  : '-');
-        $template->setValue('tgl_kembali', $loan->tgl_kembali ? Carbon::parse($loan->tgl_kembali)->locale('id')->isoFormat('D MMMM Y') : '-');
         $template->setValue('peminjam',    $loan->peminjam ?? '-');
+        $template->setValue('tgl_pinjam',  $loan->tgl_pinjam
+            ? Carbon::parse($loan->tgl_pinjam)->translatedFormat('d F Y') : '-');
+        $template->setValue('tgl_kembali', $loan->tgl_kembali
+            ? Carbon::parse($loan->tgl_kembali)->translatedFormat('d F Y') : '-');
 
-        $materials = $loan->materials;
-        $rowCount  = max($materials->count(), 1);
-        $template->cloneRow('jenis_bmn', $rowCount);
+        // Data petugas
+        $template->setValue('nama_petugas', $petugas->name    ?? '-');
+        $template->setValue('nip_petugas',  $petugas->nip     ?? '-');
+        $template->setValue('jabatan',      $petugas->jabatan ?? 'Petugas Gudang');
+        $template->setValue('bagian',       $petugas->bagian  ?? '-');
+
+        // ── 4. Clone baris tabel barang ───────────────────────────────────────
+        // Coba berbagai kemungkinan nama placeholder pertama di kolom tabel
+        // (sesuaikan dengan nama di template .docx Anda)
+        $rowCount       = max($materials->count(), 1);
+        $cloneCandidates = ['no', 'jenis_bmn', 'nama_barang', 'kode_barang', 'nup'];
+        $cloneSuccess    = false;
+
+        foreach ($cloneCandidates as $candidate) {
+            try {
+                $template->cloneRow($candidate, $rowCount);
+                $cloneSuccess = true;
+                break;
+            } catch (\Exception $e) {
+                // coba kandidat berikutnya
+            }
+        }
+
+        if (!$cloneSuccess) {
+            // Fallback: tidak clone, langsung set nilai biasa (1 baris saja)
+        }
 
         foreach ($materials as $i => $m) {
-            $idx = $i + 1;
-            $template->setValue("jenis_bmn#{$idx}",  $m->{'Jenis BMN'}   ?? '-');
-            $template->setValue("nama_barang#{$idx}", $m->{'Nama Barang'} ?? '-');
-            $template->setValue("kode_barang#{$idx}", $m->{'Kode Barang'} ?? '-');
-            $template->setValue("nup#{$idx}",         $m->nup             ?? '-');
-            $template->setValue("kondisi#{$idx}",     $m->kondisi         ?? 'Baik');
+            $idx      = $i + 1;
+            $nama     = $m->{'Nama Barang'} ?? ($m->nama_barang ?? '-');
+            $kode     = $m->{'Kode Barang'} ?? ($m->kode_barang ?? '-');
+            $jenis    = $m->{'Jenis BMN'}   ?? ($m->jenis_bmn   ?? 'MESIN PERALATAN NON TIK');
+            $nup      = $m->nup             ?? '-';
+            $kondisi  = $m->kondisi         ?? 'Baik';
+
+            // Set dengan berbagai kemungkinan nama placeholder
+            // ── Nomor urut ──
+            foreach (['no', 'nomor_urut', 'num'] as $k) {
+                try { $template->setValue("{$k}#{$idx}", (string) $idx); } catch (\Exception $e) {}
+            }
+            // ── Jenis BMN ──
+            foreach (['jenis_bmn', 'jenis', 'jenis_barang'] as $k) {
+                try { $template->setValue("{$k}#{$idx}", $jenis); } catch (\Exception $e) {}
+            }
+            // ── Nama Barang ──
+            foreach (['nama_barang', 'nama', 'namabarang'] as $k) {
+                try { $template->setValue("{$k}#{$idx}", $nama); } catch (\Exception $e) {}
+            }
+            // ── Kode Barang ──
+            foreach (['kode_barang', 'kode', 'kodebarang'] as $k) {
+                try { $template->setValue("{$k}#{$idx}", $kode); } catch (\Exception $e) {}
+            }
+            // ── NUP ──
+            foreach (['nup'] as $k) {
+                try { $template->setValue("{$k}#{$idx}", $nup); } catch (\Exception $e) {}
+            }
+            // ── Kondisi ──
+            foreach (['kondisi', 'condition'] as $k) {
+                try { $template->setValue("{$k}#{$idx}", $kondisi); } catch (\Exception $e) {}
+            }
         }
 
+        // ── 5. Simpan & download ───────────────────────────────────────────────
         $filename = 'Surat_Peminjaman_' . ($loan->code ?? $id) . '.docx';
-        $tempPath = storage_path('app/public/' . $filename);
+        $tempDir  = storage_path('app/temp');
 
-        if (!is_dir(storage_path('app/public'))) {
-            mkdir(storage_path('app/public'), 0755, true);
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0755, true);
         }
 
+        $tempPath = $tempDir . '/' . $filename;
         $template->saveAs($tempPath);
 
         return response()->download($tempPath, $filename)->deleteFileAfterSend(true);
@@ -355,21 +465,25 @@ class PeminjamanController extends Controller
         if (!$from_date || !$to_date) {
             return redirect()->back()->with('error', 'Tolong isi range tanggal');
         }
-        return Excel::download(new PeminjamanExport($from_date, $to_date),
-            'report_peminjaman_' . Carbon::now()->timestamp . '.xlsx');
+        return Excel::download(
+            new PeminjamanExport($from_date, $to_date),
+            'report_peminjaman_' . Carbon::now()->timestamp . '.xlsx'
+        );
     }
 
     public function exportAll()
     {
-        return Excel::download(new PeminjamanExportAll,
-            'report_peminjaman_' . Carbon::now()->timestamp . '.xlsx');
+        return Excel::download(
+            new PeminjamanExportAll,
+            'report_peminjaman_' . Carbon::now()->timestamp . '.xlsx'
+        );
     }
 
     // ===================== FILTER =====================
     public function filter(Request $request)
     {
-        $query   = peminjaman::query()->with(['user']);
-        $today   = \Carbon\Carbon::today();
+        $query = peminjaman::query()->with(['user']);
+        $today = Carbon::today();
 
         $employe = $request->input('code');
         if ($employe && $employe !== 'all') {
@@ -380,8 +494,8 @@ class PeminjamanController extends Controller
         $end   = $request->input('end_date');
         if ($start && $end) {
             $query->whereBetween('created_at', [
-                \Carbon\Carbon::parse($start)->startOfDay(),
-                \Carbon\Carbon::parse($end)->endOfDay(),
+                Carbon::parse($start)->startOfDay(),
+                Carbon::parse($end)->endOfDay(),
             ]);
         }
 
@@ -389,10 +503,10 @@ class PeminjamanController extends Controller
         if ($status && $status !== 'all') {
             if ($status === 'Terlambat') {
                 $query->where('status', '!=', 'Dikembalikan')
-                    ->whereDate('tgl_kembali', '<', $today);
+                      ->whereDate('tgl_kembali', '<', $today);
             } elseif ($status === 'Dipinjam') {
                 $query->where('status', 'Dipinjam')
-                    ->whereDate('tgl_kembali', '>=', $today);
+                      ->whereDate('tgl_kembali', '>=', $today);
             } else {
                 $query->where('status', $status);
             }

@@ -75,6 +75,11 @@
 .layout-warn.tier-compact { background:rgba(186,117,23,0.08); border:1.5px solid rgba(186,117,23,0.25); color:#854F0B; }
 .layout-warn.tier-multipage { background:rgba(45,90,142,0.07); border:1.5px solid rgba(45,90,142,0.22); color:#1e3a5f; }
 
+/* ── Aset tidak tersedia ── */
+.aset-row.unavailable { opacity:0.45; cursor:not-allowed; pointer-events:none; background:#f8f8f8 !important; }
+.aset-row.unavailable .aset-checkbox { background:#e9ecef !important; border-color:#ced4da !important; }
+.aset-unavail-badge { font-size:0.62rem; background:#dc354520; color:#dc3545; padding:1px 6px; border-radius:4px; font-weight:700; margin-left:4px; white-space:nowrap; }
+
 .pm-btn-submit { width:100%; padding:12px; background:linear-gradient(135deg,#c49a2a,#e8b84b); color:#fff; border:none; border-radius:10px; font-size:0.9rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(196,154,42,0.3); transition:all .18s; }
 .pm-btn-submit:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(196,154,42,0.4); }
 .pm-btn-back { width:100%; padding:11px; background:#f4f6fb; color:#5a6a7e; border:1.5px solid #dee2e6; border-radius:10px; font-size:0.88rem; font-weight:600; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:7px; transition:all .15s; }
@@ -220,18 +225,25 @@
                                         $kodeBarang = $item->kode_barang ?? ($item->{'Kode Barang'} ?? '-');
                                         $nup        = $item->nup ?? '-';
                                         $isSelected = in_array((string)$item->id, $selectedIds);
+                                        $isUnavail  = in_array($item->id, $unavailableIds ?? []);
                                     @endphp
-                                    <label class="aset-row {{ $isSelected ? 'selected' : '' }}"
+                                    <label class="aset-row {{ $isSelected ? 'selected' : '' }} {{ $isUnavail ? 'unavailable' : '' }}"
                                            data-search="{{ strtolower($namaBarang . ' ' . $kodeBarang . ' ' . $nup) }}">
                                         <input type="checkbox"
                                                name="material_id[]"
                                                value="{{ $item->id }}"
                                                class="pm-cb"
                                                style="display:none"
-                                               {{ $isSelected ? 'checked' : '' }}>
+                                               {{ $isSelected ? 'checked' : '' }}
+                                               {{ $isUnavail ? 'disabled' : '' }}>
                                         <div class="aset-checkbox"><i class="bi bi-check-lg"></i></div>
                                         <div class="aset-info">
-                                            <div class="aset-name">{{ $namaBarang }}</div>
+                                            <div class="aset-name">
+                                                {{ $namaBarang }}
+                                                @if($isUnavail)
+                                                    <span class="aset-unavail-badge">Sedang Dipinjam</span>
+                                                @endif
+                                            </div>
                                             <div class="aset-meta">
                                                 <span class="aset-code">{{ $kodeBarang }}</span>
                                                 <span class="aset-nup">NUP {{ $nup }}</span>

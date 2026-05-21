@@ -87,6 +87,11 @@
 .pm-btn-back { width:100%; padding:11px; background:#f4f6fb; color:#5a6a7e; border:1.5px solid #dee2e6; border-radius:10px; font-size:0.88rem; font-weight:600; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:7px; transition:all .15s; }
 .pm-btn-back:hover { background:#e8ecf5; color:#1e3a5f; text-decoration:none; }
 
+/* ── Aset tidak tersedia ── */
+.aset-row.unavailable { opacity:0.45; cursor:not-allowed; pointer-events:none; background:#f8f8f8 !important; }
+.aset-row.unavailable .aset-checkbox { background:#e9ecef !important; border-color:#ced4da !important; }
+.aset-unavail-badge { font-size:0.62rem; background:#dc354520; color:#dc3545; padding:1px 6px; border-radius:4px; font-weight:700; margin-left:4px; white-space:nowrap; }
+
 /* ── Date input icon ── */
 .icon-input { position:relative; }
 .icon-input i { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#8a96a3; pointer-events:none; }
@@ -224,16 +229,24 @@
                             <div class="aset-picker-list" id="pmPickerList">
                                 @forelse ($material as $item)
                                     @php
-                                        $namaBarang = $item->nama_barang ?? ($item->{'Nama Barang'} ?? '-');
-                                        $kodeBarang = $item->kode_barang ?? ($item->{'Kode Barang'} ?? '-');
-                                        $nup        = $item->nup ?? '-';
+                                        $namaBarang  = $item->nama_barang ?? ($item->{'Nama Barang'} ?? '-');
+                                        $kodeBarang  = $item->kode_barang ?? ($item->{'Kode Barang'} ?? '-');
+                                        $nup         = $item->nup ?? '-';
+                                        $isUnavail   = in_array($item->id, $unavailableIds ?? []);
                                     @endphp
-                                    <label class="aset-row" data-search="{{ strtolower($namaBarang . ' ' . $kodeBarang . ' ' . $nup) }}">
+                                    <label class="aset-row {{ $isUnavail ? 'unavailable' : '' }}"
+                                           data-search="{{ strtolower($namaBarang . ' ' . $kodeBarang . ' ' . $nup) }}">
                                         <input type="checkbox" name="material_id[]" value="{{ $item->id }}"
-                                               class="pm-cb" style="display:none">
+                                               class="pm-cb" style="display:none"
+                                               {{ $isUnavail ? 'disabled' : '' }}>
                                         <div class="aset-checkbox"><i class="bi bi-check-lg"></i></div>
                                         <div class="aset-info">
-                                            <div class="aset-name">{{ $namaBarang }}</div>
+                                            <div class="aset-name">
+                                                {{ $namaBarang }}
+                                                @if($isUnavail)
+                                                    <span class="aset-unavail-badge">Sedang Dipinjam</span>
+                                                @endif
+                                            </div>
                                             <div class="aset-meta">
                                                 <span class="aset-code">{{ $kodeBarang }}</span>
                                                 <span class="aset-nup">NUP {{ $nup }}</span>
