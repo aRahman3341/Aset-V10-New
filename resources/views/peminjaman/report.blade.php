@@ -24,7 +24,7 @@
 .rp-stat-label{ font-size:0.72rem; color:#8a96a3; font-weight:600; margin-top:2px; }
 
 /* Layout */
-.rp-layout { display:grid; grid-template-columns:1fr 300px; gap:18px; align-items:start; }
+.rp-layout { display:grid; grid-template-columns:1fr 320px; gap:18px; align-items:start; }
 @media(max-width:900px){ .rp-layout { grid-template-columns:1fr; } }
 
 /* Main card */
@@ -62,12 +62,30 @@
 .rp-dl-label { font-size:0.72rem; font-weight:700; color:#4a5a6e; text-transform:uppercase; letter-spacing:0.3px; display:block; margin-bottom:5px; }
 .rp-dl-input { width:100%; padding:9px 12px; font-size:0.82rem; color:#1e3a5f; background:#f8fafd; border:1.5px solid #dee2e6; border-radius:8px; outline:none; margin-bottom:12px; transition:border-color .15s; }
 .rp-dl-input:focus { border-color:#2d5a8e; background:#fff; box-shadow:0 0 0 3px rgba(45,90,142,0.1); }
+
+/* Filter status pills */
+.rp-status-pills { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.rp-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:0.73rem; font-weight:700; cursor:pointer; border:1.5px solid transparent; transition:all .15s; user-select:none; }
+.rp-pill input[type=radio] { display:none; }
+.rp-pill-all     { background:#f0f4fa; color:#5a6a7e; border-color:#dee2e6; }
+.rp-pill-pinjam  { background:#fff8e6; color:#b45309; border-color:#fcd34d; }
+.rp-pill-kembali { background:#ecfdf5; color:#047857; border-color:#6ee7b7; }
+.rp-pill.active-all     { background:#1e3a5f; color:#fff; border-color:#1e3a5f; }
+.rp-pill.active-pinjam  { background:#d97706; color:#fff; border-color:#d97706; }
+.rp-pill.active-kembali { background:#059669; color:#fff; border-color:#059669; }
+
 .rp-btn-dl { width:100%; padding:10px; border:none; border-radius:9px; font-size:0.82rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; transition:all .18s; margin-bottom:10px; }
 .rp-btn-range { background:linear-gradient(135deg,#1e3a5f,#2d5a8e); color:#fff; box-shadow:0 3px 10px rgba(30,58,95,0.22); }
 .rp-btn-range:hover { transform:translateY(-1px); box-shadow:0 5px 16px rgba(30,58,95,0.32); }
 .rp-btn-all { background:linear-gradient(135deg,#1a7f4b,#22a86a); color:#fff; box-shadow:0 3px 10px rgba(26,127,75,0.22); }
 .rp-btn-all:hover { transform:translateY(-1px); box-shadow:0 5px 16px rgba(26,127,75,0.32); }
 .rp-divider { height:1px; background:rgba(30,58,95,0.07); margin:14px 0; }
+
+/* Status hint chip */
+.rp-status-hint { display:none; font-size:0.72rem; padding:5px 10px; border-radius:8px; margin-bottom:10px; font-weight:600; }
+.rp-status-hint.show { display:flex; align-items:center; gap:5px; }
+.rp-status-hint.hint-pinjam  { background:#fff8e6; color:#b45309; border:1px solid #fcd34d; }
+.rp-status-hint.hint-kembali { background:#ecfdf5; color:#047857; border:1px solid #6ee7b7; }
 </style>
 
 {{-- Page Title --}}
@@ -86,9 +104,9 @@
 
 {{-- Stats --}}
 @php
-    $total     = $loan->total();
-    $dipinjam  = $loan->getCollection()->where('status','Dipinjam')->count();
-    $kembali   = $loan->getCollection()->where('status','Dikembalikan')->count();
+    $total    = $loan->total();
+    $dipinjam = $loan->getCollection()->where('status','Dipinjam')->count();
+    $kembali  = $loan->getCollection()->where('status','Dikembalikan')->count();
 @endphp
 <div class="rp-stats">
     <div class="rp-stat">
@@ -152,8 +170,20 @@
                                 <td class="text-center text-muted">{{ $loop->iteration }}</td>
                                 <td><span class="code-chip">{{ $item->code }}</span></td>
                                 <td>
-                                    <span style="font-weight:600;">{{ $item->material->nama_barang ?? '-' }}</span><br>
-                                    <small style="color:#8a96a3; font-size:0.69rem;">{{ $item->material->kode_barang ?? '' }}</small>
+                                    @php
+                                        $matIds   = is_array(json_decode($item->material_id, true)) ? json_decode($item->material_id, true) : [];
+                                        $matCount = count($matIds);
+                                        $firstMat = $matCount > 0 ? \App\Models\Materials::find($matIds[0]) : null;
+                                    @endphp
+                                    <span style="font-weight:600;">
+                                        {{ $firstMat ? ($firstMat->{'Nama Barang'} ?? ($firstMat->nama_barang ?? '-')) : '-' }}
+                                        @if($matCount > 1)
+                                            <span style="font-size:0.7rem;color:#8a96a3;">(+{{ $matCount - 1 }} lain)</span>
+                                        @endif
+                                    </span><br>
+                                    <small style="color:#8a96a3; font-size:0.69rem;">
+                                        {{ $firstMat ? ($firstMat->{'Kode Barang'} ?? ($firstMat->kode_barang ?? '')) : '' }}
+                                    </small>
                                 </td>
                                 <td>{{ $item->tgl_pinjam  ? \Carbon\Carbon::parse($item->tgl_pinjam)->format('d/m/Y')  : '-' }}</td>
                                 <td>{{ $item->tgl_kembali ? \Carbon\Carbon::parse($item->tgl_kembali)->format('d/m/Y') : '-' }}</td>
@@ -198,7 +228,33 @@
                 </div>
             @endif
 
+            {{-- ── Filter Status (shared, dipakai kedua tombol) ── --}}
+            <label class="rp-dl-label" style="margin-bottom:8px;">
+                <i class="bi bi-funnel me-1"></i>Filter Status
+            </label>
+            <div class="rp-status-pills" id="statusPills">
+                <label class="rp-pill rp-pill-all active-all" data-val="">
+                    <input type="radio" name="pill_status" value=""> Semua
+                </label>
+                <label class="rp-pill rp-pill-pinjam" data-val="Dipinjam">
+                    <input type="radio" name="pill_status" value="Dipinjam">
+                    <i class="bi bi-hourglass-split"></i> Dipinjam
+                </label>
+                <label class="rp-pill rp-pill-kembali" data-val="Dikembalikan">
+                    <input type="radio" name="pill_status" value="Dikembalikan">
+                    <i class="bi bi-check-circle-fill"></i> Dikembalikan
+                </label>
+            </div>
+
+            {{-- Hint aktif --}}
+            <div class="rp-status-hint" id="statusHint"></div>
+
+            <div class="rp-divider"></div>
+
+            {{-- ── Download Range ── --}}
             <form action="{{ route('peminjaman.export') }}" method="get" id="downloadForm">
+                <input type="hidden" name="status_export" id="hiddenStatusRange" value="">
+
                 <label class="rp-dl-label">Rentang Awal</label>
                 <input type="text" class="rp-dl-input" name="from_date" id="datepicker"
                        placeholder="yyyy-mm-dd" value="{{ old('from_date') }}">
@@ -214,11 +270,14 @@
 
             <div class="rp-divider"></div>
 
-            <a href="{{ route('peminjaman.reportAll') }}" style="text-decoration:none;">
-                <button type="button" class="rp-btn-dl rp-btn-all">
+            {{-- ── Download Semua ── --}}
+            <form action="{{ route('peminjaman.reportAll') }}" method="get" id="downloadAllForm">
+                <input type="hidden" name="status_export" id="hiddenStatusAll" value="">
+                <button type="button" class="rp-btn-dl rp-btn-all" id="btnDownloadAll">
                     <i class="bi bi-cloud-arrow-down-fill"></i> Download Semua
                 </button>
-            </a>
+            </form>
+
         </div>
     </div>
 
@@ -234,23 +293,93 @@ $(function() {
     $("#datepicker1").datepicker({ dateFormat: "yy-mm-dd" });
 });
 
+/* ── Status Pills ── */
+(function () {
+    var pills     = document.querySelectorAll('#statusPills .rp-pill');
+    var hintEl    = document.getElementById('statusHint');
+    var activeVal = '';
+
+    var hintMap = {
+        'Dipinjam':    { cls:'hint-pinjam',  icon:'bi-hourglass-split',   text:'Hanya data <strong>Sedang Dipinjam</strong>' },
+        'Dikembalikan':{ cls:'hint-kembali', icon:'bi-check-circle-fill', text:'Hanya data <strong>Dikembalikan</strong>' },
+        '':            { cls:'',             icon:'',                      text:'' },
+    };
+
+    function syncPills(val) {
+        activeVal = val;
+        pills.forEach(function (p) {
+            var pv = p.dataset.val;
+            p.classList.remove('active-all','active-pinjam','active-kembali');
+            if (pv === val) {
+                if (val === '')            p.classList.add('active-all');
+                if (val === 'Dipinjam')    p.classList.add('active-pinjam');
+                if (val === 'Dikembalikan')p.classList.add('active-kembali');
+            }
+        });
+
+        // update hidden inputs
+        document.getElementById('hiddenStatusRange').value = val;
+        document.getElementById('hiddenStatusAll').value   = val;
+
+        // hint
+        var h = hintMap[val] || hintMap[''];
+        if (val === '') {
+            hintEl.className = 'rp-status-hint';
+            hintEl.innerHTML = '';
+        } else {
+            hintEl.className = 'rp-status-hint show ' + h.cls;
+            hintEl.innerHTML = '<i class="bi ' + h.icon + '"></i> ' + h.text;
+        }
+    }
+
+    pills.forEach(function (p) {
+        p.addEventListener('click', function () {
+            syncPills(this.dataset.val);
+        });
+    });
+
+    syncPills(''); // default: semua
+})();
+
+/* ── Download Range ── */
 document.getElementById('btnDownloadRange').addEventListener('click', function () {
-    var from = document.getElementById('datepicker').value;
-    var to   = document.getElementById('datepicker1').value;
+    var from   = document.getElementById('datepicker').value;
+    var to     = document.getElementById('datepicker1').value;
+    var status = document.getElementById('hiddenStatusRange').value;
+
     if (!from || !to) {
         Swal.fire({ icon:'warning', title:'Lengkapi Tanggal', text:'Isi rentang awal dan akhir terlebih dahulu.', confirmButtonColor:'#1e3a5f' });
         return;
     }
+
+    var statusText = status ? ' | Status: <strong>' + status + '</strong>' : '';
     Swal.fire({
         title: 'Download Data?',
-        text: 'Mengunduh data dari ' + from + ' hingga ' + to,
+        html: 'Mengunduh data dari <strong>' + from + '</strong> hingga <strong>' + to + '</strong>' + statusText,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#1e3a5f',
         cancelButtonColor: '#6c757d',
         confirmButtonText: '<i class="bi bi-cloud-arrow-down-fill"></i> Ya, Download',
         cancelButtonText: 'Batal'
-    }).then(r => { if (r.isConfirmed) document.getElementById('downloadForm').submit(); });
+    }).then(function (r) { if (r.isConfirmed) document.getElementById('downloadForm').submit(); });
+});
+
+/* ── Download Semua ── */
+document.getElementById('btnDownloadAll').addEventListener('click', function () {
+    var status     = document.getElementById('hiddenStatusAll').value;
+    var statusText = status ? 'Status: <strong>' + status + '</strong>' : 'Semua data peminjaman';
+
+    Swal.fire({
+        title: 'Download Semua?',
+        html: statusText,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#1a7f4b',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-cloud-arrow-down-fill"></i> Ya, Download',
+        cancelButtonText: 'Batal'
+    }).then(function (r) { if (r.isConfirmed) document.getElementById('downloadAllForm').submit(); });
 });
 </script>
 @endsection

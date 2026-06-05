@@ -460,21 +460,33 @@ class PeminjamanController extends Controller
     // ===================== EXPORT =====================
     public function export(Request $request)
     {
-        $from_date = $request->from_date;
-        $to_date   = $request->to_date;
+        $from_date = $request->input('from_date');
+        $to_date   = $request->input('to_date');
+        $status    = $request->input('status_export'); // '' atau null = semua
+ 
         if (!$from_date || !$to_date) {
             return redirect()->back()->with('error', 'Tolong isi range tanggal');
         }
+ 
+        // Normalkan: string kosong dianggap null (semua)
+        $status = ($status && $status !== 'all') ? $status : null;
+ 
         return Excel::download(
-            new PeminjamanExport($from_date, $to_date),
+            new PeminjamanExport($from_date, $to_date, $status),
             'report_peminjaman_' . Carbon::now()->timestamp . '.xlsx'
         );
     }
-
-    public function exportAll()
+ 
+    // ===================== EXPORT ALL =====================
+    public function exportAll(Request $request)
     {
+        $status = $request->input('status_export'); // '' atau null = semua
+ 
+        // Normalkan: string kosong dianggap null (semua)
+        $status = ($status && $status !== 'all') ? $status : null;
+ 
         return Excel::download(
-            new PeminjamanExportAll,
+            new PeminjamanExportAll($status),
             'report_peminjaman_' . Carbon::now()->timestamp . '.xlsx'
         );
     }

@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\peminjaman;
+use App\Models\Materials;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -16,11 +17,23 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 class PeminjamanExportAll implements FromCollection, WithHeadings, WithMapping, WithStyles, WithTitle, ShouldAutoSize
 {
+    protected $status; // null = semua, 'Dipinjam', 'Dikembalikan', dll.
+
+    public function __construct($status = null)
+    {
+        $this->status = $status;
+    }
+
     public function collection()
     {
-        return peminjaman::with(['material', 'user'])
-            ->orderBy('tgl_pinjam', 'asc')
-            ->get();
+        $query = peminjaman::with(['user'])
+            ->orderBy('tgl_pinjam', 'asc');
+
+        if ($this->status && $this->status !== 'all') {
+            $query->where('status', $this->status);
+        }
+
+        return $query->get();
     }
 
     public function headings(): array
@@ -44,12 +57,35 @@ class PeminjamanExportAll implements FromCollection, WithHeadings, WithMapping, 
         static $no = 0;
         $no++;
 
+        // material_id adalah JSON array, ambil material pertama untuk display
+        // (sama seperti tampilan report.blade.php)
+        $decoded     = json_decode($row->material_id, true);
+        $materialIds = is_array($decoded) ? $decoded : [];
+        $firstId     = $materialIds[0] ?? null;
+        $material    = $firstId ? Materials::find($firstId) : null;
+
+        $namaBarang = '-';
+        $kodeBarang = '-';
+        $nup        = '-';
+
+        if ($material) {
+            $namaBarang = $material->{'Nama Barang'} ?? ($material->nama_barang ?? '-');
+            $kodeBarang = $material->{'Kode Barang'} ?? ($material->kode_barang ?? '-');
+            $nup        = $material->nup ?? '-';
+        }
+
+        // Jika ada lebih dari 1 barang, tambahkan keterangan
+        $extraCount = count($materialIds) - 1;
+        if ($extraCount > 0) {
+            $namaBarang .= ' (+' . $extraCount . ' barang lain)';
+        }
+
         return [
             $no,
             $row->code,
-            $row->material->nama_barang ?? '-',
-            $row->material->kode_barang ?? '-',
-            $row->material->nup         ?? '-',
+            $namaBarang,
+            $kodeBarang,
+            $nup,
             $row->tgl_pinjam  ? Carbon::parse($row->tgl_pinjam)->format('d/m/Y')  : '-',
             $row->tgl_kembali ? Carbon::parse($row->tgl_kembali)->format('d/m/Y') : '-',
             $row->peminjam ?? '-',
